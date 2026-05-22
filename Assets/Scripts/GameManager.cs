@@ -17,9 +17,12 @@ public class GameManager : MonoBehaviour
     [SerializeField] private BoardManager boardManager;
     [SerializeField] private DeckManager deckManager;
     [SerializeField] private UIManager uiManager;
+    [SerializeField] private PlayerBattleController playerController;
     [SerializeField] private UserCardPool userCardPool;
     [SerializeField] private BattleActorView playerActor;
+    [SerializeField] private EnemyBattleController enemyController;
     [SerializeField] private BattleActorView enemyActor;
+    [SerializeField] private Transform enemySpawnPoint;
 
     [Header("Rounds")]
     [SerializeField] private List<BattleRoundSO> rounds = new();
@@ -36,6 +39,7 @@ public class GameManager : MonoBehaviour
     private int turnNumber;
     private BattleRoundSO currentRound;
     private UserCardPool activeUserCardPool;
+    private GameObject spawnedEnemyObject;
     private BattleState state = BattleState.EnemySpawning;
     private readonly Stack<GameSnapshot> undoStack = new();
     private readonly List<CardData> playedPlayerCardsThisTurn = new();
@@ -51,9 +55,9 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        if (boardManager == null || deckManager == null || userCardPool == null)
+        if (boardManager == null || deckManager == null)
         {
-            Debug.LogError("GameManager: Missing BoardManager, DeckManager, or UserCardPool.");
+            Debug.LogError("GameManager: Missing BoardManager or DeckManager.");
             return;
         }
 
@@ -63,9 +67,6 @@ public class GameManager : MonoBehaviour
         {
             uiManager.Initialize(this);
         }
-
-        playerActor?.ResetHp();
-        enemyActor?.ResetHp();
 
         StartBattleRound();
     }
@@ -108,8 +109,6 @@ public class GameManager : MonoBehaviour
     public void RestartCurrentLevel()
     {
         StopAllCoroutines();
-        playerActor?.ResetHp();
-        enemyActor?.ResetHp();
         StartBattleRound();
     }
 
@@ -168,21 +167,30 @@ public class GameManager : MonoBehaviour
             uiManager = FindFirstObjectByType<UIManager>();
         }
 
+        if (playerController == null)
+        {
+            playerController = FindFirstObjectByType<PlayerBattleController>();
+        }
+
         if (userCardPool == null)
         {
-            userCardPool = FindFirstObjectByType<UserCardPool>();
+            userCardPool = playerController != null && playerController.CardPool != null ? playerController.CardPool : FindFirstObjectByType<UserCardPool>();
         }
 
         if (playerActor == null)
         {
-            GameObject found = FindSceneObjectByName("PlayerActor");
-            playerActor = found != null ? found.GetComponent<BattleActorView>() : null;
+            playerActor = playerController != null ? playerController.ActorView : null;
+            if (playerActor == null)
+            {
+                GameObject found = FindSceneObjectByName("PlayerActor");
+                playerActor = found != null ? found.GetComponent<BattleActorView>() : null;
+            }
         }
 
-        if (enemyActor == null)
+        if (enemySpawnPoint == null)
         {
-            GameObject found = FindSceneObjectByName("EnemyActor");
-            enemyActor = found != null ? found.GetComponent<BattleActorView>() : null;
+            GameObject found = FindSceneObjectByName("EnemySpawnPoint");
+            enemySpawnPoint = found != null ? found.transform : null;
         }
     }
 
@@ -222,7 +230,24 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        activeUserCardPool = currentRound.playerDeckOverride != null ? currentRound.playerDeckOverride : userCardPool;
+        if (currentRound.enemyData == null)
+        {
+            Debug.LogError($"GameManager: Missing EnemyDataSO on round {currentRound.name}.");
+            return;
+        }
+
+        if (playerController != null)
+        {
+            playerController.InitializeForBattle();
+        }
+        else
+        {
+            playerActor?.ResetHp();
+        }
+
+        playerActor = playerController != null && playerController.ActorView != null ? playerController.ActorView : playerActor;
+        userCardPool = playerController != null && playerController.CardPool != null ? playerController.CardPool : userCardPool;
+        activeUserCardPool = userCardPool;
         if (activeUserCardPool == null)
         {
             Debug.LogError("GameManager: Missing active UserCardPool.");
@@ -236,6 +261,7 @@ public class GameManager : MonoBehaviour
         deckManager.ClearCurrentHand();
         boardManager.BuildBoard(currentRound.gridData, this);
         activeUserCardPool.ResetForBattle();
+        SpawnRoundEnemy(currentRound.enemyData);
 
         Debug.Log($"GameManager: Round {currentRoundIndex + 1} start. round={currentRound.name}");
         StartTurn();
@@ -262,6 +288,39 @@ public class GameManager : MonoBehaviour
 
         state = BattleState.PlayerAction;
         Debug.Log($"GameManager: Player action start. hand={deckManager.HandCount}");
+    }
+
+    private void SpawnRoundEnemy(EnemyDataSO enemyData)
+    {
+        if (spawnedEnemyObject != null)
+        {
+            Destroy(spawnedEnemyObject);
+            spawnedEnemyObject = null;
+            enemyController = null;
+            enemyActor = null;
+        }
+
+        if (enemySpawnPoint == null)
+        {
+            GameObject found = FindSceneObjectByName("EnemySpawnPoint");
+            enemySpawnPoint = found != null ? found.transform : null;
+        }
+
+        if (enemySpawnPoint == null)
+        {
+            Debug.LogError("GameManager: Missing EnemySpawnPoint.");
+            return;
+        }
+
+        spawnedEnemyObject = new GameObject("EnemyActor", typeof(BattleActorView), typeof(EnemyBattleController));
+        spawnedEnemyObject.transform.SetPositionAndRotation(enemySpawnPoint.position, enemySpawnPoint.rotation);
+        spawnedEnemyObject.transform.localScale = Vector3.one;
+
+        enemyController = spawnedEnemyObject.GetComponent<EnemyBattleController>();
+        enemyController.Initialize(enemyData);
+        enemyActor = enemyController.ActorView;
+
+        Debug.Log($"GameManager: Spawn enemy {enemyData.displayName} at {enemySpawnPoint.position}.");
     }
 
     private void SpawnEnemyCards(BattleRoundSO round)

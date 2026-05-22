@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5a4d2a92c6d94ec0a8a551176058f711, type: 3}
   m_Name: TestGrid
   m_EditorClassIdentifier: Assembly-CSharp::GridDataSO
-  rows: 1
-  columns: 5
+  rows: 3
+  columns: 3
   disabledCells: []

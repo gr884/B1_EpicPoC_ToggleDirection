@@ -5,6 +5,6 @@ public class BattleRoundSO : ScriptableObject
 {
     public GridDataSO gridData;
     public EnemyDeckSO enemyDeck;
+    public EnemyDataSO enemyData;
     [Min(0)] public int enemyCardsPerTurn = 1;
-    public UserCardPool playerDeckOverride;
 }

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: RightUpCard
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardId: 8
-  displayName: "\uC624\uB978\uC544\uB798"
+  displayName: "\uC624\uB978\uC704"
   abilityDirection: 2
   additionalDirections: 
-  icon: {fileID: -3030066030375753366, guid: 05f7a63153987c246b86f41159df694c, type: 3}
+  icon: {fileID: 21300000, guid: 05f7a63153987c246b86f41159df694c, type: 3}

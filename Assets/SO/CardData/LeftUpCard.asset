@@ -16,4 +16,4 @@ MonoBehaviour:
   displayName: "\uC67C\uC704"
   abilityDirection: 8
   additionalDirections: 
-  icon: {fileID: -6994915466344122352, guid: 244b29b92900b3d41a7ff98f6d54295b, type: 3}
+  icon: {fileID: 21300000, guid: 244b29b92900b3d41a7ff98f6d54295b, type: 3}

@@ -4,55 +4,9 @@ using UnityEngine.UI;
 
 public class BattleSceneRuntimeSetup : MonoBehaviour
 {
-    [SerializeField] private int actorMaxHp = 20;
-
     private void Awake()
     {
-        EnsureActors();
         EnsureButtons();
-    }
-
-    private void EnsureActors()
-    {
-        Transform topRoot = FindSceneObjectByName("TopBattleRoot")?.transform;
-        if (topRoot == null)
-        {
-            return;
-        }
-
-        EnsureActor(topRoot, "PlayerActor", "Player", new Vector2(-320f, 0f), new Color(0.35f, 0.75f, 1f, 1f));
-        EnsureActor(topRoot, "EnemyActor", "Enemy", new Vector2(320f, 0f), new Color(1f, 0.45f, 0.45f, 1f));
-    }
-
-    private void EnsureActor(Transform parent, string objectName, string label, Vector2 anchoredPosition, Color color)
-    {
-        GameObject existing = FindSceneObjectByName(objectName);
-        if (existing != null)
-        {
-            BattleActorView existingView = existing.GetComponent<BattleActorView>();
-            if (existingView != null)
-            {
-                existingView.Configure(label, actorMaxHp, existing.GetComponentInChildren<TMP_Text>());
-            }
-            return;
-        }
-
-        GameObject actor = new(objectName, typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(BattleActorView));
-        actor.transform.SetParent(parent, false);
-
-        RectTransform rect = actor.GetComponent<RectTransform>();
-        rect.anchorMin = new Vector2(0.5f, 0.5f);
-        rect.anchorMax = new Vector2(0.5f, 0.5f);
-        rect.pivot = new Vector2(0.5f, 0.5f);
-        rect.sizeDelta = new Vector2(220f, 120f);
-        rect.anchoredPosition = anchoredPosition;
-
-        Image image = actor.GetComponent<Image>();
-        image.color = color;
-
-        TMP_Text hpText = CreateLabel(actor.transform, "HpText", label, Vector2.zero, new Vector2(220f, 60f), 26f);
-        BattleActorView view = actor.GetComponent<BattleActorView>();
-        view.Configure(label, actorMaxHp, hpText);
     }
 
     private void EnsureButtons()
