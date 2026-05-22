@@ -44,6 +44,8 @@ public class GameManager : MonoBehaviour
     private readonly Stack<GameSnapshot> undoStack = new();
     private readonly List<CardData> playedPlayerCardsThisTurn = new();
 
+    public event System.Action<int, int> DamagePreviewChanged;
+
     private void Start()
     {
         ResolveRefs();
@@ -91,6 +93,7 @@ public class GameManager : MonoBehaviour
             playedPlayerCardsThisTurn.Add(card.Data);
         }
 
+        PublishDamagePreview();
         StartCoroutine(ResolvePlacedCardEffects(card));
         return true;
     }
@@ -122,6 +125,7 @@ public class GameManager : MonoBehaviour
 
         Debug.Log("GameManager: Undo last player placement.");
         RestoreSnapshot(undoStack.Pop());
+        PublishDamagePreview();
     }
 
     public void LoadNextLevel()
@@ -282,6 +286,7 @@ public class GameManager : MonoBehaviour
 
         Debug.Log($"GameManager: Turn {turnNumber} start.");
         SpawnEnemyCards(currentRound);
+        PublishDamagePreview();
 
         List<CardData> hand = activeUserCardPool.DrawCards(activeUserCardPool.DrawCount);
         deckManager.BuildHand(hand);
@@ -367,6 +372,7 @@ public class GameManager : MonoBehaviour
         state = BattleState.ResolvingCardEffects;
         yield return EmitDirectionChain(rootCard);
         state = BattleState.PlayerAction;
+        PublishDamagePreview();
         Debug.Log("GameManager: Card effect chain resolved.");
     }
 
@@ -416,6 +422,7 @@ public class GameManager : MonoBehaviour
                 StartCoroutine(target.PlayActivationFeedback(cardFeedbackDuration));
 
                 Debug.Log($"GameManager: Toggle {target.Data?.displayName} at {target.CurrentSlot?.Position}: {wasActivated} -> {nextState}");
+                PublishDamagePreview();
 
                 step++;
                 if (step > maxActivationSteps)
@@ -489,6 +496,7 @@ public class GameManager : MonoBehaviour
         deckManager.ClearCurrentHand();
         boardManager.RemoveAllCards();
         undoStack.Clear();
+        PublishDamagePreview();
 
         Debug.Log($"GameManager: Turn cleanup. discardedPlayerCards={discardCards.Count}");
     }
@@ -555,6 +563,20 @@ public class GameManager : MonoBehaviour
 
             slot.AssignCard(boardCard);
         }
+    }
+
+    private void PublishDamagePreview()
+    {
+        if (boardManager == null)
+        {
+            DamagePreviewChanged?.Invoke(0, 0);
+            return;
+        }
+
+        int playerDamage = boardManager.CountActivatedCards(CardTeam.Ally);
+        int enemyDamage = boardManager.CountActivatedCards(CardTeam.Enemy);
+        DamagePreviewChanged?.Invoke(playerDamage, enemyDamage);
+        Debug.Log($"GameManager: Damage preview changed. playerDamage={playerDamage}, enemyDamage={enemyDamage}");
     }
 
     private static GameObject FindSceneObjectByName(string objectName)

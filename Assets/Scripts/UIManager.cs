@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -12,17 +13,38 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Button endTurnButton;
     [SerializeField] private Button undoButton;
     [SerializeField] private Button exitButton;
+    [SerializeField] private TMP_Text playerDamagePreviewText;
+    [SerializeField] private TMP_Text enemyDamagePreviewText;
 
     private GameManager gameManager;
     private readonly List<Button> boundRestartButtons = new();
 
     public void Initialize(GameManager owner)
     {
+        if (gameManager != null)
+        {
+            gameManager.DamagePreviewChanged -= RefreshDamagePreview;
+        }
+
         gameManager = owner;
 
         AutoBindRefs();
         BindButtons();
         HideResult();
+        RefreshDamagePreview(0, 0);
+
+        if (gameManager != null)
+        {
+            gameManager.DamagePreviewChanged += RefreshDamagePreview;
+        }
+    }
+
+    private void OnDestroy()
+    {
+        if (gameManager != null)
+        {
+            gameManager.DamagePreviewChanged -= RefreshDamagePreview;
+        }
     }
 
     public void ShowClear()
@@ -142,6 +164,24 @@ public class UIManager : MonoBehaviour
                 exitButton = exitObj.GetComponent<Button>();
             }
         }
+
+        if (playerDamagePreviewText == null)
+        {
+            GameObject previewObj = FindSceneObjectByName("PlayerDamagePreviewText");
+            if (previewObj != null)
+            {
+                playerDamagePreviewText = previewObj.GetComponent<TMP_Text>();
+            }
+        }
+
+        if (enemyDamagePreviewText == null)
+        {
+            GameObject previewObj = FindSceneObjectByName("EnemyDamagePreviewText");
+            if (previewObj != null)
+            {
+                enemyDamagePreviewText = previewObj.GetComponent<TMP_Text>();
+            }
+        }
     }
 
     private void BindButtons()
@@ -217,6 +257,19 @@ public class UIManager : MonoBehaviour
         btn.onClick.RemoveAllListeners();
         btn.onClick.AddListener(gameManager.RestartCurrentLevel);
         boundRestartButtons.Add(btn);
+    }
+
+    private void RefreshDamagePreview(int playerDamage, int enemyDamage)
+    {
+        if (playerDamagePreviewText != null)
+        {
+            playerDamagePreviewText.text = $"Player DMG {playerDamage}";
+        }
+
+        if (enemyDamagePreviewText != null)
+        {
+            enemyDamagePreviewText.text = $"Enemy DMG {enemyDamage}";
+        }
     }
 
     private static GameObject FindSceneObjectByName(string objectName)
