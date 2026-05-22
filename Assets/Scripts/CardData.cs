@@ -14,6 +14,12 @@ public enum AbilityDirection
     UpLeft
 }
 
+public enum CardTeam
+{
+    Ally,
+    Enemy
+}
+
 [CreateAssetMenu(menuName = "EpicPoC/Card Data", fileName = "CardData")]
 public class CardData : ScriptableObject
 {

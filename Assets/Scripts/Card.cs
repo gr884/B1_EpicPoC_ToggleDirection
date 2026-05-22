@@ -13,8 +13,13 @@ public class Card : MonoBehaviour
     [Header("Colors")]
     [SerializeField] private Color activeColor = Color.white;
     [SerializeField] private Color inactiveColor = Color.gray;
+    [SerializeField] private Color enemyActiveColor = new Color(1f, 0.55f, 0.55f, 1f);
+    [SerializeField] private Color enemyInactiveColor = new Color(0.45f, 0.25f, 0.25f, 1f);
 
     public CardData Data { get; private set; }
+    public CardTeam Team { get; private set; } = CardTeam.Ally;
+    public bool IsAlly => Team == CardTeam.Ally;
+    public bool IsEnemy => Team == CardTeam.Enemy;
     public bool IsActivated { get; private set; }
     public bool IsPlacedOnBoard { get; private set; }
     public BoardSlot CurrentSlot { get; private set; }
@@ -34,9 +39,10 @@ public class Card : MonoBehaviour
         }
     }
 
-    public void Initialize(CardData data, bool startsActivated = false)
+    public void Initialize(CardData data, CardTeam team, bool startsActivated = false)
     {
         Data = data;
+        Team = team;
         IsActivated = startsActivated;
         CurrentSlot = null;
         IsPlacedOnBoard = false;
@@ -73,7 +79,7 @@ public class Card : MonoBehaviour
         CardDragHandler dragHandler = GetComponent<CardDragHandler>();
         if (dragHandler != null)
         {
-            dragHandler.enabled = draggable;
+            dragHandler.enabled = draggable && !IsEnemy;
         }
     }
 
@@ -84,7 +90,14 @@ public class Card : MonoBehaviour
             return;
         }
 
-        backgroundImage.color = IsActivated ? activeColor : inactiveColor;
+        if (IsEnemy)
+        {
+            backgroundImage.color = IsActivated ? enemyActiveColor : enemyInactiveColor;
+        }
+        else
+        {
+            backgroundImage.color = IsActivated ? activeColor : inactiveColor;
+        }
     }
 
     public IEnumerator PlayActivationFeedback(float duration)

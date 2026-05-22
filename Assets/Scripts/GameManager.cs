@@ -1,99 +1,145 @@
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
+    private enum BattleState
+    {
+        EnemySpawning,
+        PlayerAction,
+        ResolvingCardEffects,
+        ResolvingCombat,
+        GameOver
+    }
+
     [Header("Refs")]
     [SerializeField] private BoardManager boardManager;
     [SerializeField] private DeckManager deckManager;
     [SerializeField] private UIManager uiManager;
+    [SerializeField] private UserCardPool userCardPool;
+    [SerializeField] private BattleActorView playerActor;
+    [SerializeField] private BattleActorView enemyActor;
 
-    [Header("Levels")]
-    [SerializeField] private List<LevelData> levels = new();
-    [SerializeField] private int startLevelIndex;
+    [Header("Rounds")]
+    [SerializeField] private List<BattleRoundSO> rounds = new();
+    [SerializeField] private int startRoundIndex;
 
     [Header("Safety")]
     [SerializeField] private int maxActivationSteps = 2048;
-    [SerializeField] private float chainStepDelay = 0.5f;
+    [SerializeField] private int maxEmitsPerCardInContext = 4;
+    [SerializeField] private float chainStepDelay = 0.2f;
     [SerializeField] private float cardFeedbackDuration = 0.22f;
+    [SerializeField] private float combatStepDelay = 0.35f;
 
-    private int currentLevelIndex;
-    private bool levelEnded;
-    private bool isResolvingChain;
+    private int currentRoundIndex;
+    private int turnNumber;
+    private BattleRoundSO currentRound;
+    private UserCardPool activeUserCardPool;
+    private BattleState state = BattleState.EnemySpawning;
     private readonly Stack<GameSnapshot> undoStack = new();
+    private readonly List<CardData> playedPlayerCardsThisTurn = new();
 
     private void Start()
     {
         ResolveRefs();
         CleanupSceneArtifacts();
 
-        if (levels == null || levels.Count == 0)
+        if (rounds == null || rounds.Count == 0)
         {
-            Debug.LogError("GameManager: Level list is empty.");
+            Debug.LogError("GameManager: Round list is empty.");
             return;
         }
 
-        currentLevelIndex = Mathf.Clamp(startLevelIndex, 0, Mathf.Max(0, levels.Count - 1));
+        if (boardManager == null || deckManager == null || userCardPool == null)
+        {
+            Debug.LogError("GameManager: Missing BoardManager, DeckManager, or UserCardPool.");
+            return;
+        }
+
+        currentRoundIndex = Mathf.Clamp(startRoundIndex, 0, Mathf.Max(0, rounds.Count - 1));
 
         if (uiManager != null)
         {
             uiManager.Initialize(this);
         }
 
-        LoadLevel(currentLevelIndex);
+        playerActor?.ResetHp();
+        enemyActor?.ResetHp();
+
+        StartBattleRound();
     }
 
     public bool TryPlaceCardFromHand(Card card, BoardSlot targetSlot)
     {
-        if (levelEnded || isResolvingChain || card == null || targetSlot == null || !targetSlot.IsEmpty())
+        if (state != BattleState.PlayerAction || card == null || card.IsEnemy || card.IsPlacedOnBoard || targetSlot == null || !targetSlot.IsEmpty())
         {
             return false;
         }
 
+        Debug.Log($"GameManager: Player place card {card.Data?.displayName} at {targetSlot.Position}.");
         undoStack.Push(CaptureSnapshot());
 
         targetSlot.AssignCard(card);
+        card.SetActivated(true);
         card.SetDraggable(false);
         deckManager.RemoveFromHand(card);
-        StartCoroutine(ResolveChainAndEvaluate(card));
 
+        if (card.Data != null)
+        {
+            playedPlayerCardsThisTurn.Add(card.Data);
+        }
+
+        StartCoroutine(ResolvePlacedCardEffects(card));
         return true;
+    }
+
+    public void EndTurn()
+    {
+        if (state != BattleState.PlayerAction)
+        {
+            Debug.Log($"GameManager: EndTurn ignored in state {state}.");
+            return;
+        }
+
+        StartCoroutine(ResolveCombat());
     }
 
     public void RestartCurrentLevel()
     {
-        LoadLevel(currentLevelIndex);
+        StopAllCoroutines();
+        playerActor?.ResetHp();
+        enemyActor?.ResetHp();
+        StartBattleRound();
     }
 
     public void UndoLastMove()
     {
-        if (undoStack.Count == 0)
+        if (state != BattleState.PlayerAction || undoStack.Count == 0)
         {
+            Debug.Log("GameManager: Undo ignored.");
             return;
         }
 
-        StopAllCoroutines();
-        isResolvingChain = false;
-        levelEnded = false;
-
+        Debug.Log("GameManager: Undo last player placement.");
         RestoreSnapshot(undoStack.Pop());
     }
 
     public void LoadNextLevel()
     {
-        int next = currentLevelIndex + 1;
-        if (next >= levels.Count)
+        int next = currentRoundIndex + 1;
+        if (rounds == null || next >= rounds.Count)
         {
             return;
         }
 
-        currentLevelIndex = next;
-        LoadLevel(currentLevelIndex);
+        currentRoundIndex = next;
+        RestartCurrentLevel();
     }
 
     public bool IsLastLevel()
     {
-        return levels != null && levels.Count > 0 && currentLevelIndex >= levels.Count - 1;
+        return rounds != null && rounds.Count > 0 && currentRoundIndex >= rounds.Count - 1;
     }
 
     public void ExitGame()
@@ -121,6 +167,23 @@ public class GameManager : MonoBehaviour
         {
             uiManager = FindFirstObjectByType<UIManager>();
         }
+
+        if (userCardPool == null)
+        {
+            userCardPool = FindFirstObjectByType<UserCardPool>();
+        }
+
+        if (playerActor == null)
+        {
+            GameObject found = FindSceneObjectByName("PlayerActor");
+            playerActor = found != null ? found.GetComponent<BattleActorView>() : null;
+        }
+
+        if (enemyActor == null)
+        {
+            GameObject found = FindSceneObjectByName("EnemyActor");
+            enemyActor = found != null ? found.GetComponent<BattleActorView>() : null;
+        }
     }
 
     private void CleanupSceneArtifacts()
@@ -138,34 +201,237 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private void LoadLevel(int levelIndex)
+    private void StartBattleRound()
     {
-        if (levels == null || levels.Count == 0)
+        if (rounds == null || rounds.Count == 0)
         {
-            Debug.LogError("GameManager: Level list is empty.");
+            Debug.LogError("GameManager: Round list is empty.");
             return;
         }
 
-        if (boardManager == null || deckManager == null)
+        currentRound = rounds[currentRoundIndex];
+        if (currentRound == null)
         {
-            Debug.LogError("GameManager: Missing BoardManager or DeckManager.");
+            Debug.LogError($"GameManager: Missing BattleRoundSO at index {currentRoundIndex}.");
             return;
         }
 
-        levelEnded = false;
-        isResolvingChain = false;
+        if (currentRound.gridData == null)
+        {
+            Debug.LogError($"GameManager: Missing GridDataSO on round {currentRound.name}.");
+            return;
+        }
+
+        activeUserCardPool = currentRound.playerDeckOverride != null ? currentRound.playerDeckOverride : userCardPool;
+        if (activeUserCardPool == null)
+        {
+            Debug.LogError("GameManager: Missing active UserCardPool.");
+            return;
+        }
+
+        turnNumber = 0;
+        state = BattleState.EnemySpawning;
+        undoStack.Clear();
+        playedPlayerCardsThisTurn.Clear();
+        deckManager.ClearCurrentHand();
+        boardManager.BuildBoard(currentRound.gridData, this);
+        activeUserCardPool.ResetForBattle();
+
+        Debug.Log($"GameManager: Round {currentRoundIndex + 1} start. round={currentRound.name}");
+        StartTurn();
+    }
+
+    private void StartTurn()
+    {
+        if (currentRound == null)
+        {
+            Debug.LogError("GameManager: Cannot start turn without current round.");
+            return;
+        }
+
+        turnNumber++;
+        state = BattleState.EnemySpawning;
+        undoStack.Clear();
+        playedPlayerCardsThisTurn.Clear();
+
+        Debug.Log($"GameManager: Turn {turnNumber} start.");
+        SpawnEnemyCards(currentRound);
+
+        List<CardData> hand = activeUserCardPool.DrawCards(activeUserCardPool.DrawCount);
+        deckManager.BuildHand(hand);
+
+        state = BattleState.PlayerAction;
+        Debug.Log($"GameManager: Player action start. hand={deckManager.HandCount}");
+    }
+
+    private void SpawnEnemyCards(BattleRoundSO round)
+    {
+        if (round == null || round.enemyDeck == null || round.enemyDeck.cards == null || round.enemyDeck.cards.Count == 0)
+        {
+            Debug.LogWarning("GameManager: Enemy deck is empty.");
+            return;
+        }
+
+        List<BoardSlot> emptySlots = boardManager.GetEmptySlots();
+        if (emptySlots.Count == 0)
+        {
+            Debug.LogWarning("GameManager: No empty slot for enemy spawn.");
+            return;
+        }
+
+        int spawnCount = Mathf.Min(Mathf.Max(0, round.enemyCardsPerTurn), round.enemyDeck.cards.Count, emptySlots.Count);
+        if (spawnCount < round.enemyCardsPerTurn)
+        {
+            Debug.LogWarning($"GameManager: Enemy spawn count reduced. requested={round.enemyCardsPerTurn}, actual={spawnCount}");
+        }
+
+        List<CardData> selectedCards = PickRandomCards(round.enemyDeck.cards, spawnCount);
+        ShuffleSlots(emptySlots);
+
+        for (int i = 0; i < selectedCards.Count; i++)
+        {
+            CardData cardData = selectedCards[i];
+            BoardSlot slot = emptySlots[i];
+            Card boardCard = deckManager.SpawnBoardCard(cardData, slot.transform, CardTeam.Enemy, true);
+            if (boardCard == null)
+            {
+                continue;
+            }
+
+            slot.AssignCard(boardCard);
+            Debug.Log($"GameManager: Enemy card {cardData.displayName} spawned at {slot.Position}. No initial effect.");
+        }
+    }
+
+    private IEnumerator ResolvePlacedCardEffects(Card rootCard)
+    {
+        state = BattleState.ResolvingCardEffects;
+        yield return EmitDirectionChain(rootCard);
+        state = BattleState.PlayerAction;
+        Debug.Log("GameManager: Card effect chain resolved.");
+    }
+
+    private IEnumerator EmitDirectionChain(Card rootCard)
+    {
+        if (rootCard == null)
+        {
+            yield break;
+        }
+
+        Queue<Card> emitQueue = new();
+        Dictionary<Card, int> emitCounts = new();
+        emitQueue.Enqueue(rootCard);
+
+        int step = 0;
+        while (emitQueue.Count > 0)
+        {
+            Card emitter = emitQueue.Dequeue();
+            if (emitter == null || emitter.CurrentSlot == null || emitter.Data == null)
+            {
+                continue;
+            }
+
+            emitCounts.TryGetValue(emitter, out int count);
+            if (count >= maxEmitsPerCardInContext)
+            {
+                Debug.LogWarning($"GameManager: Emit skipped by per-card limit. card={emitter.Data.displayName}");
+                continue;
+            }
+            emitCounts[emitter] = count + 1;
+
+            Debug.Log($"GameManager: Emit direction effect from {emitter.Data.displayName} at {emitter.CurrentSlot.Position}.");
+
+            foreach (AbilityDirection dir in emitter.Data.GetAllDirections())
+            {
+                BoardSlot neighbor = boardManager.GetNeighbor(emitter.CurrentSlot, dir);
+                Card target = neighbor != null ? neighbor.OccupiedCard : null;
+                if (target == null)
+                {
+                    continue;
+                }
+
+                bool wasActivated = target.IsActivated;
+                bool nextState = !wasActivated;
+                target.SetActivated(nextState);
+                target.CurrentSlot?.PulseHighlight(cardFeedbackDuration);
+                StartCoroutine(target.PlayActivationFeedback(cardFeedbackDuration));
+
+                Debug.Log($"GameManager: Toggle {target.Data?.displayName} at {target.CurrentSlot?.Position}: {wasActivated} -> {nextState}");
+
+                step++;
+                if (step > maxActivationSteps)
+                {
+                    Debug.LogWarning("GameManager: Activation chain stopped by safety limit.");
+                    yield break;
+                }
+
+                if (!wasActivated && nextState)
+                {
+                    emitQueue.Enqueue(target);
+                }
+            }
+
+            if (chainStepDelay > 0f)
+            {
+                yield return new WaitForSeconds(chainStepDelay);
+            }
+        }
+    }
+
+    private IEnumerator ResolveCombat()
+    {
+        state = BattleState.ResolvingCombat;
+        Debug.Log("GameManager: End turn. Resolve combat.");
+
+        int playerAttackPower = boardManager.CountActivatedCards(CardTeam.Ally);
+        int enemyAttackPower = boardManager.CountActivatedCards(CardTeam.Enemy);
+
+        Debug.Log($"GameManager: Damage calculation. playerAttackPower={playerAttackPower}, enemyAttackPower={enemyAttackPower}");
+
+        if (playerAttackPower > 0)
+        {
+            enemyActor?.TakeDamage(playerAttackPower);
+            yield return new WaitForSeconds(combatStepDelay);
+        }
+
+        if (enemyActor != null && enemyActor.IsDead)
+        {
+            state = BattleState.GameOver;
+            Debug.Log("GameManager: Enemy defeated.");
+            uiManager?.ShowClear();
+            yield break;
+        }
+
+        if (enemyAttackPower > 0)
+        {
+            playerActor?.TakeDamage(enemyAttackPower);
+            yield return new WaitForSeconds(combatStepDelay);
+        }
+
+        if (playerActor != null && playerActor.IsDead)
+        {
+            state = BattleState.GameOver;
+            Debug.Log("GameManager: Player defeated.");
+            uiManager?.ShowFail();
+            yield break;
+        }
+
+        CleanupTurnCards();
+        StartTurn();
+    }
+
+    private void CleanupTurnCards()
+    {
+        List<CardData> discardCards = new();
+        discardCards.AddRange(deckManager.CaptureHandState());
+        discardCards.AddRange(playedPlayerCardsThisTurn);
+        activeUserCardPool.DiscardMany(discardCards);
+
+        deckManager.ClearCurrentHand();
+        boardManager.RemoveAllCards();
         undoStack.Clear();
 
-        LevelData levelData = levels[levelIndex];
-        boardManager.BuildBoard(levelData, this);
-        deckManager.BuildHand(levelData.handCards);
-
-        SpawnPrePlacedCards(levelData);
-
-        if (uiManager != null)
-        {
-            uiManager.HideResult();
-        }
+        Debug.Log($"GameManager: Turn cleanup. discardedPlayerCards={discardCards.Count}");
     }
 
     private GameSnapshot CaptureSnapshot()
@@ -173,6 +439,7 @@ public class GameManager : MonoBehaviour
         GameSnapshot snapshot = new()
         {
             handCards = deckManager.CaptureHandState(),
+            playedCards = new List<CardData>(playedPlayerCardsThisTurn),
             placedCards = new List<PlacedCardRuntime>()
         };
 
@@ -187,6 +454,7 @@ public class GameManager : MonoBehaviour
             {
                 card = slot.OccupiedCard.Data,
                 position = slot.Position,
+                team = slot.OccupiedCard.Team,
                 isActivated = slot.OccupiedCard.IsActivated
             });
         }
@@ -201,9 +469,10 @@ public class GameManager : MonoBehaviour
             return;
         }
 
-        LevelData levelData = levels[currentLevelIndex];
-        boardManager.BuildBoard(levelData, this);
+        boardManager.RemoveAllCards();
         deckManager.BuildHand(snapshot.handCards);
+        playedPlayerCardsThisTurn.Clear();
+        playedPlayerCardsThisTurn.AddRange(snapshot.playedCards);
 
         for (int i = 0; i < snapshot.placedCards.Count; i++)
         {
@@ -219,43 +488,7 @@ public class GameManager : MonoBehaviour
                 continue;
             }
 
-            Card boardCard = deckManager.SpawnBoardCard(placed.card, slot.transform, placed.isActivated);
-            if (boardCard == null)
-            {
-                continue;
-            }
-
-            slot.AssignCard(boardCard);
-        }
-
-        if (uiManager != null)
-        {
-            uiManager.HideResult();
-        }
-    }
-
-    private void SpawnPrePlacedCards(LevelData levelData)
-    {
-        if (levelData == null || levelData.prePlacedCards == null)
-        {
-            return;
-        }
-
-        foreach (PlacedCardSeed seed in levelData.prePlacedCards)
-        {
-            if (seed == null || seed.card == null)
-            {
-                continue;
-            }
-
-            BoardSlot slot = boardManager.GetSlot(seed.position);
-            if (slot == null || !slot.IsEmpty())
-            {
-                Debug.LogWarning($"GameManager: Invalid pre-placed slot {seed.position}.");
-                continue;
-            }
-
-            Card boardCard = deckManager.SpawnBoardCard(seed.card, slot.transform, seed.startsActivated);
+            Card boardCard = deckManager.SpawnBoardCard(placed.card, slot.transform, placed.team, placed.isActivated);
             if (boardCard == null)
             {
                 continue;
@@ -265,119 +498,56 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    private System.Collections.IEnumerator ResolveChainAndEvaluate(Card rootCard)
+    private static GameObject FindSceneObjectByName(string objectName)
     {
-        isResolvingChain = true;
-        yield return ActivateChainFrom(rootCard);
-        EvaluateEndState();
-        isResolvingChain = false;
+        GameObject[] all = Resources.FindObjectsOfTypeAll<GameObject>();
+        foreach (GameObject go in all)
+        {
+            if (go == null || !go.scene.IsValid())
+            {
+                continue;
+            }
+
+            if (go.name == objectName)
+            {
+                return go;
+            }
+        }
+
+        return null;
     }
 
-    private System.Collections.IEnumerator ActivateChainFrom(Card rootCard)
+    private static List<CardData> PickRandomCards(List<CardData> source, int count)
     {
-        if (rootCard == null)
+        List<CardData> pool = new();
+        for (int i = 0; i < source.Count; i++)
         {
-            yield break;
+            if (source[i] != null)
+            {
+                pool.Add(source[i]);
+            }
         }
 
-        List<Card> currentWave = new() { rootCard };
-
-        int step = 0;
-
-        while (currentWave.Count > 0)
+        for (int i = pool.Count - 1; i > 0; i--)
         {
-            List<Card> emitters = new();
-
-            for (int i = 0; i < currentWave.Count; i++)
-            {
-                Card current = currentWave[i];
-                if (current == null || current.CurrentSlot == null)
-                {
-                    continue;
-                }
-
-                // Activation signal toggles the card state.
-                bool nextState = !current.IsActivated;
-                current.SetActivated(nextState);
-                current.CurrentSlot.PulseHighlight(cardFeedbackDuration);
-
-                step++;
-                if (step > maxActivationSteps)
-                {
-                    Debug.LogWarning("GameManager: Activation chain stopped by safety limit.");
-                    yield break;
-                }
-
-                // Only cards that end up active emit their ability.
-                if (nextState)
-                {
-                    emitters.Add(current);
-                }
-            }
-
-            // Play feedback for all cards in the same wave simultaneously.
-            for (int i = 0; i < currentWave.Count; i++)
-            {
-                Card current = currentWave[i];
-                if (current == null || current.CurrentSlot == null)
-                {
-                    continue;
-                }
-
-                StartCoroutine(current.PlayActivationFeedback(cardFeedbackDuration));
-            }
-            yield return new WaitForSeconds(cardFeedbackDuration);
-
-            HashSet<Card> nextWaveSet = new();
-            foreach (Card emitter in emitters)
-            {
-                if (emitter.Data == null)
-                {
-                    continue;
-                }
-
-                foreach (AbilityDirection dir in emitter.Data.GetAllDirections())
-                {
-                    BoardSlot neighbor = boardManager.GetNeighbor(emitter.CurrentSlot, dir);
-                    if (neighbor != null && neighbor.OccupiedCard != null)
-                    {
-                        // Same-wave duplicated triggers collapse to one.
-                        nextWaveSet.Add(neighbor.OccupiedCard);
-                    }
-                }
-            }
-
-            currentWave = new List<Card>(nextWaveSet);
-
-            if (currentWave.Count > 0 && chainStepDelay > 0f)
-            {
-                yield return new WaitForSeconds(chainStepDelay);
-            }
+            int swapIndex = Random.Range(0, i + 1);
+            (pool[i], pool[swapIndex]) = (pool[swapIndex], pool[i]);
         }
+
+        if (pool.Count > count)
+        {
+            pool.RemoveRange(count, pool.Count - count);
+        }
+
+        return pool;
     }
 
-    private void EvaluateEndState()
+    private static void ShuffleSlots(List<BoardSlot> slots)
     {
-        if (deckManager.HandCount > 0)
+        for (int i = slots.Count - 1; i > 0; i--)
         {
-            return;
-        }
-
-        bool success = boardManager.AreAllPlacedCardsActivated();
-        levelEnded = true;
-
-        if (uiManager == null)
-        {
-            return;
-        }
-
-        if (success)
-        {
-            uiManager.ShowClear();
-        }
-        else
-        {
-            uiManager.ShowFail();
+            int swapIndex = Random.Range(0, i + 1);
+            (slots[i], slots[swapIndex]) = (slots[swapIndex], slots[i]);
         }
     }
 
@@ -385,6 +555,7 @@ public class GameManager : MonoBehaviour
     private class GameSnapshot
     {
         public List<CardData> handCards = new();
+        public List<CardData> playedCards = new();
         public List<PlacedCardRuntime> placedCards = new();
     }
 
@@ -393,6 +564,7 @@ public class GameManager : MonoBehaviour
     {
         public CardData card;
         public Vector2Int position;
+        public CardTeam team = CardTeam.Ally;
         public bool isActivated;
     }
 }

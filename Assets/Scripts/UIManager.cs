@@ -9,6 +9,7 @@ public class UIManager : MonoBehaviour
     [SerializeField] private GameObject failPanel;
     [SerializeField] private Button restartButton;
     [SerializeField] private Button nextButton;
+    [SerializeField] private Button endTurnButton;
     [SerializeField] private Button undoButton;
     [SerializeField] private Button exitButton;
 
@@ -124,6 +125,15 @@ public class UIManager : MonoBehaviour
             }
         }
 
+        if (endTurnButton == null)
+        {
+            GameObject endTurnObj = FindSceneObjectByName("EndTurnButton");
+            if (endTurnObj != null)
+            {
+                endTurnButton = endTurnObj.GetComponent<Button>();
+            }
+        }
+
         if (exitButton == null)
         {
             GameObject exitObj = FindSceneObjectByName("ExitButton");
@@ -163,6 +173,12 @@ public class UIManager : MonoBehaviour
         {
             undoButton.onClick.RemoveAllListeners();
             undoButton.onClick.AddListener(gameManager.UndoLastMove);
+        }
+
+        if (endTurnButton != null)
+        {
+            endTurnButton.onClick.RemoveAllListeners();
+            endTurnButton.onClick.AddListener(gameManager.EndTurn);
         }
 
         if (exitButton != null)

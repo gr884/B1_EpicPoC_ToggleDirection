@@ -10,15 +10,23 @@ public class DeckManager : MonoBehaviour
     [SerializeField] private Vector2 handCardSize = new Vector2(120f, 180f);
     [SerializeField] private float handSpacing = 16f;
 
+    [Header("Sizing")]
+    [SerializeField] private bool fitHandCardsToPanelHeight = true;
+    [SerializeField] private float panelVerticalPadding;
+
     private readonly List<Card> handCards = new();
+    private Vector2 currentHandCardSize;
 
     public int HandCount => handCards.Count;
+
+    public IReadOnlyList<Card> HandCards => handCards;
 
     public void BuildHand(IEnumerable<CardData> handData)
     {
         EnsureRefs();
         ConfigureHandLayout();
         ClearHand();
+        currentHandCardSize = CalculateHandCardSizeForPanelHeight();
 
         if (handData == null)
         {
@@ -27,7 +35,7 @@ public class DeckManager : MonoBehaviour
 
         foreach (CardData cardData in handData)
         {
-            Card card = CreateCard(cardData, handRoot, false, false);
+            Card card = CreateCard(cardData, handRoot, CardTeam.Ally, false, false);
             if (card != null)
             {
                 handCards.Add(card);
@@ -37,15 +45,21 @@ public class DeckManager : MonoBehaviour
         ArrangeHandCardsCentered();
     }
 
-    public Card SpawnBoardCard(CardData data, Transform parent, bool startsActivated)
+    public Card SpawnBoardCard(CardData data, Transform parent, CardTeam team, bool startsActivated)
     {
         EnsureRefs();
-        return CreateCard(data, parent, startsActivated, true);
+        return CreateCard(data, parent, team, startsActivated, true);
     }
 
     public void RemoveFromHand(Card card)
     {
         handCards.Remove(card);
+        ArrangeHandCardsCentered();
+    }
+
+    public void ClearCurrentHand()
+    {
+        ClearHand();
     }
 
     public List<CardData> CaptureHandState()
@@ -70,6 +84,11 @@ public class DeckManager : MonoBehaviour
         if (handRoot == null)
         {
             GameObject found = GameObject.Find("HandRoot");
+            if (found == null)
+            {
+                found = GameObject.Find("LowHandRoot");
+            }
+
             if (found != null)
             {
                 handRoot = found.GetComponent<RectTransform>();
@@ -77,7 +96,7 @@ public class DeckManager : MonoBehaviour
         }
     }
 
-    private Card CreateCard(CardData data, Transform parent, bool startsActivated, bool fillParent)
+    private Card CreateCard(CardData data, Transform parent, CardTeam team, bool startsActivated, bool fillParent)
     {
         if (cardPrefab == null || parent == null || data == null)
         {
@@ -86,8 +105,8 @@ public class DeckManager : MonoBehaviour
         }
 
         Card instance = Instantiate(cardPrefab, parent);
-        instance.Initialize(data, startsActivated);
-        instance.SetDraggable(!fillParent);
+        instance.Initialize(data, team, startsActivated);
+        instance.SetDraggable(!fillParent && team == CardTeam.Ally);
 
         RectTransform rect = instance.GetComponent<RectTransform>();
         if (rect != null)
@@ -106,7 +125,7 @@ public class DeckManager : MonoBehaviour
                 rect.anchorMin = new Vector2(0.5f, 0.5f);
                 rect.anchorMax = new Vector2(0.5f, 0.5f);
                 rect.pivot = new Vector2(0.5f, 0.5f);
-                rect.sizeDelta = handCardSize;
+                rect.sizeDelta = currentHandCardSize;
             }
         }
 
@@ -139,7 +158,11 @@ public class DeckManager : MonoBehaviour
 
         for (int i = handRoot.childCount - 1; i >= 0; i--)
         {
-            Destroy(handRoot.GetChild(i).gameObject);
+            Transform child = handRoot.GetChild(i);
+            if (child.GetComponent<Card>() != null)
+            {
+                Destroy(child.gameObject);
+            }
         }
     }
 
@@ -151,7 +174,12 @@ public class DeckManager : MonoBehaviour
             return;
         }
 
-        float step = handCardSize.x + handSpacing;
+        if (currentHandCardSize == Vector2.zero)
+        {
+            currentHandCardSize = CalculateHandCardSizeForPanelHeight();
+        }
+
+        float step = currentHandCardSize.x + handSpacing;
         float start = -((count - 1) * 0.5f) * step;
 
         for (int i = 0; i < count; i++)
@@ -171,8 +199,62 @@ public class DeckManager : MonoBehaviour
             rect.anchorMin = new Vector2(0.5f, 0.5f);
             rect.anchorMax = new Vector2(0.5f, 0.5f);
             rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = handCardSize;
+            rect.sizeDelta = currentHandCardSize;
             rect.anchoredPosition = new Vector2(start + (i * step), 0f);
         }
+    }
+
+    private Vector2 CalculateHandCardSizeForPanelHeight()
+    {
+        if (!fitHandCardsToPanelHeight || handRoot == null || handCardSize.y <= 0f)
+        {
+            return handCardSize;
+        }
+
+        RectTransform panel = FindPanelRect(handRoot);
+        if (panel == null)
+        {
+            return handCardSize;
+        }
+
+        float panelHeight = GetRectHeight(panel);
+        if (panelHeight <= 0f)
+        {
+            return handCardSize;
+        }
+
+        float targetHeight = Mathf.Max(1f, panelHeight - Mathf.Max(0f, panelVerticalPadding));
+        float aspect = handCardSize.x / handCardSize.y;
+        return new Vector2(targetHeight * aspect, targetHeight);
+    }
+
+    private static RectTransform FindPanelRect(RectTransform root)
+    {
+        if (root == null)
+        {
+            return null;
+        }
+
+        for (int i = 0; i < root.childCount; i++)
+        {
+            Transform child = root.GetChild(i);
+            if (child != null && child.name == "Panel")
+            {
+                return child.GetComponent<RectTransform>();
+            }
+        }
+
+        return root;
+    }
+
+    private static float GetRectHeight(RectTransform rectTransform)
+    {
+        float height = rectTransform.rect.height;
+        if (height > 0f)
+        {
+            return height;
+        }
+
+        return Mathf.Abs(rectTransform.sizeDelta.y);
     }
 }

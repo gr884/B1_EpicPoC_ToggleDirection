@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2b97f498e3f84d23802e17931f8c8a6b, type: 3}
+  m_Name: TestBattleRound
+  m_EditorClassIdentifier: Assembly-CSharp::BattleRoundSO
+  gridData: {fileID: 11400000, guid: 0799c10cc62e4e3b80c581a7af96d7ae, type: 2}
+  enemyDeck: {fileID: 11400000, guid: 61d342e2a6754bc58a7aca1cde8b0e48, type: 2}
+  enemyCardsPerTurn: 2
+  playerDeckOverride: {fileID: 0}

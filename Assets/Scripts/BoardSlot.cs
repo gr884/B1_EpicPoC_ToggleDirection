@@ -51,6 +51,11 @@ public class BoardSlot : MonoBehaviour, IDropHandler
 
     public void ClearCard()
     {
+        if (OccupiedCard != null)
+        {
+            OccupiedCard.SetPlaced(null);
+        }
+
         OccupiedCard = null;
     }
 

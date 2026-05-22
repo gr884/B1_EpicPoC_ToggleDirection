@@ -18,5 +18,6 @@ public class PlacedCardSeed
 {
     public CardData card;
     public Vector2Int position;
+    public CardTeam team = CardTeam.Ally;
     public bool startsActivated;
 }

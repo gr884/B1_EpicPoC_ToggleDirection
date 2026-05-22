@@ -29,7 +29,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        if (Card == null || Card.IsPlacedOnBoard || rootCanvas == null)
+        if (Card == null || Card.IsEnemy || Card.IsPlacedOnBoard || rootCanvas == null)
         {
             return;
         }
@@ -45,7 +45,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (Card == null || Card.IsPlacedOnBoard || rootCanvas == null)
+        if (Card == null || Card.IsEnemy || Card.IsPlacedOnBoard || rootCanvas == null)
         {
             return;
         }
@@ -55,7 +55,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (Card == null || Card.IsPlacedOnBoard)
+        if (Card == null || Card.IsEnemy || Card.IsPlacedOnBoard)
         {
             return;
         }
