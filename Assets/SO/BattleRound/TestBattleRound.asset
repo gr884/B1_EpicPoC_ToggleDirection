@@ -15,4 +15,4 @@ MonoBehaviour:
   gridData: {fileID: 11400000, guid: 0799c10cc62e4e3b80c581a7af96d7ae, type: 2}
   enemyDeck: {fileID: 11400000, guid: 61d342e2a6754bc58a7aca1cde8b0e48, type: 2}
   enemyData: {fileID: 11400000, guid: 5e4c7277cc2a4980a3516c287177a9c8, type: 2}
-  enemyCardsPerTurn: 2
+  enemyCardsPerTurn: 3

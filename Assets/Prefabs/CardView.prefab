@@ -70,6 +70,8 @@ MonoBehaviour:
   titleText: {fileID: 2048165948938930470}
   activeColor: {r: 1, g: 1, b: 1, a: 1}
   inactiveColor: {r: 0.5, g: 0.5, b: 0.5, a: 1}
+  enemyActiveColor: {r: 0.2, g: 0.55, b: 1, a: 1}
+  enemyInactiveColor: {r: 1, g: 0.55, b: 0.55, a: 1}
 --- !u!114 &1775789754683608826
 MonoBehaviour:
   m_ObjectHideFlags: 0

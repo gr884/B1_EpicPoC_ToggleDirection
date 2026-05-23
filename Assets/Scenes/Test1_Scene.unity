@@ -747,7 +747,7 @@ GameObject:
   - component: {fileID: 1506923245}
   - component: {fileID: 1506923244}
   m_Layer: 5
-  m_Name: Panel
+  m_Name: MidPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -855,7 +855,7 @@ GameObject:
   - component: {fileID: 1688050542}
   - component: {fileID: 1688050541}
   m_Layer: 5
-  m_Name: Panel
+  m_Name: LowPanel
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1906,7 +1906,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UserCardPool
   startingDeck:
-  - {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}
   - {fileID: 11400000, guid: 079ddefd158cfec4a9ee73a195cd0aeb, type: 2}
   - {fileID: 11400000, guid: d36dd235206d8e841a48703b0c4a49d7, type: 2}
   - {fileID: 11400000, guid: b887fb387158bce418553ad4b6078634, type: 2}
@@ -1917,9 +1916,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 9cc54f6eebd5bbb43b455cb4096d5d4d, type: 2}
   - {fileID: 11400000, guid: facf333c593c4214f91f5e7411552ad6, type: 2}
   - {fileID: 11400000, guid: 4019f8c8a6508b045b16e2b694f75746, type: 2}
-  - {fileID: 11400000, guid: d5f0a436e5140a04a86bed91073f3fcf, type: 2}
-  - {fileID: 11400000, guid: 45e8d82a58a6cca4f880e1d47a0711ad, type: 2}
-  - {fileID: 11400000, guid: 4aa0db28a719782499078e413fde446c, type: 2}
   shuffleOnReset: 1
   drawCount: 5
 --- !u!114 &3000000023

@@ -160,6 +160,22 @@ public class BoardManager : MonoBehaviour
         return count;
     }
 
+    public int CountInactiveCards(CardTeam team)
+    {
+        int count = 0;
+
+        foreach (BoardSlot slot in slots.Values)
+        {
+            Card card = slot != null ? slot.OccupiedCard : null;
+            if (card != null && card.Team == team && !card.IsActivated)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     public void RemoveAllCards()
     {
         foreach (BoardSlot slot in slots.Values)

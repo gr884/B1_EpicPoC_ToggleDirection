@@ -356,14 +356,14 @@ public class GameManager : MonoBehaviour
         {
             CardData cardData = selectedCards[i];
             BoardSlot slot = emptySlots[i];
-            Card boardCard = deckManager.SpawnBoardCard(cardData, slot.transform, CardTeam.Enemy, true);
+            Card boardCard = deckManager.SpawnBoardCard(cardData, slot.transform, CardTeam.Enemy, false);
             if (boardCard == null)
             {
                 continue;
             }
 
             slot.AssignCard(boardCard);
-            Debug.Log($"GameManager: Enemy card {cardData.displayName} spawned at {slot.Position}. No initial effect.");
+            Debug.Log($"GameManager: Enemy card {cardData.displayName} spawned at {slot.Position}. Starts inactive. No initial effect.");
         }
     }
 
@@ -450,7 +450,7 @@ public class GameManager : MonoBehaviour
         Debug.Log("GameManager: End turn. Resolve combat.");
 
         int playerAttackPower = boardManager.CountActivatedCards(CardTeam.Ally);
-        int enemyAttackPower = boardManager.CountActivatedCards(CardTeam.Enemy);
+        int enemyAttackPower = boardManager.CountInactiveCards(CardTeam.Enemy);
 
         Debug.Log($"GameManager: Damage calculation. playerAttackPower={playerAttackPower}, enemyAttackPower={enemyAttackPower}");
 
@@ -574,7 +574,7 @@ public class GameManager : MonoBehaviour
         }
 
         int playerDamage = boardManager.CountActivatedCards(CardTeam.Ally);
-        int enemyDamage = boardManager.CountActivatedCards(CardTeam.Enemy);
+        int enemyDamage = boardManager.CountInactiveCards(CardTeam.Enemy);
         DamagePreviewChanged?.Invoke(playerDamage, enemyDamage);
         Debug.Log($"GameManager: Damage preview changed. playerDamage={playerDamage}, enemyDamage={enemyDamage}");
     }
