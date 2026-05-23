@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -25,6 +26,7 @@ public class Card : MonoBehaviour
     public BoardSlot CurrentSlot { get; private set; }
 
     private RectTransform rectTransform;
+    private readonly List<Image> extraIconLayers = new();
 
     private void Awake()
     {
@@ -47,11 +49,7 @@ public class Card : MonoBehaviour
         CurrentSlot = null;
         IsPlacedOnBoard = false;
 
-        if (iconImage != null)
-        {
-            iconImage.sprite = data != null ? data.icon : null;
-            iconImage.enabled = iconImage.sprite != null;
-        }
+        ApplyIconVisual();
 
         if (titleText != null)
         {
@@ -97,6 +95,115 @@ public class Card : MonoBehaviour
         else
         {
             backgroundImage.color = IsActivated ? activeColor : inactiveColor;
+        }
+    }
+
+    private void ApplyIconVisual()
+    {
+        if (iconImage == null)
+        {
+            return;
+        }
+
+        if (TryApplyLayeredIcons())
+        {
+            return;
+        }
+
+        iconImage.sprite = Data != null ? Data.icon : null;
+        iconImage.enabled = iconImage.sprite != null;
+        SetExtraLayerVisibleFrom(0, false);
+    }
+
+    private bool TryApplyLayeredIcons()
+    {
+        CardDirectionData dirData = Data != null ? Data.directionData : null;
+        if (dirData == null || dirData.layeredIcons == null || dirData.layeredIcons.Count == 0)
+        {
+            return false;
+        }
+
+        int baseSiblingIndex = iconImage.transform.GetSiblingIndex();
+        for (int i = 0; i < dirData.layeredIcons.Count; i++)
+        {
+            Image layer = GetOrCreateLayerImage(i);
+            if (layer == null)
+            {
+                continue;
+            }
+
+            Sprite sprite = dirData.layeredIcons[i];
+            layer.sprite = sprite;
+            layer.enabled = sprite != null;
+            layer.preserveAspect = iconImage.preserveAspect;
+            layer.rectTransform.SetSiblingIndex(baseSiblingIndex + i);
+        }
+
+        SetExtraLayerVisibleFrom(dirData.layeredIcons.Count - 1, false);
+        return true;
+    }
+
+    private Image GetOrCreateLayerImage(int layerIndex)
+    {
+        if (layerIndex <= 0)
+        {
+            return iconImage;
+        }
+
+        int extraIndex = layerIndex - 1;
+        while (extraIconLayers.Count <= extraIndex)
+        {
+            Image created = CreateExtraLayerImage(extraIconLayers.Count + 1);
+            if (created == null)
+            {
+                return null;
+            }
+
+            extraIconLayers.Add(created);
+        }
+
+        return extraIconLayers[extraIndex];
+    }
+
+    private Image CreateExtraLayerImage(int order)
+    {
+        if (iconImage == null)
+        {
+            return null;
+        }
+
+        GameObject layerObject = new($"DirectionLayer_{order}", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        RectTransform layerRect = layerObject.GetComponent<RectTransform>();
+        RectTransform iconRect = iconImage.rectTransform;
+        layerRect.SetParent(iconRect.parent, false);
+        layerRect.anchorMin = iconRect.anchorMin;
+        layerRect.anchorMax = iconRect.anchorMax;
+        layerRect.pivot = iconRect.pivot;
+        layerRect.anchoredPosition = iconRect.anchoredPosition;
+        layerRect.sizeDelta = iconRect.sizeDelta;
+        layerRect.localScale = Vector3.one;
+
+        Image layerImage = layerObject.GetComponent<Image>();
+        layerImage.color = iconImage.color;
+        layerImage.material = iconImage.material;
+        layerImage.type = iconImage.type;
+        layerImage.preserveAspect = iconImage.preserveAspect;
+        layerImage.raycastTarget = iconImage.raycastTarget;
+        layerImage.maskable = iconImage.maskable;
+
+        return layerImage;
+    }
+
+    private void SetExtraLayerVisibleFrom(int usedLayerIndex, bool visible)
+    {
+        int firstExtraToApply = Mathf.Max(usedLayerIndex, 0);
+        for (int i = firstExtraToApply; i < extraIconLayers.Count; i++)
+        {
+            Image layer = extraIconLayers[i];
+            if (layer != null)
+            {
+                layer.enabled = visible;
+            }
         }
     }
 

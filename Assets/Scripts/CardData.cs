@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum AbilityDirection
 {
@@ -25,31 +26,53 @@ public class CardData : ScriptableObject
 {
     [Header("Identity")]
     public string cardId;
-    public string displayName;
 
-    [Header("Ability")]
-    public AbilityDirection abilityDirection = AbilityDirection.None;
-    public List<AbilityDirection> additionalDirections = new();
+    [Header("Data Refs")]
+    public CardDirectionData directionData;
+    public CardEffectData effectData;
 
-    [Header("Visual")]
-    public Sprite icon;
+    [FormerlySerializedAs("displayName")]
+    [SerializeField, HideInInspector] private string legacyDisplayName;
+    [FormerlySerializedAs("abilityDirection")]
+    [SerializeField, HideInInspector] private AbilityDirection legacyAbilityDirection = AbilityDirection.None;
+    [FormerlySerializedAs("additionalDirections")]
+    [SerializeField, HideInInspector] private List<AbilityDirection> legacyAdditionalDirections = new();
+    [FormerlySerializedAs("icon")]
+    [SerializeField, HideInInspector] private Sprite legacyIcon;
+
+    public string displayName => directionData != null ? directionData.displayName : legacyDisplayName;
+    public Sprite icon => directionData != null ? directionData.icon : legacyIcon;
+
+    public int attackPower => effectData != null ? effectData.attackPower : 0;
+    public int defensePower => effectData != null ? effectData.defensePower : 0;
+    public int healPower => effectData != null ? effectData.healPower : 0;
 
     public IEnumerable<AbilityDirection> GetAllDirections()
     {
-        if (abilityDirection != AbilityDirection.None)
+        if (directionData != null)
         {
-            yield return abilityDirection;
+            foreach (AbilityDirection dir in directionData.GetAllDirections())
+            {
+                yield return dir;
+            }
+
+            yield break;
         }
 
-        if (additionalDirections == null)
+        if (legacyAbilityDirection != AbilityDirection.None)
+        {
+            yield return legacyAbilityDirection;
+        }
+
+        if (legacyAdditionalDirections == null)
         {
             yield break;
         }
 
-        for (int i = 0; i < additionalDirections.Count; i++)
+        for (int i = 0; i < legacyAdditionalDirections.Count; i++)
         {
-            AbilityDirection dir = additionalDirections[i];
-            if (dir == AbilityDirection.None || dir == abilityDirection)
+            AbilityDirection dir = legacyAdditionalDirections[i];
+            if (dir == AbilityDirection.None || dir == legacyAbilityDirection)
             {
                 continue;
             }
