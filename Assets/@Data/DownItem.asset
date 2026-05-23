@@ -1,0 +1,18 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
+  m_Name: DownItem
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  itemId: 4
+  displayName: "\uC544\uB798\uCABD"
+  directions: 05000000
+  icon: {fileID: 7570373138001982034, guid: e9182aaf3ee44ce48a40edd5507d2d90, type: 3}
