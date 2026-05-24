@@ -10,11 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: DownItem
+  m_Name: Attack_DownRightItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
-  itemId: 4
-  displayName: "\uC544\uB798\uCABD"
-  description: "\uB300\uCDA9 \uC124\uBA85"
-  directions: 05000000
+  cardId: 
+  displayName: "\uACF5\uACA9"
+  description: "\uACF5\uACA9 + 1"
+  maxDurability: 10
+  directions: 0500000003000000
   effects: []
-  icon: {fileID: 7570373138001982034, guid: e9182aaf3ee44ce48a40edd5507d2d90, type: 3}
+  icon: {fileID: -2237518807768803992, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

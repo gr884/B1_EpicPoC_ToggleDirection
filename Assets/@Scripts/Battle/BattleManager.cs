@@ -1,26 +1,22 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class BattleManager : SingletonBehaviour<BattleManager>
 {
-    public enum Phase { Phase1, Phase2 }
-
-    [Header("Battle Settings")]
-    [SerializeField] private int _phase2TurnsPerCycle = 5;
+    public enum BattlePhase { FreePlace, Turn }
 
     [Header("Actor Views")]
     [SerializeField] private BattleActorView _playerView;
     [SerializeField] private BattleActorView _enemyView;
 
     // ── 전투 상태 ──────────────────────────────────────────
-    public Phase CurrentPhase { get; private set; }
-    public int CurrentTurn { get; private set; }
+    public BattlePhase CurrentPhase { get; private set; }
     public bool IsChainRunning { get; private set; }
 
     // ── 이벤트 ────────────────────────────────────────────
-    public event Action<Phase> OnPhaseChanged;
-    public event Action OnCycleReset;
+    public event Action<BattlePhase> OnPhaseChanged;
     public event Action<bool> OnBattleEnded; // true = 승리
 
     public void Init()
@@ -33,38 +29,37 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     public void StartBattle(int playerHp, int enemyHp, string enemyName = "Enemy")
     {
-        CurrentTurn = 0;
-
         _playerView.Setup("Player", playerHp);
         _enemyView.Setup(enemyName, enemyHp);
 
         _playerView.OnDied += () => EndBattle(false);
         _enemyView.OnDied += () => EndBattle(true);
 
-        EnterPhase(Phase.Phase1);
+        EnterPhase(BattlePhase.FreePlace);
         CardManager.Instance.StartBattleDraw();
 
         Debug.Log($"[BattleManager] 전투 시작 — 플레이어 HP: {playerHp} / 적 HP: {enemyHp}");
     }
 
-    // Phase1 배치 확정 — UI 버튼에서 호출
-    public void ConfirmPhase1()
+    // ── 자유 배치 확정 버튼 ────────────────────────────────
+
+    public void ConfirmFreePlace()
     {
-        if (CurrentPhase != Phase.Phase1 || IsChainRunning) return;
-        StartCoroutine(Phase1AttackRoutine());
+        if (CurrentPhase != BattlePhase.FreePlace || IsChainRunning) return;
+        StartCoroutine(AttackRoutine());
     }
 
     // ── 체인 결과 처리 ─────────────────────────────────────
 
     private void OnChainFinished()
     {
-        if (CurrentPhase == Phase.Phase2)
-            StartCoroutine(Phase2TurnRoutine());
+        if (CurrentPhase == BattlePhase.Turn)
+            StartCoroutine(TurnRoutine());
     }
 
-    // ── Phase1 루틴 ────────────────────────────────────────
+    // ── 자유 배치 확정 루틴 ────────────────────────────────
 
-    private IEnumerator Phase1AttackRoutine()
+    private IEnumerator AttackRoutine()
     {
         IsChainRunning = true;
 
@@ -80,12 +75,13 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (_playerView.IsDead) yield break;
 
-        EnterPhase(Phase.Phase2);
+        EnterPhase(BattlePhase.Turn);
+        CardManager.Instance.DrawToHand(1);
     }
 
-    // ── Phase2 루틴 ────────────────────────────────────────
+    // ── 턴 루틴 ────────────────────────────────────────────
 
-    private IEnumerator Phase2TurnRoutine()
+    private IEnumerator TurnRoutine()
     {
         IsChainRunning = true;
 
@@ -101,23 +97,30 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (_playerView.IsDead) yield break;
 
-        CurrentTurn++;
-        if (CurrentTurn >= _phase2TurnsPerCycle)
-            StartCycleReset();
+        // 다음 턴 드로우
+        CardManager.Instance.DrawToHand(1);
     }
 
-    // ── 사이클 리셋 ────────────────────────────────────────
+    // ── 내구도 처리 ────────────────────────────────────────
 
-    private void StartCycleReset()
+    public void ReduceAllCardDurability()
     {
-        CurrentTurn = 0;
-        GridManager.Instance.ResetCards();
-        CardManager.Instance.DiscardHand();
-        OnCycleReset?.Invoke();
-        EnterPhase(Phase.Phase1);
-        CardManager.Instance.StartBattleDraw();
+        List<GridSlot> toRemove = new();
 
-        Debug.Log("[BattleManager] 사이클 리셋");
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            if (slot.IsEmpty) continue;
+            bool expired = slot.OccupiedCard.ReduceDurability();
+            if (expired) toRemove.Add(slot);
+        }
+
+        foreach (GridSlot slot in toRemove)
+        {
+            CardView card = slot.OccupiedCard;
+            slot.ClearCard();
+            PoolManager.Instance.Return(card.gameObject);
+            Debug.Log("[BattleManager] 내구도 소진으로 카드 제거");
+        }
     }
 
     // ── 데미지 계산 ────────────────────────────────────────
@@ -130,7 +133,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     // ── 유틸 ───────────────────────────────────────────────
 
-    private void EnterPhase(Phase phase)
+    private void EnterPhase(BattlePhase phase)
     {
         CurrentPhase = phase;
         OnPhaseChanged?.Invoke(phase);
@@ -149,7 +152,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
 
         OnPhaseChanged = null;
-        OnCycleReset = null;
         OnBattleEnded = null;
         base.Dispose();
     }

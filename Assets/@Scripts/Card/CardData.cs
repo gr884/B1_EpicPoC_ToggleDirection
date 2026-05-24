@@ -52,6 +52,9 @@ public class CardData : ScriptableObject
     [TextArea(2, 5)]
     public string description;
 
+    [Header("Durability")]
+    public int maxDurability = 10;
+
     [Header("Directions")]
     public List<CardDirection> directions = new();
 

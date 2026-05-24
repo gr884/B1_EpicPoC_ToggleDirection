@@ -60,8 +60,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         if (card == null || targetSlot == null || !targetSlot.IsEmpty) return false;
         if (BattleManager.Instance.IsChainRunning) return false;
-
-        if (BattleManager.Instance.CurrentPhase == BattleManager.Phase.Phase2
+        if (BattleManager.Instance.CurrentPhase == BattleManager.BattlePhase.Turn
             && !_hand.Contains(card)) return false;
 
         targetSlot.AssignCard(card);
@@ -70,6 +69,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         ArrangeHand();
         OnHandChanged?.Invoke();
 
+        BattleManager.Instance.ReduceAllCardDurability();
         ChainExecutor.Instance.ExecuteFrom(card);
         return true;
     }
