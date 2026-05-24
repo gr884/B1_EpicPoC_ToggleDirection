@@ -24,6 +24,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public void OnBeginDrag(PointerEventData eventData)
     {
         if (!enabled || Card == null) return;
+        if (Card.CurrentSlot != null) return; // 그리드에 배치된 카드는 드래그 불가
 
         _rootCanvas = FindFirstObjectByType<Canvas>();
         if (_rootCanvas == null) return;
@@ -39,7 +40,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (!enabled || _rootCanvas == null) return;
+        if (!enabled || _rootCanvas == null || Card.CurrentSlot != null) return;
         _rectTransform.anchoredPosition += eventData.delta / _rootCanvas.scaleFactor;
     }
 

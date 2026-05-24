@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -10,6 +11,16 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private Image _backgroundImage;
     [SerializeField] private Image _iconImage;
     [SerializeField] private TMP_Text _titleText;
+
+    [Header("Direction Icons")]
+    [SerializeField] private Image _upLeft;
+    [SerializeField] private Image _up;
+    [SerializeField] private Image _upRight;
+    [SerializeField] private Image _left;
+    [SerializeField] private Image _right;
+    [SerializeField] private Image _downLeft;
+    [SerializeField] private Image _down;
+    [SerializeField] private Image _downRight;
 
     [Header("Colors")]
     [SerializeField] private Color _activeColor = Color.white;
@@ -43,6 +54,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (_titleText != null)
             _titleText.text = data != null ? data.displayName : "";
 
+        RefreshDirectionIcons();
         RefreshVisual();
     }
 
@@ -103,6 +115,46 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     }
 
     // ── 내부 ───────────────────────────────────────────────
+
+    private void RefreshDirectionIcons()
+    {
+        // 전부 끄고 시작
+        HideAllDirectionIcons();
+
+        if (Data == null) return;
+
+        // 해당 방향만 켜기
+        foreach (CardDirection dir in Data.GetAllDirections())
+        {
+            Image target = GetDirectionImage(dir);
+            if (target != null) target.enabled = true;
+        }
+    }
+
+    private void HideAllDirectionIcons()
+    {
+        if (_up != null) _up.enabled = false;
+        if (_upRight != null) _upRight.enabled = false;
+        if (_right != null) _right.enabled = false;
+        if (_downRight != null) _downRight.enabled = false;
+        if (_down != null) _down.enabled = false;
+        if (_downLeft != null) _downLeft.enabled = false;
+        if (_left != null) _left.enabled = false;
+        if (_upLeft != null) _upLeft.enabled = false;
+    }
+
+    private Image GetDirectionImage(CardDirection direction) => direction switch
+    {
+        CardDirection.Up => _up,
+        CardDirection.UpRight => _upRight,
+        CardDirection.Right => _right,
+        CardDirection.DownRight => _downRight,
+        CardDirection.Down => _down,
+        CardDirection.DownLeft => _downLeft,
+        CardDirection.Left => _left,
+        CardDirection.UpLeft => _upLeft,
+        _ => null
+    };
 
     private void RefreshVisual()
     {

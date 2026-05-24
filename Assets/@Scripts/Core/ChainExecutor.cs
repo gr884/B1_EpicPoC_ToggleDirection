@@ -2,7 +2,6 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UIElements;
 
 public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 {
@@ -42,7 +41,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
             if (slot.OccupiedCard != null)
-                slot.OccupiedCard.SetDraggable(true);
+                slot.OccupiedCard.SetDraggable(false);
 
         OnChainFinished?.Invoke();
     }

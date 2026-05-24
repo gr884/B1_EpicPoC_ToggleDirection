@@ -7,7 +7,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     [Header("Refs")]
     [SerializeField] private GameObject _cardPrefab;
     [SerializeField] private RectTransform _handRoot;
-    [SerializeField] private UserCardPool _cardPool;
+    private UserCardPool _cardPool;
 
     [Header("Hand Layout")]
     [SerializeField] private Vector2 _cardSize = new Vector2(80f, 80f);
@@ -22,16 +22,22 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void Init()
     {
-        if (_cardPool == null)
-            _cardPool = GetComponentInChildren<UserCardPool>();
-
+        _cardPool = UserCardPool.Instance;
+        ChainExecutor.Instance.OnChainFinished += OnChainFinished;
         Debug.Log("[CardManager] Init");
+    }
+
+    private void OnChainFinished()
+    {
+        foreach (CardView card in _hand)
+            if (card != null) card.SetDraggable(true);
     }
 
     // ── 전투 시작 시 덱 리셋 + 첫 손패 드로우 ───────────────
 
     public void StartBattleDraw()
     {
+        Debug.Log("[CardManager] StartBattleDraw 호출");
         _cardPool.ResetForBattle();
         DrawToHand(_cardPool.DrawCount);
     }
@@ -59,6 +65,7 @@ public class CardManager : SingletonBehaviour<CardManager>
             && !_hand.Contains(card)) return false;
 
         targetSlot.AssignCard(card);
+        card.SetDraggable(false);
         _hand.Remove(card);
         ArrangeHand();
         OnHandChanged?.Invoke();
@@ -125,6 +132,8 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     protected override void Dispose()
     {
+        if (ChainExecutor.Instance != null)
+            ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
         OnHandChanged = null;
         base.Dispose();
     }

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class UserCardPool : MonoBehaviour
+public class UserCardPool : SingletonBehaviour<UserCardPool>
 {
     [Header("Deck")]
     [SerializeField] private List<CardData> _startingDeck = new();
@@ -14,6 +14,11 @@ public class UserCardPool : MonoBehaviour
     public int DrawCount => _drawCount;
     public int DrawPileCount => _drawPile.Count;
     public int DiscardPileCount => _discardPile.Count;
+
+    public void Init()
+    {
+        Debug.Log("[UserCardPool] Init");
+    }
 
     public void ResetForBattle()
     {

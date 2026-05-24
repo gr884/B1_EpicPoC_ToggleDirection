@@ -7,7 +7,7 @@ public class BattleActorView : MonoBehaviour
 {
     [Header("Refs")]
     [SerializeField] private TMP_Text _hpText;
-    [SerializeField] private Image _hpBarFill;
+    [SerializeField] private Slider _hpSlider;
 
     [Header("Feedback")]
     [SerializeField] private float _hitMoveAmount = 12f;
@@ -16,6 +16,8 @@ public class BattleActorView : MonoBehaviour
     private int _maxHp;
     private int _currentHp;
     private string _label;
+
+    public string Label => _label;
     private RectTransform _rectTransform;
     private Vector2 _baseAnchoredPosition;
 
@@ -51,7 +53,7 @@ public class BattleActorView : MonoBehaviour
             StartCoroutine(HitFeedback());
         }
 
-        Debug.Log($"[{_label}] 데미지 {damage} → HP {_currentHp}/{_maxHp}");
+        Debug.Log($"[BattleActorView] {_label} 데미지 {damage} → HP {_currentHp}/{_maxHp}");
 
         if (_currentHp <= 0)
             OnDied?.Invoke();
@@ -68,10 +70,10 @@ public class BattleActorView : MonoBehaviour
     private void Refresh()
     {
         if (_hpText != null)
-            _hpText.text = $"{_label} {_currentHp}/{_maxHp}";
+            _hpText.text = $"{_currentHp} / {_maxHp}";
 
-        if (_hpBarFill != null)
-            _hpBarFill.fillAmount = _maxHp > 0 ? (float)_currentHp / _maxHp : 0f;
+        if (_hpSlider != null)
+            _hpSlider.value = _maxHp > 0 ? (float)_currentHp / _maxHp : 0f;
     }
 
     private IEnumerator HitFeedback()

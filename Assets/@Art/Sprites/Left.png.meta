@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 274aab58f2ca4af4b850b81f8a3f0676
+guid: 793fce6ade8296c4c917aec380af7d42
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 6910772777204268489
-    second: Right_Up_0
+      213: 5895540913150188443
+    second: Left_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -96,11 +96,50 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: Android
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: WebGL
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
+  - serializedVersion: 4
+    buildTarget: iOS
+    maxTextureSize: 2048
+    resizeAlgorithm: 0
+    textureFormat: -1
+    textureCompression: 0
+    compressionQuality: 50
+    crunchedCompression: 0
+    allowsAlphaSplitting: 0
+    overridden: 0
+    ignorePlatformSupport: 0
+    androidETC2FallbackOverride: 0
+    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: Right_Up_0
+      name: Left_0
       rect:
         serializedVersion: 2
         x: 0
@@ -115,8 +154,8 @@ TextureImporter:
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: 9cd33bcd93ff7ef50800000000000000
-      internalID: 6910772777204268489
+      spriteID: b9b591f793b21d150800000000000000
+      internalID: 5895540913150188443
       vertices: []
       indices: 
       edges: []
@@ -125,7 +164,7 @@ TextureImporter:
     customData: 
     physicsShape: []
     bones: []
-    spriteID: 8cdf1a3aee4f39e47ad13868ce23f804
+    spriteID: 3789f97280c77954cb9487e4325d01d1
     internalID: 0
     vertices: []
     indices: 
@@ -137,7 +176,7 @@ TextureImporter:
       - key: SpriteEditor.SliceSettings
         value: '{"sliceOnImport":false,"gridCellCount":{"x":1.0,"y":1.0},"gridSpriteSize":{"x":64.0,"y":96.0},"gridSpriteOffset":{"x":0.0,"y":0.0},"gridSpritePadding":{"x":0.0,"y":0.0},"pivot":{"x":0.5,"y":0.5},"pivotPixels":{"x":0.0,"y":0.0},"autoSlicingMethod":0,"spriteAlignment":0,"pivotUnitMode":0,"slicingType":1,"keepEmptyRects":false,"isAlternate":false}'
     nameFileIdTable:
-      Right_Up_0: 6910772777204268489
+      Left_0: 5895540913150188443
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

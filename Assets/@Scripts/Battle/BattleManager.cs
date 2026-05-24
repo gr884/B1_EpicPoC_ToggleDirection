@@ -42,6 +42,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _enemyView.OnDied += () => EndBattle(true);
 
         EnterPhase(Phase.Phase1);
+        CardManager.Instance.StartBattleDraw();
 
         Debug.Log($"[BattleManager] 전투 시작 — 플레이어 HP: {playerHp} / 적 HP: {enemyHp}");
     }
