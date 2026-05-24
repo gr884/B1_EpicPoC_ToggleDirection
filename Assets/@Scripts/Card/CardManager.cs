@@ -7,13 +7,13 @@ public class CardManager : SingletonBehaviour<CardManager>
     [Header("Refs")]
     [SerializeField] private GameObject _cardPrefab;
     [SerializeField] private RectTransform _handRoot;
+    [SerializeField] private UserCardPool _cardPool;
 
     [Header("Hand Layout")]
     [SerializeField] private Vector2 _cardSize = new Vector2(80f, 80f);
     [SerializeField] private float _cardSpacing = 10f;
 
     private readonly List<CardView> _hand = new();
-    private readonly List<CardData> _deck = new();
 
     public IReadOnlyList<CardView> Hand => _hand;
     public int HandCount => _hand.Count;
@@ -22,42 +22,27 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void Init()
     {
+        if (_cardPool == null)
+            _cardPool = GetComponentInChildren<UserCardPool>();
+
         Debug.Log("[CardManager] Init");
     }
 
-    // ── 덱 세팅 ────────────────────────────────────────────
+    // ── 전투 시작 시 덱 리셋 + 첫 손패 드로우 ───────────────
 
-    public void SetupDeck(List<CardData> cards)
+    public void StartBattleDraw()
     {
-        _deck.Clear();
-        _deck.AddRange(cards);
-        Debug.Log($"[CardManager] 덱 세팅 완료 ({_deck.Count}장)");
+        _cardPool.ResetForBattle();
+        DrawToHand(_cardPool.DrawCount);
     }
 
     // ── 드로우 ─────────────────────────────────────────────
 
-    public void DrawHand(int count)
+    public void DrawToHand(int count)
     {
-        ClearHand();
-
-        for (int i = 0; i < count && _deck.Count > 0; i++)
-        {
-            int index = UnityEngine.Random.Range(0, _deck.Count);
-            SpawnToHand(_deck[index]);
-            // TODO: 덱빌딩 구조 확정 후 제거 방식 결정
-        }
-
-        ArrangeHand();
-        OnHandChanged?.Invoke();
-    }
-
-    public void DrawCards(int count)
-    {
-        for (int i = 0; i < count && _deck.Count > 0; i++)
-        {
-            int index = UnityEngine.Random.Range(0, _deck.Count);
-            SpawnToHand(_deck[index]);
-        }
+        List<CardData> drawn = _cardPool.DrawCards(count);
+        foreach (CardData data in drawn)
+            SpawnToHand(data);
 
         ArrangeHand();
         OnHandChanged?.Invoke();
@@ -70,7 +55,6 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (card == null || targetSlot == null || !targetSlot.IsEmpty) return false;
         if (BattleManager.Instance.IsChainRunning) return false;
 
-        // Phase2에서는 손패에서만 배치 가능
         if (BattleManager.Instance.CurrentPhase == BattleManager.Phase.Phase2
             && !_hand.Contains(card)) return false;
 
@@ -83,15 +67,21 @@ public class CardManager : SingletonBehaviour<CardManager>
         return true;
     }
 
-    // ── 손패 정리 ──────────────────────────────────────────
+    // ── 사이클 리셋 시 손패 버리기 ────────────────────────────
 
-    public void ClearHand()
+    public void DiscardHand()
     {
+        List<CardData> discarded = new();
         foreach (CardView card in _hand)
+        {
+            if (card?.Data != null)
+                discarded.Add(card.Data);
             if (card != null)
                 PoolManager.Instance.Return(card.gameObject);
+        }
 
         _hand.Clear();
+        _cardPool.DiscardMany(discarded);
         OnHandChanged?.Invoke();
     }
 

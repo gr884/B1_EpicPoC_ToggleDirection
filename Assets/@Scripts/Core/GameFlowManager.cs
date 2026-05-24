@@ -4,7 +4,7 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
 {
     [Header("Battle Settings")]
     [SerializeField] private int _playerHp = 30;
-    [SerializeField] private int _enemyHp = 50;
+    [SerializeField] private EnemyDataSO _enemyData;
 
     public void Init()
     {
@@ -18,7 +18,9 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
         {
             case GameManager.GameState.Playing:
                 GridManager.Instance.BuildGrid();
-                BattleManager.Instance.StartBattle(_playerHp, _enemyHp);
+                int enemyHp = _enemyData != null ? _enemyData.maxHp : 50;
+                string enemyName = _enemyData != null ? _enemyData.displayName : "Enemy";
+                BattleManager.Instance.StartBattle(_playerHp, enemyHp, enemyName);
                 break;
 
             case GameManager.GameState.GameOver:

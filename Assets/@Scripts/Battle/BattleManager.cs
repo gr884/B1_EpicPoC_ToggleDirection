@@ -1,6 +1,5 @@
 using System;
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class BattleManager : SingletonBehaviour<BattleManager>
@@ -9,20 +8,20 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     [Header("Battle Settings")]
     [SerializeField] private int _phase2TurnsPerCycle = 5;
-    [SerializeField] private int _enemyBaseDamage = 5; // TODO: 적 데이터로 관리
+
+    [Header("Actor Views")]
+    [SerializeField] private BattleActorView _playerView;
+    [SerializeField] private BattleActorView _enemyView;
 
     // ── 전투 상태 ──────────────────────────────────────────
     public Phase CurrentPhase { get; private set; }
-    public int PlayerHp { get; private set; }
-    public int EnemyHp { get; private set; }
     public int CurrentTurn { get; private set; }
     public bool IsChainRunning { get; private set; }
 
     // ── 이벤트 ────────────────────────────────────────────
     public event Action<Phase> OnPhaseChanged;
-    public event Action<int, int> OnHpChanged;  // (playerHp, enemyHp)
     public event Action OnCycleReset;
-    public event Action OnBattleEnded;
+    public event Action<bool> OnBattleEnded; // true = 승리
 
     public void Init()
     {
@@ -32,14 +31,17 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     // ── 전투 시작 ──────────────────────────────────────────
 
-    public void StartBattle(int playerHp, int enemyHp)
+    public void StartBattle(int playerHp, int enemyHp, string enemyName = "Enemy")
     {
-        PlayerHp = playerHp;
-        EnemyHp = enemyHp;
         CurrentTurn = 0;
 
+        _playerView.Setup("Player", playerHp);
+        _enemyView.Setup(enemyName, enemyHp);
+
+        _playerView.OnDied += () => EndBattle(false);
+        _enemyView.OnDied += () => EndBattle(true);
+
         EnterPhase(Phase.Phase1);
-        OnHpChanged?.Invoke(PlayerHp, EnemyHp);
 
         Debug.Log($"[BattleManager] 전투 시작 — 플레이어 HP: {playerHp} / 적 HP: {enemyHp}");
     }
@@ -65,20 +67,17 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     {
         IsChainRunning = true;
 
-        int playerDamage = ChainExecutor.Instance.ActivatedCards.Count;
-        ApplyDamageToEnemy(playerDamage);
-
+        _enemyView.TakeDamage(ChainExecutor.Instance.ActivatedCards.Count);
         yield return new WaitForSeconds(0.5f);
 
-        if (CheckBattleEnd()) { IsChainRunning = false; yield break; }
+        if (_enemyView.IsDead) { IsChainRunning = false; yield break; }
 
-        ApplyDamageToPlayer(CalculateEnemyDamage());
-
+        _playerView.TakeDamage(CalculateEnemyDamage());
         yield return new WaitForSeconds(0.5f);
 
         IsChainRunning = false;
 
-        if (CheckBattleEnd()) yield break;
+        if (_playerView.IsDead) yield break;
 
         EnterPhase(Phase.Phase2);
     }
@@ -89,20 +88,17 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     {
         IsChainRunning = true;
 
-        int playerDamage = ChainExecutor.Instance.ActivatedCards.Count;
-        ApplyDamageToEnemy(playerDamage);
-
+        _enemyView.TakeDamage(ChainExecutor.Instance.ActivatedCards.Count);
         yield return new WaitForSeconds(0.5f);
 
-        if (CheckBattleEnd()) { IsChainRunning = false; yield break; }
+        if (_enemyView.IsDead) { IsChainRunning = false; yield break; }
 
-        ApplyDamageToPlayer(CalculateEnemyDamage());
-
+        _playerView.TakeDamage(CalculateEnemyDamage());
         yield return new WaitForSeconds(0.5f);
 
         IsChainRunning = false;
 
-        if (CheckBattleEnd()) yield break;
+        if (_playerView.IsDead) yield break;
 
         CurrentTurn++;
         if (CurrentTurn >= _phase2TurnsPerCycle)
@@ -115,8 +111,10 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     {
         CurrentTurn = 0;
         GridManager.Instance.ResetCards();
+        CardManager.Instance.DiscardHand();
         OnCycleReset?.Invoke();
         EnterPhase(Phase.Phase1);
+        CardManager.Instance.StartBattleDraw();
 
         Debug.Log("[BattleManager] 사이클 리셋");
     }
@@ -125,24 +123,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     private int CalculateEnemyDamage()
     {
-        // TODO: 적 카드 활성화 여부에 따른 보너스는 추후 추가
-        return _enemyBaseDamage;
-    }
-
-    // ── HP 적용 ────────────────────────────────────────────
-
-    private void ApplyDamageToEnemy(int damage)
-    {
-        EnemyHp = Mathf.Max(0, EnemyHp - damage);
-        OnHpChanged?.Invoke(PlayerHp, EnemyHp);
-        Debug.Log($"[BattleManager] 적에게 {damage} 데미지 → 적 HP: {EnemyHp}");
-    }
-
-    private void ApplyDamageToPlayer(int damage)
-    {
-        PlayerHp = Mathf.Max(0, PlayerHp - damage);
-        OnHpChanged?.Invoke(PlayerHp, EnemyHp);
-        Debug.Log($"[BattleManager] 플레이어에게 {damage} 데미지 → 플레이어 HP: {PlayerHp}");
+        // TODO: EnemyDataSO.baseDamage로 대체
+        return 5;
     }
 
     // ── 유틸 ───────────────────────────────────────────────
@@ -154,15 +136,10 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         Debug.Log($"[BattleManager] Phase → {phase}");
     }
 
-    private bool CheckBattleEnd()
+    private void EndBattle(bool victory)
     {
-        if (PlayerHp <= 0 || EnemyHp <= 0)
-        {
-            OnBattleEnded?.Invoke();
-            Debug.Log($"[BattleManager] 전투 종료 — {(PlayerHp <= 0 ? "패배" : "승리")}");
-            return true;
-        }
-        return false;
+        OnBattleEnded?.Invoke(victory);
+        Debug.Log($"[BattleManager] 전투 종료 — {(victory ? "승리" : "패배")}");
     }
 
     protected override void Dispose()
@@ -171,7 +148,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
 
         OnPhaseChanged = null;
-        OnHpChanged = null;
         OnCycleReset = null;
         OnBattleEnded = null;
         base.Dispose();
