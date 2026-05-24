@@ -2,6 +2,10 @@ using UnityEngine;
 
 public class GameFlowManager : SingletonBehaviour<GameFlowManager>
 {
+    [Header("Battle Settings")]
+    [SerializeField] private int _playerHp = 30;
+    [SerializeField] private int _enemyHp = 50;
+
     public void Init()
     {
         GameManager.Instance.OnStateChanged += OnGameStateChanged;
@@ -14,6 +18,7 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
         {
             case GameManager.GameState.Playing:
                 GridManager.Instance.BuildGrid();
+                BattleManager.Instance.StartBattle(_playerHp, _enemyHp);
                 break;
 
             case GameManager.GameState.GameOver:

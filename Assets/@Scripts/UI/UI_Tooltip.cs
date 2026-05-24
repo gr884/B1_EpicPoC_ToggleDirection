@@ -24,7 +24,7 @@ public class UI_Tooltip : SingletonBehaviour<UI_Tooltip>
         Hide();
     }
 
-    public void Show(ItemData data, Vector2 screenPosition)
+    public void Show(CardData data, Vector2 screenPosition)
     {
         if (data == null) return;
 

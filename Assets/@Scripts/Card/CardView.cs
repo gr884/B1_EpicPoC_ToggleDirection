@@ -1,11 +1,10 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.EventSystems;
 using TMPro;
 
-using UnityEngine.EventSystems;
-
-public class ItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("Refs")]
     [SerializeField] private Image _backgroundImage;
@@ -15,14 +14,10 @@ public class ItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [Header("Colors")]
     [SerializeField] private Color _activeColor = Color.white;
     [SerializeField] private Color _inactiveColor = new Color(0.6f, 0.6f, 0.6f, 1f);
-    [SerializeField] private Color _highlightColor = new Color(1f, 1f, 0.2f, 1f);
 
-    private bool _isHighlighted;
-
-    public ItemData Data { get; private set; }
+    public CardData Data { get; private set; }
     public bool IsActivated { get; private set; }
-    public bool IsPlaced { get; private set; }
-    public bool IsPickupItem { get; private set; }
+    public bool IsEnemy { get; private set; }
     public GridSlot CurrentSlot { get; private set; }
 
     private RectTransform _rectTransform;
@@ -32,13 +27,12 @@ public class ItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         _rectTransform = GetComponent<RectTransform>();
     }
 
-    public void Initialize(ItemData data, bool startsActivated = false, bool isPickupItem = false)
+    public void Initialize(CardData data, bool isEnemy = false)
     {
         Data = data;
-        IsActivated = startsActivated;
-        IsPickupItem = isPickupItem;
+        IsActivated = false;
+        IsEnemy = isEnemy;
         CurrentSlot = null;
-        IsPlaced = false;
 
         if (_iconImage != null)
         {
@@ -47,7 +41,7 @@ public class ItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         }
 
         if (_titleText != null)
-            _titleText.text = data != null ? data.displayName : "Item";
+            _titleText.text = data != null ? data.displayName : "";
 
         RefreshVisual();
     }
@@ -55,12 +49,6 @@ public class ItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public void SetPlaced(GridSlot slot)
     {
         CurrentSlot = slot;
-        IsPlaced = slot != null;
-    }
-
-    public void SetPickupItem(bool isPickup)
-    {
-        IsPickupItem = isPickup;
     }
 
     public void SetActivated(bool activated)
@@ -71,25 +59,11 @@ public class ItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     public void SetDraggable(bool draggable)
     {
-        ItemDragHandler drag = GetComponent<ItemDragHandler>();
+        CardDragHandler drag = GetComponent<CardDragHandler>();
         if (drag != null) drag.enabled = draggable;
     }
 
-    public void SetHighlight(bool on)
-    {
-        _isHighlighted = on;
-        RefreshVisual();
-    }
-
-    private void RefreshVisual()
-    {
-        if (_backgroundImage == null) return;
-
-        if (_isHighlighted)
-            _backgroundImage.color = _highlightColor;
-        else
-            _backgroundImage.color = IsActivated ? _activeColor : _inactiveColor;
-    }
+    // ── UI 이벤트 ──────────────────────────────────────────
 
     public void OnPointerEnter(PointerEventData eventData)
     {
@@ -101,6 +75,8 @@ public class ItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         UI_Tooltip.Instance.Hide();
     }
+
+    // ── 피드백 ─────────────────────────────────────────────
 
     public IEnumerator PlayActivationFeedback(float duration)
     {
@@ -124,5 +100,13 @@ public class ItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         _rectTransform.localRotation = Quaternion.identity;
         _rectTransform.localScale = Vector3.one;
+    }
+
+    // ── 내부 ───────────────────────────────────────────────
+
+    private void RefreshVisual()
+    {
+        if (_backgroundImage == null) return;
+        _backgroundImage.color = IsActivated ? _activeColor : _inactiveColor;
     }
 }
