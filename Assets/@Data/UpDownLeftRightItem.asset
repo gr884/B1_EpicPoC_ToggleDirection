@@ -14,5 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   itemId: 4
   displayName: "\uC0C1\uD558\uC88C\uC6B0"
+  description: "\uB300\uCDA9 \uC124\uBA85"
   directions: 01000000050000000700000003000000
+  effects: []
   icon: {fileID: -5067751389849610160, guid: 2ad01ea173e70e54bb429024860d23bc, type: 3}

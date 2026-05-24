@@ -5,13 +5,13 @@ public enum ItemDirection
 {
     None,
     Up,
-    UpRight, // 오른쪽 위 대각선
+    UpRight,
     Right,
-    DownRight, // 오른쪽 아래 대각선
+    DownRight,
     Down,
-    DownLeft, // 왼쪽 아래 대각선
+    DownLeft,
     Left,
-    UpLeft // 왼쪽 위 대각선
+    UpLeft
 }
 
 [CreateAssetMenu(menuName = "Game/Item Data", fileName = "ItemData")]
@@ -20,9 +20,14 @@ public class ItemData : ScriptableObject
     [Header("Identity")]
     public string itemId;
     public string displayName;
+    [TextArea(2, 5)]
+    public string description;
 
     [Header("Ability")]
     public List<ItemDirection> directions = new();
+
+    [Header("Effects")]
+    public List<ItemEffect> effects = new();
 
     [Header("Visual")]
     public Sprite icon;

@@ -3,7 +3,9 @@ using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
 
-public class ItemView : MonoBehaviour
+using UnityEngine.EventSystems;
+
+public class ItemView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
     [Header("Refs")]
     [SerializeField] private Image _backgroundImage;
@@ -87,6 +89,17 @@ public class ItemView : MonoBehaviour
             _backgroundImage.color = _highlightColor;
         else
             _backgroundImage.color = IsActivated ? _activeColor : _inactiveColor;
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        if (Data != null)
+            UI_Tooltip.Instance.Show(Data, Input.mousePosition);
+    }
+
+    public void OnPointerExit(PointerEventData eventData)
+    {
+        UI_Tooltip.Instance.Hide();
     }
 
     public IEnumerator PlayActivationFeedback(float duration)
