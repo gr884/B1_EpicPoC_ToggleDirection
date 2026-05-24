@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c00bc4be7969084f96211c3cad9c504, type: 3}
-  m_Name: Up+Left+Down
+  m_Name: EnemyHardCard 1
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardId: 0
-  directionData: {fileID: 11400000, guid: cc6db6d0273dbfe45b4cb46e30c82ed9, type: 2}
-  effectData: {fileID: 11400000, guid: 0fdf9907ed8269945866f7cb12f27b60, type: 2}
+  cardId: 105
+  directionData: {fileID: 11400000, guid: cdb97cba9ad94f31b866ed7b4ea5c1e9, type: 2}
+  effectData: {fileID: 11400000, guid: 9004d651bebe2624ea123384bead069c, type: 2}
   legacyDisplayName: 
   legacyAbilityDirection: 0
   legacyAdditionalDirections: 

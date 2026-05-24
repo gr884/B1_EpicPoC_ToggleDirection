@@ -13,6 +13,8 @@ MonoBehaviour:
   m_Name: TestEnemyDeck
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDeckSO
   cards:
-  - {fileID: 11400000, guid: 6230ba68170533442a498839af86c66e, type: 2}
-  - {fileID: 11400000, guid: d36dd235206d8e841a48703b0c4a49d7, type: 2}
-  - {fileID: 11400000, guid: 079ddefd158cfec4a9ee73a195cd0aeb, type: 2}
+  - {fileID: 11400000, guid: d9c462296c6c9844eb3ea659a1553355, type: 2}
+  - {fileID: 11400000, guid: c1ec69bb81a14ef48ad9a27b6297b725, type: 2}
+  - {fileID: 11400000, guid: 9dd0e8bb1e8b01f4db5d579e98ece432, type: 2}
+  - {fileID: 11400000, guid: 0b1f936f4e170284eaf884b773e6ac0c, type: 2}
+  - {fileID: 11400000, guid: 7e24fdfbca22f194a850af8d5733367d, type: 2}

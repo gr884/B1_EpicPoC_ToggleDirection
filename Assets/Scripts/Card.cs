@@ -105,7 +105,16 @@ public class Card : MonoBehaviour
             return;
         }
 
-        if (TryApplyLayeredIcons())
+        Sprite centerSprite = Data != null ? Data.centerSprite : null;
+        if (centerSprite != null)
+        {
+            iconImage.sprite = centerSprite;
+            iconImage.enabled = true;
+            TryApplyLayeredIcons(true);
+            return;
+        }
+
+        if (TryApplyLayeredIcons(false))
         {
             return;
         }
@@ -115,18 +124,20 @@ public class Card : MonoBehaviour
         SetExtraLayerVisibleFrom(0, false);
     }
 
-    private bool TryApplyLayeredIcons()
+    private bool TryApplyLayeredIcons(bool overlayOnly)
     {
         CardDirectionData dirData = Data != null ? Data.directionData : null;
         if (dirData == null || dirData.layeredIcons == null || dirData.layeredIcons.Count == 0)
         {
+            SetExtraLayerVisibleFrom(0, false);
             return false;
         }
 
         int baseSiblingIndex = iconImage.transform.GetSiblingIndex();
         for (int i = 0; i < dirData.layeredIcons.Count; i++)
         {
-            Image layer = GetOrCreateLayerImage(i);
+            int layerIndex = overlayOnly ? i + 1 : i;
+            Image layer = GetOrCreateLayerImage(layerIndex);
             if (layer == null)
             {
                 continue;
@@ -136,10 +147,11 @@ public class Card : MonoBehaviour
             layer.sprite = sprite;
             layer.enabled = sprite != null;
             layer.preserveAspect = iconImage.preserveAspect;
-            layer.rectTransform.SetSiblingIndex(baseSiblingIndex + i);
+            layer.rectTransform.SetSiblingIndex(baseSiblingIndex + layerIndex);
         }
 
-        SetExtraLayerVisibleFrom(dirData.layeredIcons.Count - 1, false);
+        int usedLayerIndex = overlayOnly ? dirData.layeredIcons.Count : dirData.layeredIcons.Count - 1;
+        SetExtraLayerVisibleFrom(usedLayerIndex, false);
         return true;
     }
 

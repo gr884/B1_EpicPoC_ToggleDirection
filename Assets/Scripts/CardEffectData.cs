@@ -7,4 +7,7 @@ public class CardEffectData : ScriptableObject
     public int attackPower;
     public int defensePower;
     public int healPower;
+
+    [Header("시각 요소")]
+    public Sprite centerSprite;
 }

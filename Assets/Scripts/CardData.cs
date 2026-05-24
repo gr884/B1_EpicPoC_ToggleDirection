@@ -46,6 +46,7 @@ public class CardData : ScriptableObject
     public int attackPower => effectData != null ? effectData.attackPower : 0;
     public int defensePower => effectData != null ? effectData.defensePower : 0;
     public int healPower => effectData != null ? effectData.healPower : 0;
+    public Sprite centerSprite => effectData != null ? effectData.centerSprite : null;
 
     public IEnumerable<AbilityDirection> GetAllDirections()
     {

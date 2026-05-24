@@ -10,10 +10,10 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c00bc4be7969084f96211c3cad9c504, type: 3}
-  m_Name: Up
+  m_Name: PlayerBaseCard 3
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardId: 1
-  directionData: {fileID: 11400000, guid: 94e2a925161e5154dac156fb1a41deb9, type: 2}
+  cardId: 3
+  directionData: {fileID: 11400000, guid: 3da76897698540f88981e430eafaea1a, type: 2}
   effectData: {fileID: 11400000, guid: 0fdf9907ed8269945866f7cb12f27b60, type: 2}
   legacyDisplayName: 
   legacyAbilityDirection: 0
