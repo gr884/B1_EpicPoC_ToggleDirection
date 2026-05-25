@@ -116,8 +116,10 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         int damage = Mathf.RoundToInt(_lastChainResult?.damage ?? 0);
         int defense = Mathf.RoundToInt(_lastChainResult?.defense ?? 0);
         int heal = Mathf.RoundToInt(_lastChainResult?.heal ?? 0);
+        int enemyDefense = GetEnemyCardBonus(EffectType.Defense);
+        int playerDamage = Mathf.Max(0, damage - enemyDefense);
 
-        _enemyView.TakeDamage(damage);
+        _enemyView.TakeDamage(playerDamage);
         yield return new WaitForSeconds(0.5f);
 
         if (_enemyView.IsDead) yield break;
@@ -130,7 +132,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         yield return new WaitForSeconds(0.5f);
 
-        // 실제 적용 후 On된 카드 내구도 감소
         ReduceAllCardDurability();
     }
 
@@ -166,11 +167,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     // ── 적 카드 보충 ───────────────────────────────────────
 
-    private bool _isReplenishing = false;
-
     private IEnumerator ReplenishEnemyCardsRoutine()
     {
-        _isReplenishing = true;
 
         int needed = _currentEnemyData.randomCardCount - GridManager.Instance.GetEnemyCardCount();
 
@@ -191,17 +189,13 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
             Debug.Log($"[BattleManager] 적 카드 보충 {i + 1}/{needed}");
         }
-
-        _isReplenishing = false;
     }
 
-    // ── 데미지 계산 ────────────────────────────────────────
+    public int GetEnemyBaseDamage() => _currentEnemyData != null ? _currentEnemyData.baseDamage : 5;
 
-    private int CalculateEnemyDamage()
+    public int GetEnemyCardBonus(EffectType type)
     {
-        int base_ = _currentEnemyData != null ? _currentEnemyData.baseDamage : 5;
-        ChainResult enemyResult = new();
-
+        int bonus = 0;
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
@@ -210,17 +204,17 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
             foreach (CardEffect effect in card.Data.effects)
             {
-                if (effect.scope != CountScope.None) continue; // 일단 None만 처리
-                switch (effect.effectType)
-                {
-                    case EffectType.Damage: enemyResult.damage += effect.value; break;
-                    case EffectType.Defense: enemyResult.defense += effect.value; break;
-                }
+                if (effect.scope != CountScope.None) continue;
+                if (effect.effectType == type)
+                    bonus += Mathf.RoundToInt(effect.value);
             }
         }
-
-        return base_ + Mathf.RoundToInt(enemyResult.damage);
+        return bonus;
     }
+
+    // ── 데미지 계산 ────────────────────────────────────────
+
+    private int CalculateEnemyDamage() => GetEnemyBaseDamage() + GetEnemyCardBonus(EffectType.Damage);
 
     // ── 유틸 ───────────────────────────────────────────────
 
