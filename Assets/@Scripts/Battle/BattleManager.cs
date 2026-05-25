@@ -11,15 +11,19 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     [SerializeField] private BattleActorView _playerView;
     [SerializeField] private BattleActorView _enemyView;
 
+    [Header("Battle Settings")]
+    [SerializeField] private int _maxCardsPerTurn = 2;
+
     [Header("Enemy Card")]
     [SerializeField] private GameObject _cardPrefab;
 
     [Header("Debug")]
-    [SerializeField] private bool _reduceAllOnTurn = false; // true: 놓인 카드 전부 / false: 활성화된 카드만
+    [SerializeField] private bool _reduceAllOnTurn = false;
 
     // ── 전투 상태 ──────────────────────────────────────────
     public BattlePhase CurrentPhase { get; private set; }
     public bool IsChainRunning { get; private set; }
+    public int MaxCardsPerTurn => _maxCardsPerTurn;
 
     // ── 이벤트 ────────────────────────────────────────────
     public event Action<BattlePhase> OnPhaseChanged;
@@ -66,6 +70,13 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         StartCoroutine(AttackRoutine());
     }
 
+    public void ConfirmTurn()
+    {
+        if (CurrentPhase != BattlePhase.Turn || IsChainRunning) return;
+        CardManager.Instance.ResetTurnPlaceCount();
+        StartCoroutine(TurnRoutine());
+    }
+
     // ── 체인 결과 처리 ─────────────────────────────────────
 
     private ChainResult _lastChainResult;
@@ -73,17 +84,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private void OnChainFinished(ChainResult result)
     {
         _lastChainResult = result;
-
-        if (CurrentPhase == BattlePhase.Turn)
-            StartCoroutine(TurnRoutine());
-        else if (CurrentPhase == BattlePhase.FreePlace)
-            StartCoroutine(FreePlaceChainRoutine());
-    }
-
-    // FreePlace 중 카드 놓을 때마다 체인 후 처리
-    private IEnumerator FreePlaceChainRoutine()
-    {
-        yield return null; // 내구도 제거 한 프레임 대기
     }
 
     // ── 자유 배치 확정 루틴 ────────────────────────────────
@@ -95,7 +95,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         IsChainRunning = false;
         if (_playerView.IsDead) yield break;
         EnterPhase(BattlePhase.Turn);
-        CardManager.Instance.DrawToHand(1);
+        CardManager.Instance.DrawToHand(UserCardPool.Instance.TurnDrawCount);
     }
 
     // ── 턴 루틴 ────────────────────────────────────────────
@@ -106,7 +106,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         yield return StartCoroutine(ProcessCombat());
         IsChainRunning = false;
         if (_playerView.IsDead) yield break;
-        CardManager.Instance.DrawToHand(1);
+        CardManager.Instance.DrawToHand(UserCardPool.Instance.TurnDrawCount);
     }
 
     // ── 공통 전투 처리 ─────────────────────────────────────

@@ -6,14 +6,14 @@ public class UserCardPool : SingletonBehaviour<UserCardPool>
     [Header("Deck")]
     [SerializeField] private List<CardData> _startingDeck = new();
     [SerializeField] private bool _shuffleOnReset = true;
-    [SerializeField] private int _drawCount = 5;
+    [SerializeField] private int _initialDrawCount = 5;
+    [SerializeField] private int _turnDrawCount = 1;
 
     private readonly List<CardData> _drawPile = new();
-    private readonly List<CardData> _discardPile = new();
 
-    public int DrawCount => _drawCount;
+    public int InitialDrawCount => _initialDrawCount;
+    public int TurnDrawCount => _turnDrawCount;
     public int DrawPileCount => _drawPile.Count;
-    public int DiscardPileCount => _discardPile.Count;
 
     public void Init()
     {
@@ -23,7 +23,6 @@ public class UserCardPool : SingletonBehaviour<UserCardPool>
     public void ResetForBattle()
     {
         _drawPile.Clear();
-        _discardPile.Clear();
 
         if (_startingDeck != null)
             _drawPile.AddRange(_startingDeck);
@@ -31,7 +30,7 @@ public class UserCardPool : SingletonBehaviour<UserCardPool>
         if (_shuffleOnReset)
             Shuffle(_drawPile);
 
-        Debug.Log($"[UserCardPool] 덱 리셋 — 드로우파일: {_drawPile.Count}장");
+        Debug.Log($"[UserCardPool] 덱 리셋 — {_drawPile.Count}장");
     }
 
     public List<CardData> DrawCards(int count)
@@ -41,7 +40,7 @@ public class UserCardPool : SingletonBehaviour<UserCardPool>
         for (int i = 0; i < Mathf.Max(0, count); i++)
         {
             if (_drawPile.Count == 0)
-                RefillFromDiscard();
+                RefillDrawPile();
 
             if (_drawPile.Count == 0) break;
 
@@ -54,24 +53,36 @@ public class UserCardPool : SingletonBehaviour<UserCardPool>
         return drawn;
     }
 
-    public void DiscardMany(IEnumerable<CardData> cards)
-    {
-        if (cards == null) return;
-        foreach (CardData card in cards)
-            if (card != null) _discardPile.Add(card);
-    }
-
     // ── 내부 ───────────────────────────────────────────────
 
-    private void RefillFromDiscard()
+    private void RefillDrawPile()
     {
-        if (_discardPile.Count == 0) return;
+        // 전체 덱에서 손패 + 그리드에 있는 카드를 제외한 나머지로 재구성
+        List<CardData> inUse = new();
 
-        _drawPile.AddRange(_discardPile);
-        _discardPile.Clear();
-        Shuffle(_drawPile);
+        // 손패에 있는 카드
+        foreach (CardView card in CardManager.Instance.Hand)
+            if (card?.Data != null) inUse.Add(card.Data);
 
-        Debug.Log($"[UserCardPool] 버리기파일 → 드로우파일 {_drawPile.Count}장");
+        // 그리드에 있는 카드
+        foreach (var slot in GridManager.Instance.Slots.Values)
+            if (slot.OccupiedCard?.Data != null && !slot.OccupiedCard.IsEnemy)
+                inUse.Add(slot.OccupiedCard.Data);
+
+        // 전체 덱에서 사용 중인 카드 제외
+        List<CardData> available = new(_startingDeck);
+        foreach (CardData used in inUse)
+            available.Remove(used);
+
+        if (available.Count == 0)
+        {
+            Debug.Log("[UserCardPool] 재활용할 카드 없음");
+            return;
+        }
+
+        Shuffle(available);
+        _drawPile.AddRange(available);
+        Debug.Log($"[UserCardPool] 드로우파일 재구성 — {_drawPile.Count}장");
     }
 
     private static void Shuffle(List<CardData> list)

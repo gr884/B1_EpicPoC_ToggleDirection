@@ -12,11 +12,23 @@ public class CardManager : SingletonBehaviour<CardManager>
     [Header("Hand Layout")]
     [SerializeField] private Vector2 _cardSize = new Vector2(80f, 80f);
     [SerializeField] private float _cardSpacing = 10f;
+    [SerializeField] private int _maxHandSize = 8;
 
     private readonly List<CardView> _hand = new();
+    private int _cardsPlacedThisTurn = 0;
+    public int CardsPlacedThisTurn => _cardsPlacedThisTurn;
 
     public IReadOnlyList<CardView> Hand => _hand;
     public int HandCount => _hand.Count;
+    public bool CanPlaceThisTurn
+    {
+        get
+        {
+            if (BattleManager.Instance.CurrentPhase == BattleManager.BattlePhase.FreePlace)
+                return true;
+            return _cardsPlacedThisTurn < BattleManager.Instance.MaxCardsPerTurn;
+        }
+    }
 
     public event Action OnHandChanged;
 
@@ -24,7 +36,18 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         _cardPool = UserCardPool.Instance;
         ChainExecutor.Instance.OnChainFinished += OnChainFinished;
+        BattleManager.Instance.OnPhaseChanged += OnPhaseChanged;
         Debug.Log("[CardManager] Init");
+    }
+
+    public void ResetTurnPlaceCount()
+    {
+        _cardsPlacedThisTurn = 0;
+    }
+
+    private void OnPhaseChanged(BattleManager.BattlePhase phase)
+    {
+        _cardsPlacedThisTurn = 0;
     }
 
     private void OnChainFinished(ChainResult result)
@@ -39,14 +62,21 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         Debug.Log("[CardManager] StartBattleDraw 호출");
         _cardPool.ResetForBattle();
-        DrawToHand(_cardPool.DrawCount);
+        DrawToHand(_cardPool.InitialDrawCount);
     }
 
     // ── 드로우 ─────────────────────────────────────────────
 
     public void DrawToHand(int count)
     {
-        List<CardData> drawn = _cardPool.DrawCards(count);
+        int drawable = Mathf.Min(count, _maxHandSize - _hand.Count);
+        if (drawable <= 0)
+        {
+            Debug.Log("[CardManager] 손패가 가득 찼습니다.");
+            return;
+        }
+
+        List<CardData> drawn = _cardPool.DrawCards(drawable);
         foreach (CardData data in drawn)
             SpawnToHand(data);
 
@@ -60,12 +90,18 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         if (card == null || targetSlot == null || !targetSlot.IsEmpty) return false;
         if (BattleManager.Instance.IsChainRunning) return false;
+        if (!CanPlaceThisTurn)
+        {
+            Debug.Log("[CardManager] 이번 턴 배치 한도 초과");
+            return false;
+        }
         if (BattleManager.Instance.CurrentPhase == BattleManager.BattlePhase.Turn
             && !_hand.Contains(card)) return false;
 
         targetSlot.AssignCard(card);
         card.SetDraggable(false);
         _hand.Remove(card);
+        _cardsPlacedThisTurn++;
         ArrangeHand();
         OnHandChanged?.Invoke();
 
@@ -77,17 +113,11 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void DiscardHand()
     {
-        List<CardData> discarded = new();
         foreach (CardView card in _hand)
-        {
-            if (card?.Data != null)
-                discarded.Add(card.Data);
             if (card != null)
                 PoolManager.Instance.Return(card.gameObject);
-        }
 
         _hand.Clear();
-        _cardPool.DiscardMany(discarded);
         OnHandChanged?.Invoke();
     }
 
@@ -133,6 +163,8 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         if (ChainExecutor.Instance != null)
             ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
+        if (BattleManager.Instance != null)
+            BattleManager.Instance.OnPhaseChanged -= OnPhaseChanged;
         OnHandChanged = null;
         base.Dispose();
     }
