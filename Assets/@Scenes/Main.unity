@@ -241,6 +241,7 @@ MonoBehaviour:
   _playerView: {fileID: 673428015}
   _enemyView: {fileID: 1334230416}
   _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
+  _reduceAllOnTurn: 0
 --- !u!1 &151641910
 GameObject:
   m_ObjectHideFlags: 0

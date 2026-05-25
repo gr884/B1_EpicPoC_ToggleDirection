@@ -14,6 +14,9 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     [Header("Enemy Card")]
     [SerializeField] private GameObject _cardPrefab;
 
+    [Header("Debug")]
+    [SerializeField] private bool _reduceAllOnTurn = false; // true: 놓인 카드 전부 / false: 활성화된 카드만
+
     // ── 전투 상태 ──────────────────────────────────────────
     public BattlePhase CurrentPhase { get; private set; }
     public bool IsChainRunning { get; private set; }
@@ -70,7 +73,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private void OnChainFinished(ChainResult result)
     {
         _lastChainResult = result;
-        ReduceAllCardDurability();
 
         if (CurrentPhase == BattlePhase.Turn)
             StartCoroutine(TurnRoutine());
@@ -122,12 +124,14 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (heal > 0) _playerView.Heal(heal);
 
-        // RuneDice 방식: 막기가 적 공격을 먼저 흡수, 남은 피해만 HP 차감
         int enemyRaw = CalculateEnemyDamage();
         int remaining = Mathf.Max(0, enemyRaw - defense);
         _playerView.TakeDamage(remaining);
 
         yield return new WaitForSeconds(0.5f);
+
+        // 실제 적용 후 On된 카드 내구도 감소
+        ReduceAllCardDurability();
     }
 
     // ── 내구도 처리 ────────────────────────────────────────
@@ -139,6 +143,10 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             if (slot.IsEmpty) continue;
+
+            // _reduceAllOnTurn: 놓인 카드 전부 / false: 활성화된 카드만
+            if (!_reduceAllOnTurn && !slot.OccupiedCard.IsActivated) continue;
+
             bool expired = slot.OccupiedCard.ReduceDurability();
             if (expired) toRemove.Add(slot);
         }
