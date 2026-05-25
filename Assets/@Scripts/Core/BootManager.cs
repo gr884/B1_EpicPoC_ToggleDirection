@@ -14,7 +14,6 @@ public class BootManager : MonoBehaviour
         GameManager.Instance.Init();
         GameFlowManager.Instance.Init();
 
-        GameManager.Instance.GameStart();
 
         Debug.Log("[BootManager] 초기화 완료");
     }

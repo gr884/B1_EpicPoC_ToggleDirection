@@ -51,10 +51,23 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     // ── 체인 결과 처리 ─────────────────────────────────────
 
-    private void OnChainFinished()
+    private ChainResult _lastChainResult;
+
+    private void OnChainFinished(ChainResult result)
     {
+        _lastChainResult = result;
+        ReduceAllCardDurability();
+
         if (CurrentPhase == BattlePhase.Turn)
             StartCoroutine(TurnRoutine());
+        else if (CurrentPhase == BattlePhase.FreePlace)
+            StartCoroutine(FreePlaceChainRoutine());
+    }
+
+    // FreePlace 중 카드 놓을 때마다 체인 후 처리
+    private IEnumerator FreePlaceChainRoutine()
+    {
+        yield return null; // 내구도 제거 한 프레임 대기
     }
 
     // ── 자유 배치 확정 루틴 ────────────────────────────────
@@ -62,19 +75,9 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private IEnumerator AttackRoutine()
     {
         IsChainRunning = true;
-
-        _enemyView.TakeDamage(ChainExecutor.Instance.ActivatedCards.Count);
-        yield return new WaitForSeconds(0.5f);
-
-        if (_enemyView.IsDead) { IsChainRunning = false; yield break; }
-
-        _playerView.TakeDamage(CalculateEnemyDamage());
-        yield return new WaitForSeconds(0.5f);
-
+        yield return StartCoroutine(ProcessCombat());
         IsChainRunning = false;
-
         if (_playerView.IsDead) yield break;
-
         EnterPhase(BattlePhase.Turn);
         CardManager.Instance.DrawToHand(1);
     }
@@ -84,21 +87,33 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private IEnumerator TurnRoutine()
     {
         IsChainRunning = true;
-
-        _enemyView.TakeDamage(ChainExecutor.Instance.ActivatedCards.Count);
-        yield return new WaitForSeconds(0.5f);
-
-        if (_enemyView.IsDead) { IsChainRunning = false; yield break; }
-
-        _playerView.TakeDamage(CalculateEnemyDamage());
-        yield return new WaitForSeconds(0.5f);
-
+        yield return StartCoroutine(ProcessCombat());
         IsChainRunning = false;
-
         if (_playerView.IsDead) yield break;
-
-        // 다음 턴 드로우
         CardManager.Instance.DrawToHand(1);
+    }
+
+    // ── 공통 전투 처리 ─────────────────────────────────────
+
+    private IEnumerator ProcessCombat()
+    {
+        int damage = Mathf.RoundToInt(_lastChainResult?.damage ?? 0);
+        int defense = Mathf.RoundToInt(_lastChainResult?.defense ?? 0);
+        int heal = Mathf.RoundToInt(_lastChainResult?.heal ?? 0);
+
+        _enemyView.TakeDamage(damage);
+        yield return new WaitForSeconds(0.5f);
+
+        if (_enemyView.IsDead) yield break;
+
+        if (heal > 0) _playerView.Heal(heal);
+
+        // RuneDice 방식: 막기가 적 공격을 먼저 흡수, 남은 피해만 HP 차감
+        int enemyRaw = CalculateEnemyDamage();
+        int remaining = Mathf.Max(0, enemyRaw - defense);
+        _playerView.TakeDamage(remaining);
+
+        yield return new WaitForSeconds(0.5f);
     }
 
     // ── 내구도 처리 ────────────────────────────────────────

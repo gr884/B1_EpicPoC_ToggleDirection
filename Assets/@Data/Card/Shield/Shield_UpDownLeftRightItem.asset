@@ -17,5 +17,9 @@ MonoBehaviour:
   description: "\uBC29\uD328 + 1"
   maxDurability: 10
   directions: 01000000050000000700000003000000
-  effects: []
-  icon: {fileID: -4932145415022004911, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  effects:
+  - scope: 0
+    threshold: 0
+    effectType: 1
+    value: 1
+  icon: {fileID: 7544613302241952520, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

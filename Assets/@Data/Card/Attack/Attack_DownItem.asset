@@ -17,5 +17,9 @@ MonoBehaviour:
   description: "\uACF5\uACA9 + 1"
   maxDurability: 10
   directions: 05000000
-  effects: []
+  effects:
+  - scope: 0
+    threshold: 0
+    effectType: 0
+    value: 1
   icon: {fileID: -2237518807768803992, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

@@ -26,6 +26,8 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [Header("Colors")]
     [SerializeField] private Color _activeColor = Color.white;
     [SerializeField] private Color _inactiveColor = new Color(0.6f, 0.6f, 0.6f, 1f);
+    [SerializeField] private Color _enemyActiveColor = new Color(0.2f, 0.55f, 1f, 1f);
+    [SerializeField] private Color _enemyInactiveColor = new Color(0.55f, 0.55f, 1f, 1f);
 
     public CardData Data { get; private set; }
     public bool IsActivated { get; private set; }
@@ -177,6 +179,10 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     private void RefreshVisual()
     {
         if (_backgroundImage == null) return;
-        _backgroundImage.color = IsActivated ? _activeColor : _inactiveColor;
+
+        if (IsEnemy)
+            _backgroundImage.color = IsActivated ? _enemyActiveColor : _enemyInactiveColor;
+        else
+            _backgroundImage.color = IsActivated ? _activeColor : _inactiveColor;
     }
 }

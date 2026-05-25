@@ -10,10 +10,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     [SerializeField] private float _cardFeedbackDuration = 0.22f;
 
     public event Action OnChainStarted;
-    public event Action OnChainFinished;
+    public event Action<ChainResult> OnChainFinished;
+    public event Action<ChainResult> OnStatsUpdated;
 
-    public IReadOnlyList<CardView> ActivatedCards => _activatedCards;
-    private readonly List<CardView> _activatedCards = new();
+    public IReadOnlyCollection<CardView> ActivatedCards => _activatedCards;
+    private readonly HashSet<CardView> _activatedCards = new();
 
     public void Init()
     {
@@ -30,7 +31,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         if (rootCard == null) yield break;
 
         OnChainStarted?.Invoke();
-
         _activatedCards.Clear();
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
@@ -43,10 +43,92 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
 
-        OnChainFinished?.Invoke();
+        OnChainFinished?.Invoke(CalculateEffects());
     }
 
-    private IEnumerator ActivateChainFrom(CardView root, List<CardView> activatedCards)
+    // ── 효과 집계 ──────────────────────────────────────────
+
+    private ChainResult CalculateEffects()
+    {
+        ChainResult result = new();
+
+        // 그리드 전체에서 현재 On 상태인 카드 기준으로 계산
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            CardView card = slot.OccupiedCard;
+            if (card == null || !card.IsActivated) continue;
+            if (card.Data?.effects == null) continue;
+
+            foreach (CardEffect effect in card.Data.effects)
+            {
+                float value = EvaluateEffect(effect, card);
+                if (value <= 0f) continue;
+
+                switch (effect.effectType)
+                {
+                    case EffectType.Damage: result.damage += value; break;
+                    case EffectType.Defense: result.defense += value; break;
+                    case EffectType.Heal: result.heal += value; break;
+                }
+            }
+        }
+
+        return result;
+    }
+
+    private float EvaluateEffect(CardEffect effect, CardView card)
+    {
+        if (effect.scope == CountScope.None)
+            return effect.value;
+
+        int count = CountByScope(effect.scope, card);
+        return count >= effect.threshold ? effect.value : 0f;
+    }
+
+    private int CountByScope(CountScope scope, CardView card)
+    {
+        if (card?.CurrentSlot == null) return 0;
+        Vector2Int pos = card.CurrentSlot.Position;
+
+        switch (scope)
+        {
+            case CountScope.Row:
+                int rowCount = 0;
+                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
+                        && slot.Position.y == pos.y)
+                        rowCount++;
+                return rowCount;
+
+            case CountScope.Column:
+                int colCount = 0;
+                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
+                        && slot.Position.x == pos.x)
+                        colCount++;
+                return colCount;
+
+            case CountScope.Cross:
+                int crossCount = 0;
+                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
+                        && (slot.Position.y == pos.y || slot.Position.x == pos.x))
+                        crossCount++;
+                return crossCount;
+
+            case CountScope.Total:
+                int total = 0;
+                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
+                        total++;
+                return total;
+
+            default:
+                return 0;
+        }
+    }
+
+    private IEnumerator ActivateChainFrom(CardView root, HashSet<CardView> activatedCards)
     {
         List<CardView> currentWave = new() { root };
         int step = 0;
@@ -73,6 +155,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 {
                     emitters.Add(current);
                     activatedCards.Add(current);
+                    OnStatsUpdated?.Invoke(CalculateEffects());
+                }
+                else
+                {
+                    activatedCards.Remove(current);
+                    OnStatsUpdated?.Invoke(CalculateEffects());
                 }
             }
 
@@ -102,6 +190,15 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     protected override void Dispose()
     {
         OnChainStarted = null;
-        OnChainFinished = null; base.Dispose();
+        OnChainFinished = null;
+        OnStatsUpdated = null;
+        base.Dispose();
     }
+}
+
+public class ChainResult
+{
+    public float damage;
+    public float defense;
+    public float heal;
 }

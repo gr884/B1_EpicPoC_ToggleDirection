@@ -27,7 +27,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         Debug.Log("[CardManager] Init");
     }
 
-    private void OnChainFinished()
+    private void OnChainFinished(ChainResult result)
     {
         foreach (CardView card in _hand)
             if (card != null) card.SetDraggable(true);
@@ -69,7 +69,6 @@ public class CardManager : SingletonBehaviour<CardManager>
         ArrangeHand();
         OnHandChanged?.Invoke();
 
-        BattleManager.Instance.ReduceAllCardDurability();
         ChainExecutor.Instance.ExecuteFrom(card);
         return true;
     }

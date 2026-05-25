@@ -24,9 +24,11 @@ public enum EffectType
 
 public enum CountScope
 {
-    Row,    // 시발점 기준 같은 행에서 On된 개수
-    Column, // 시발점 기준 같은 열에서 On된 개수
-    Total,  // 시발점 기준 On된 총 개수
+    None,           // 조건 없이 On되면 즉시 발동
+    Row,            // 같은 행에서 On된 개수
+    Column,         // 같은 열에서 On된 개수
+    Cross,          // 같은 행 + 같은 열에서 On된 개수 합산
+    Total,          // 그리드 전체에서 On된 총 개수
 }
 
 [Serializable]
@@ -53,7 +55,7 @@ public class CardData : ScriptableObject
     public string description;
 
     [Header("Durability")]
-    public int maxDurability = 10;
+    public int maxDurability = 5;
 
     [Header("Directions")]
     public List<CardDirection> directions = new();
