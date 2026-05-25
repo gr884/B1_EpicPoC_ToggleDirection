@@ -94,7 +94,7 @@ public class GridManager : SingletonBehaviour<GridManager>
         for (int i = 0; i < count; i++)
         {
             CardData data = enemyData.randomCardPool[Random.Range(0, enemyData.randomCardPool.Count)];
-            CardView card = SpawnEnemyCard(data, cardPrefab, emptySlots[i], true);
+            CardView card = SpawnEnemyCard(data, cardPrefab, emptySlots[i], true, enemyData);
             if (card != null) placed.Add(emptySlots[i]);
         }
 
@@ -113,14 +113,14 @@ public class GridManager : SingletonBehaviour<GridManager>
             GridSlot slot = GetSlot(placement.position);
             if (slot == null || !slot.IsEmpty) continue;
 
-            CardView card = SpawnEnemyCard(placement.cardData, cardPrefab, slot, true);
+            CardView card = SpawnEnemyCard(placement.cardData, cardPrefab, slot, true, enemyData);
             if (card != null) placed.Add(slot);
         }
 
         return placed;
     }
 
-    private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated = true)
+    private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated = true, EnemyDataSO enemyData = null)
     {
         GameObject obj = PoolManager.Instance.Get(cardPrefab, Vector3.zero, slot.transform);
         CardView card = obj.GetComponent<CardView>();
@@ -128,6 +128,10 @@ public class GridManager : SingletonBehaviour<GridManager>
 
         card.Initialize(data, isEnemy: true, startsActivated: startsActivated);
         card.SetDraggable(false);
+
+        // 적 내구도 주입
+        if (enemyData != null)
+            card.SetDurability(Random.Range(enemyData.minDurability, enemyData.maxDurability + 1));
 
         RectTransform rect = obj.GetComponent<RectTransform>();
         if (rect != null)
@@ -156,7 +160,7 @@ public class GridManager : SingletonBehaviour<GridManager>
 
         Shuffle(emptySlots);
         CardData data = enemyData.randomCardPool[Random.Range(0, enemyData.randomCardPool.Count)];
-        CardView card = SpawnEnemyCard(data, cardPrefab, emptySlots[0], false);
+        CardView card = SpawnEnemyCard(data, cardPrefab, emptySlots[0], false, enemyData);
         return card != null ? emptySlots[0] : null;
     }
 

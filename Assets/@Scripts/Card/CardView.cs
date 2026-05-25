@@ -64,6 +64,12 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         RefreshVisual();
     }
 
+    public void SetDurability(int value)
+    {
+        CurrentDurability = Mathf.Max(0, value);
+        RefreshDurabilityText();
+    }
+
     public void SetPlaced(GridSlot slot)
     {
         CurrentSlot = slot;

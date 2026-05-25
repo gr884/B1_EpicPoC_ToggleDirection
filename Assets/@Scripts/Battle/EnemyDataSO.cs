@@ -20,6 +20,10 @@ public class EnemyDataSO : ScriptableObject
     public List<CardData> randomCardPool = new();
     [Tooltip("isRandom이 false일 때 직접 설정한 배치")]
     public List<EnemyCardPlacement> fixedPlacements = new();
+
+    [Header("Enemy Card Durability")]
+    public int minDurability = 2;
+    public int maxDurability = 5;
 }
 
 [Serializable]
