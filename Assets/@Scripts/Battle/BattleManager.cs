@@ -24,6 +24,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     public BattlePhase CurrentPhase { get; private set; }
     public bool IsChainRunning { get; private set; }
     public int MaxCardsPerTurn => _maxCardsPerTurn;
+    public int PlayerHp => _playerView != null ? _playerView.CurrentHp : 0;
 
     // ── 이벤트 ────────────────────────────────────────────
     public event Action<BattlePhase> OnPhaseChanged;
@@ -32,12 +33,20 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     public void Init()
     {
         ChainExecutor.Instance.OnChainFinished += OnChainFinished;
+        GameManager.Instance.OnStateChanged += OnGameStateChanged;
         Debug.Log("[BattleManager] Init");
+    }
+
+    private void OnGameStateChanged(GameManager.GameState state)
+    {
+        if (state == GameManager.GameState.Playing)
+            _playerMaxHp = 0; // 게임 시작 시 리셋
     }
 
     // ── 전투 시작 ──────────────────────────────────────────
 
     private EnemyDataSO _currentEnemyData;
+    private int _playerMaxHp;
 
     public void StartBattle(int playerHp, EnemyDataSO enemyData)
     {
@@ -46,7 +55,10 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         int enemyHp = enemyData != null ? enemyData.maxHp : 20;
         string enemyName = enemyData != null ? enemyData.displayName : "Enemy";
 
-        _playerView.Setup("Player", playerHp);
+        // 최대 HP는 처음 한 번만 설정
+        if (_playerMaxHp == 0) _playerMaxHp = playerHp;
+
+        _playerView.Setup("Player", _playerMaxHp, playerHp);
         _enemyView.Setup(enemyName, enemyHp);
 
         _playerView.OnDied += () => EndBattle(false);
@@ -235,6 +247,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     {
         if (ChainExecutor.Instance != null)
             ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
+        if (GameManager.Instance != null)
+            GameManager.Instance.OnStateChanged -= OnGameStateChanged;
 
         OnPhaseChanged = null;
         OnBattleEnded = null;

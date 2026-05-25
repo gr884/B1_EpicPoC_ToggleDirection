@@ -41,6 +41,14 @@ public class BattleActorView : MonoBehaviour
         Refresh();
     }
 
+    public void Setup(string label, int maxHp, int currentHp)
+    {
+        _label = label;
+        _maxHp = Mathf.Max(1, maxHp);
+        _currentHp = Mathf.Clamp(currentHp, 0, _maxHp);
+        Refresh();
+    }
+
     public void TakeDamage(int amount)
     {
         int damage = Mathf.Max(0, amount);
