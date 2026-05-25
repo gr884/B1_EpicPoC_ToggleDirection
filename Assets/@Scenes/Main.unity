@@ -240,6 +240,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleManager
   _playerView: {fileID: 673428015}
   _enemyView: {fileID: 1334230416}
+  _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
 --- !u!1 &151641910
 GameObject:
   m_ObjectHideFlags: 0
@@ -1026,7 +1027,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -194.4, y: 383.4}
+  m_AnchoredPosition: {x: -195, y: 140}
   m_SizeDelta: {x: 160, y: 60}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &593116048
@@ -1259,7 +1260,7 @@ MonoBehaviour:
   _gridRoot: {fileID: 1858280900}
   _slotPrefab: {fileID: 6841558488037871595, guid: 25d0d4d51bd985343a2adb238c9c7db9, type: 3}
   _rows: 4
-  _columns: 7
+  _columns: 5
 --- !u!1 &673428013
 GameObject:
   m_ObjectHideFlags: 0
@@ -3609,7 +3610,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 0fdee7483ef0bfd44ba8785ec960b506, type: 2}
   - {fileID: 11400000, guid: 2280057d4977a7544a7d550b50822333, type: 2}
   _shuffleOnReset: 1
-  _drawCount: 30
+  _drawCount: 7
 --- !u!1 &1637302768
 GameObject:
   m_ObjectHideFlags: 0

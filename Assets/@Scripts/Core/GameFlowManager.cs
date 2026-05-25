@@ -18,9 +18,7 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
         {
             case GameManager.GameState.Playing:
                 GridManager.Instance.BuildGrid();
-                int enemyHp = _enemyData != null ? _enemyData.maxHp : 50;
-                string enemyName = _enemyData != null ? _enemyData.displayName : "Enemy";
-                BattleManager.Instance.StartBattle(_playerHp, enemyHp, enemyName);
+                BattleManager.Instance.StartBattle(_playerHp, _enemyData);
                 break;
 
             case GameManager.GameState.GameOver:

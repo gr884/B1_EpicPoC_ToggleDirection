@@ -11,6 +11,9 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     [SerializeField] private BattleActorView _playerView;
     [SerializeField] private BattleActorView _enemyView;
 
+    [Header("Enemy Card")]
+    [SerializeField] private GameObject _cardPrefab;
+
     // ── 전투 상태 ──────────────────────────────────────────
     public BattlePhase CurrentPhase { get; private set; }
     public bool IsChainRunning { get; private set; }
@@ -27,13 +30,24 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     // ── 전투 시작 ──────────────────────────────────────────
 
-    public void StartBattle(int playerHp, int enemyHp, string enemyName = "Enemy")
+    private EnemyDataSO _currentEnemyData;
+
+    public void StartBattle(int playerHp, EnemyDataSO enemyData)
     {
+        _currentEnemyData = enemyData;
+
+        int enemyHp = enemyData != null ? enemyData.maxHp : 20;
+        string enemyName = enemyData != null ? enemyData.displayName : "Enemy";
+
         _playerView.Setup("Player", playerHp);
         _enemyView.Setup(enemyName, enemyHp);
 
         _playerView.OnDied += () => EndBattle(false);
         _enemyView.OnDied += () => EndBattle(true);
+
+        // 적 카드 배치
+        if (enemyData != null && _cardPrefab != null)
+            GridManager.Instance.PlaceEnemyCards(enemyData, _cardPrefab);
 
         EnterPhase(BattlePhase.FreePlace);
         CardManager.Instance.StartBattleDraw();
@@ -142,8 +156,27 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     private int CalculateEnemyDamage()
     {
-        // TODO: EnemyDataSO.baseDamage로 대체
-        return 5;
+        int base_ = _currentEnemyData != null ? _currentEnemyData.baseDamage : 5;
+        ChainResult enemyResult = new();
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            CardView card = slot.OccupiedCard;
+            if (card == null || !card.IsEnemy || !card.IsActivated) continue;
+            if (card.Data?.effects == null) continue;
+
+            foreach (CardEffect effect in card.Data.effects)
+            {
+                if (effect.scope != CountScope.None) continue; // 일단 None만 처리
+                switch (effect.effectType)
+                {
+                    case EffectType.Damage: enemyResult.damage += effect.value; break;
+                    case EffectType.Defense: enemyResult.defense += effect.value; break;
+                }
+            }
+        }
+
+        return base_ + Mathf.RoundToInt(enemyResult.damage);
     }
 
     // ── 유틸 ───────────────────────────────────────────────

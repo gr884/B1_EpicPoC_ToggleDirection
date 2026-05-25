@@ -42,10 +42,10 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         _rectTransform = GetComponent<RectTransform>();
     }
 
-    public void Initialize(CardData data, bool isEnemy = false)
+    public void Initialize(CardData data, bool isEnemy = false, bool startsActivated = false)
     {
         Data = data;
-        IsActivated = false;
+        IsActivated = startsActivated;
         IsEnemy = isEnemy;
         CurrentSlot = null;
         CurrentDurability = data != null ? data.maxDurability : 0;

@@ -65,6 +65,104 @@ public class GridManager : SingletonBehaviour<GridManager>
         Debug.Log("[GridManager] 그리드 카드 리셋");
     }
 
+    // ── 적 카드 배치 ───────────────────────────────────────
+
+    public List<GridSlot> PlaceEnemyCards(EnemyDataSO enemyData, GameObject cardPrefab)
+    {
+        List<GridSlot> placed = new();
+
+        if (enemyData == null || cardPrefab == null) return placed;
+
+        if (enemyData.isRandom)
+            placed = PlaceEnemyCardsRandom(enemyData, cardPrefab);
+        else
+            placed = PlaceEnemyCardsFixed(enemyData, cardPrefab);
+
+        Debug.Log($"[GridManager] 적 카드 {placed.Count}개 배치");
+        return placed;
+    }
+
+    private List<GridSlot> PlaceEnemyCardsRandom(EnemyDataSO enemyData, GameObject cardPrefab)
+    {
+        List<GridSlot> placed = new();
+        if (enemyData.randomCardPool == null || enemyData.randomCardPool.Count == 0) return placed;
+
+        List<GridSlot> emptySlots = GetEmptySlots();
+        Shuffle(emptySlots);
+
+        int count = Mathf.Min(enemyData.randomCardCount, emptySlots.Count);
+        for (int i = 0; i < count; i++)
+        {
+            CardData data = enemyData.randomCardPool[Random.Range(0, enemyData.randomCardPool.Count)];
+            CardView card = SpawnEnemyCard(data, cardPrefab, emptySlots[i]);
+            if (card != null) placed.Add(emptySlots[i]);
+        }
+
+        return placed;
+    }
+
+    private List<GridSlot> PlaceEnemyCardsFixed(EnemyDataSO enemyData, GameObject cardPrefab)
+    {
+        List<GridSlot> placed = new();
+        if (enemyData.fixedPlacements == null) return placed;
+
+        foreach (EnemyCardPlacement placement in enemyData.fixedPlacements)
+        {
+            if (placement?.cardData == null) continue;
+
+            GridSlot slot = GetSlot(placement.position);
+            if (slot == null || !slot.IsEmpty) continue;
+
+            CardView card = SpawnEnemyCard(placement.cardData, cardPrefab, slot);
+            if (card != null) placed.Add(slot);
+        }
+
+        return placed;
+    }
+
+    private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot)
+    {
+        GameObject obj = PoolManager.Instance.Get(cardPrefab, Vector3.zero, slot.transform);
+        CardView card = obj.GetComponent<CardView>();
+        if (card == null) return null;
+
+        card.Initialize(data, isEnemy: true, startsActivated: true);
+        card.SetDraggable(false);
+
+        RectTransform rect = obj.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.localScale = Vector3.one;
+        }
+
+        slot.AssignCard(card);
+        return card;
+    }
+
+    // 제거 함수 (지금은 사용 안 하지만 추후 사용)
+    public void RemoveEnemyCard(GridSlot slot)
+    {
+        if (slot == null || slot.IsEmpty) return;
+        CardView card = slot.OccupiedCard;
+        slot.ClearCard();
+        PoolManager.Instance.Return(card.gameObject);
+    }
+
+    private static void Shuffle<T>(List<T> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
+
     // ── 조회 ───────────────────────────────────────────────
 
     public GridSlot GetSlot(Vector2Int position)

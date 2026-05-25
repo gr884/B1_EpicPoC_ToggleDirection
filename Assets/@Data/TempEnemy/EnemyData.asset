@@ -17,3 +17,37 @@ MonoBehaviour:
   maxHp: 20
   baseDamage: 5
   sprite: {fileID: 0}
+  isRandom: 1
+  randomCardCount: 5
+  randomCardPool:
+  - {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+  - {fileID: 11400000, guid: b99f0bb34196b7344afd6bc04f608ee4, type: 2}
+  - {fileID: 11400000, guid: 2d19c8038736ceb42ab678a487e2a57e, type: 2}
+  - {fileID: 11400000, guid: 6e6994e4dd0ed744eb6665fb15aaf4b0, type: 2}
+  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+  - {fileID: 11400000, guid: ae60efd8aefbe6b419bab5234d12684e, type: 2}
+  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+  - {fileID: 11400000, guid: 11428c1aab0a94145b27670d83509e4b, type: 2}
+  - {fileID: 11400000, guid: 27523c972ff7df44fadd61cbea7f5b3f, type: 2}
+  - {fileID: 11400000, guid: b66bd7e489371284e8060056f9a58fc7, type: 2}
+  - {fileID: 11400000, guid: f5844f74e3f4ce94e94f8efdc84517f7, type: 2}
+  - {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
+  - {fileID: 11400000, guid: e240465966e702d40ade5320a3569edd, type: 2}
+  - {fileID: 11400000, guid: 9ff3e6d560b943545a86e144df2d5650, type: 2}
+  - {fileID: 11400000, guid: 7f02197a1cdefb34ebcdab1676ec9555, type: 2}
+  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
+  - {fileID: 11400000, guid: 2df8441dbf2fab847ba1895fc8fdab54, type: 2}
+  - {fileID: 11400000, guid: 59d716501f6ac2d458431f2a50de3431, type: 2}
+  - {fileID: 11400000, guid: 95179d26520f2614bb7c9384a59f02bd, type: 2}
+  - {fileID: 11400000, guid: 7d6039914d21bb943877c525d80b4fed, type: 2}
+  - {fileID: 11400000, guid: 63f90e3b9b2ae0047af773bf5e785433, type: 2}
+  - {fileID: 11400000, guid: 2a57aeae75e33f14d994c512de18b1e0, type: 2}
+  - {fileID: 11400000, guid: 61a85492deb3cee40bf4a4d3e3d28bb7, type: 2}
+  - {fileID: 11400000, guid: 27f663caf823849428e6a0f11e6323fb, type: 2}
+  - {fileID: 11400000, guid: cb3c4a3486dc0a447bc090311e3faef5, type: 2}
+  - {fileID: 11400000, guid: 13e6230f992ff30498e0ed684566126a, type: 2}
+  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
+  - {fileID: 11400000, guid: b513eb9bde4265e4e9ff502698b04fe2, type: 2}
+  - {fileID: 11400000, guid: 0fdee7483ef0bfd44ba8785ec960b506, type: 2}
+  - {fileID: 11400000, guid: 2280057d4977a7544a7d550b50822333, type: 2}
+  fixedPlacements: []
