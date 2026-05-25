@@ -94,7 +94,7 @@ public class GridManager : SingletonBehaviour<GridManager>
         for (int i = 0; i < count; i++)
         {
             CardData data = enemyData.randomCardPool[Random.Range(0, enemyData.randomCardPool.Count)];
-            CardView card = SpawnEnemyCard(data, cardPrefab, emptySlots[i]);
+            CardView card = SpawnEnemyCard(data, cardPrefab, emptySlots[i], true);
             if (card != null) placed.Add(emptySlots[i]);
         }
 
@@ -113,20 +113,20 @@ public class GridManager : SingletonBehaviour<GridManager>
             GridSlot slot = GetSlot(placement.position);
             if (slot == null || !slot.IsEmpty) continue;
 
-            CardView card = SpawnEnemyCard(placement.cardData, cardPrefab, slot);
+            CardView card = SpawnEnemyCard(placement.cardData, cardPrefab, slot, true);
             if (card != null) placed.Add(slot);
         }
 
         return placed;
     }
 
-    private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot)
+    private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated = true)
     {
         GameObject obj = PoolManager.Instance.Get(cardPrefab, Vector3.zero, slot.transform);
         CardView card = obj.GetComponent<CardView>();
         if (card == null) return null;
 
-        card.Initialize(data, isEnemy: true, startsActivated: true);
+        card.Initialize(data, isEnemy: true, startsActivated: startsActivated);
         card.SetDraggable(false);
 
         RectTransform rect = obj.GetComponent<RectTransform>();
@@ -143,6 +143,30 @@ public class GridManager : SingletonBehaviour<GridManager>
 
         slot.AssignCard(card);
         return card;
+    }
+
+    // 적 카드 1장 배치 후 슬롯 반환 (없으면 null)
+    public GridSlot PlaceOneEnemyCard(EnemyDataSO enemyData, GameObject cardPrefab)
+    {
+        if (!enemyData.isRandom) return null;
+        if (enemyData.randomCardPool == null || enemyData.randomCardPool.Count == 0) return null;
+
+        List<GridSlot> emptySlots = GetEmptySlots();
+        if (emptySlots.Count == 0) return null;
+
+        Shuffle(emptySlots);
+        CardData data = enemyData.randomCardPool[Random.Range(0, enemyData.randomCardPool.Count)];
+        CardView card = SpawnEnemyCard(data, cardPrefab, emptySlots[0], false);
+        return card != null ? emptySlots[0] : null;
+    }
+
+    public int GetEnemyCardCount()
+    {
+        int count = 0;
+        foreach (GridSlot slot in _slots.Values)
+            if (!slot.IsEmpty && slot.OccupiedCard.IsEnemy)
+                count++;
+        return count;
     }
 
     // 제거 함수 (지금은 사용 안 하지만 추후 사용)

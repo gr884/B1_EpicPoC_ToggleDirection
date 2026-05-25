@@ -15,7 +15,7 @@ MonoBehaviour:
   cardId: 
   displayName: "\uACF5\uACA9"
   description: "\uACF5\uACA9 + 1"
-  maxDurability: 5
+  maxDurability: 3
   directions: 0700000003000000
   effects:
   - scope: 0

@@ -158,6 +158,41 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             PoolManager.Instance.Return(card.gameObject);
             Debug.Log("[BattleManager] 내구도 소진으로 카드 제거");
         }
+
+        // 적 카드 수 보충
+        if (toRemove.Count > 0 && _currentEnemyData != null && _cardPrefab != null)
+            StartCoroutine(ReplenishEnemyCardsRoutine());
+    }
+
+    // ── 적 카드 보충 ───────────────────────────────────────
+
+    private bool _isReplenishing = false;
+
+    private IEnumerator ReplenishEnemyCardsRoutine()
+    {
+        _isReplenishing = true;
+
+        int needed = _currentEnemyData.randomCardCount - GridManager.Instance.GetEnemyCardCount();
+
+        for (int i = 0; i < needed; i++)
+        {
+            GridSlot slot = GridManager.Instance.PlaceOneEnemyCard(_currentEnemyData, _cardPrefab);
+            if (slot == null) break;
+
+            // 체인 발동
+            ChainExecutor.Instance.ExecuteFrom(slot.OccupiedCard);
+
+            // 체인 끝날 때까지 대기
+            bool chainDone = false;
+            System.Action<ChainResult> onFinished = _ => chainDone = true;
+            ChainExecutor.Instance.OnChainFinished += onFinished;
+            yield return new WaitUntil(() => chainDone);
+            ChainExecutor.Instance.OnChainFinished -= onFinished;
+
+            Debug.Log($"[BattleManager] 적 카드 보충 {i + 1}/{needed}");
+        }
+
+        _isReplenishing = false;
     }
 
     // ── 데미지 계산 ────────────────────────────────────────
