@@ -14,6 +14,12 @@ public enum AbilityDirection
     UpLeft
 }
 
+public enum CardAbilityType
+{
+    Normal,
+    Buffer
+}
+
 [CreateAssetMenu(menuName = "EpicPoC/Card Data", fileName = "CardData")]
 public class CardData : ScriptableObject
 {
@@ -22,6 +28,7 @@ public class CardData : ScriptableObject
     public string displayName;
 
     [Header("Ability")]
+    public CardAbilityType abilityType = CardAbilityType.Normal;
     public AbilityDirection abilityDirection = AbilityDirection.None;
     public List<AbilityDirection> additionalDirections = new();
 

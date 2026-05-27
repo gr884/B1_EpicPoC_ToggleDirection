@@ -1,4 +1,4 @@
-using System.Collections;
+﻿using System.Collections;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -9,21 +9,27 @@ public class Card : MonoBehaviour
     [SerializeField] private Image backgroundImage;
     [SerializeField] private Image iconImage;
     [SerializeField] private TMP_Text titleText;
+    [SerializeField] private Image shieldOverlayImage;
 
     [Header("Colors")]
     [SerializeField] private Color activeColor = Color.white;
     [SerializeField] private Color inactiveColor = Color.gray;
+    [SerializeField] private Color normalIconColor = Color.white;
+    [SerializeField] private Color bufferIconColor = new Color(0.55f, 0.8f, 1f, 1f);
+    [SerializeField] private Color shieldOverlayColor = new Color(0.35f, 0.65f, 1f, 0.35f);
 
     public CardData Data { get; private set; }
     public bool IsActivated { get; private set; }
     public bool IsPlacedOnBoard { get; private set; }
     public BoardSlot CurrentSlot { get; private set; }
+    public int ShieldCharges { get; private set; }
 
     private RectTransform rectTransform;
 
     private void Awake()
     {
         rectTransform = GetComponent<RectTransform>();
+        EnsureShieldOverlay();
     }
 
     private void Reset()
@@ -40,6 +46,7 @@ public class Card : MonoBehaviour
         IsActivated = startsActivated;
         CurrentSlot = null;
         IsPlacedOnBoard = false;
+        ShieldCharges = 0;
 
         if (iconImage != null)
         {
@@ -68,6 +75,30 @@ public class Card : MonoBehaviour
         RefreshVisual();
     }
 
+    public void SetShieldCharges(int value)
+    {
+        ShieldCharges = Mathf.Max(0, value);
+        RefreshShieldVisual();
+    }
+
+    public void GrantShieldOneCharge()
+    {
+        ShieldCharges = 1;
+        RefreshShieldVisual();
+    }
+
+    public bool TryConsumeShieldOnExternalToggle()
+    {
+        if (ShieldCharges <= 0)
+        {
+            return false;
+        }
+
+        ShieldCharges--;
+        RefreshShieldVisual();
+        return true;
+    }
+
     public void SetDraggable(bool draggable)
     {
         CardDragHandler dragHandler = GetComponent<CardDragHandler>();
@@ -79,12 +110,59 @@ public class Card : MonoBehaviour
 
     private void RefreshVisual()
     {
-        if (backgroundImage == null)
+        if (backgroundImage != null)
+        {
+            // Buffer card background must stay in the same scheme as normal cards.
+            backgroundImage.color = IsActivated ? activeColor : inactiveColor;
+        }
+
+        if (iconImage != null)
+        {
+            bool isBuffer = Data != null && Data.abilityType == CardAbilityType.Buffer;
+            iconImage.color = isBuffer ? bufferIconColor : normalIconColor;
+        }
+
+        RefreshShieldVisual();
+    }
+
+    private void RefreshShieldVisual()
+    {
+        EnsureShieldOverlay();
+        if (shieldOverlayImage != null)
+        {
+            shieldOverlayImage.gameObject.SetActive(ShieldCharges > 0);
+            shieldOverlayImage.color = shieldOverlayColor;
+        }
+    }
+
+    private void EnsureShieldOverlay()
+    {
+        if (shieldOverlayImage != null)
         {
             return;
         }
 
-        backgroundImage.color = IsActivated ? activeColor : inactiveColor;
+        Transform found = transform.Find("ShieldOverlay");
+        if (found != null)
+        {
+            shieldOverlayImage = found.GetComponent<Image>();
+            return;
+        }
+
+        GameObject go = new GameObject("ShieldOverlay", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image));
+        go.transform.SetParent(transform, false);
+
+        RectTransform rt = go.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+
+        shieldOverlayImage = go.GetComponent<Image>();
+        shieldOverlayImage.color = shieldOverlayColor;
+        shieldOverlayImage.raycastTarget = false;
+        go.transform.SetAsLastSibling();
+        go.SetActive(false);
     }
 
     public IEnumerator PlayActivationFeedback(float duration)

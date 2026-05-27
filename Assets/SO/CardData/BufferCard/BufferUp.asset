@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c00bc4be7969084f96211c3cad9c504, type: 3}
+  m_Name: BufferUp
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardId: 50
+  displayName: "\uC717\uBC84\uD37C"
+  abilityType: 1
+  abilityDirection: 1
+  additionalDirections: 
+  icon: {fileID: -1728379928979949314, guid: 039512dbf46fe54499aabd5087b3ee43, type: 3}

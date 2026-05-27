@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -21,6 +21,7 @@ public class GameManager : MonoBehaviour
     private bool levelEnded;
     private bool isResolvingChain;
     private readonly Stack<GameSnapshot> undoStack = new();
+    private readonly List<BoardSlot> previewSlots = new();
 
     private void Start()
     {
@@ -50,6 +51,8 @@ public class GameManager : MonoBehaviour
             return false;
         }
 
+        ClearPlacementPreview();
+
         undoStack.Push(CaptureSnapshot());
 
         targetSlot.AssignCard(card);
@@ -77,6 +80,48 @@ public class GameManager : MonoBehaviour
         levelEnded = false;
 
         RestoreSnapshot(undoStack.Pop());
+        ClearPlacementPreview();
+    }
+
+    public void ShowPlacementPreview(Card card, BoardSlot targetSlot)
+    {
+        ClearPlacementPreview();
+
+        if (card == null || targetSlot == null || card.Data == null || boardManager == null)
+        {
+            return;
+        }
+
+        // Center slot preview: yellow for placeable, red for blocked.
+        bool centerPlaceable = targetSlot.IsEmpty();
+        targetSlot.SetPreview(true, true, centerPlaceable);
+        previewSlots.Add(targetSlot);
+
+        HashSet<BoardSlot> dedupe = new();
+        foreach (AbilityDirection dir in card.Data.GetAllDirections())
+        {
+            BoardSlot affected = boardManager.GetNeighbor(targetSlot, dir);
+            if (affected == null || !dedupe.Add(affected))
+            {
+                continue;
+            }
+
+            affected.SetPreview(true, false, true);
+            previewSlots.Add(affected);
+        }
+    }
+
+    public void ClearPlacementPreview()
+    {
+        for (int i = 0; i < previewSlots.Count; i++)
+        {
+            if (previewSlots[i] != null)
+            {
+                previewSlots[i].SetPreview(false, false, true);
+            }
+        }
+
+        previewSlots.Clear();
     }
 
     public void LoadNextLevel()
@@ -155,6 +200,7 @@ public class GameManager : MonoBehaviour
         levelEnded = false;
         isResolvingChain = false;
         undoStack.Clear();
+        ClearPlacementPreview();
 
         LevelData levelData = levels[levelIndex];
         boardManager.BuildBoard(levelData, this);
@@ -187,7 +233,8 @@ public class GameManager : MonoBehaviour
             {
                 card = slot.OccupiedCard.Data,
                 position = slot.Position,
-                isActivated = slot.OccupiedCard.IsActivated
+                isActivated = slot.OccupiedCard.IsActivated,
+                shieldCharges = slot.OccupiedCard.ShieldCharges
             });
         }
 
@@ -225,6 +272,7 @@ public class GameManager : MonoBehaviour
                 continue;
             }
 
+            boardCard.SetShieldCharges(placed.shieldCharges);
             slot.AssignCard(boardCard);
         }
 
@@ -280,7 +328,10 @@ public class GameManager : MonoBehaviour
             yield break;
         }
 
-        List<Card> currentWave = new() { rootCard };
+        List<ActivationSignal> currentWave = new()
+        {
+            new ActivationSignal { target = rootCard, hasBufferSource = false }
+        };
 
         int step = 0;
 
@@ -290,16 +341,27 @@ public class GameManager : MonoBehaviour
 
             for (int i = 0; i < currentWave.Count; i++)
             {
-                Card current = currentWave[i];
+                ActivationSignal signal = currentWave[i];
+                Card current = signal.target;
                 if (current == null || current.CurrentSlot == null)
                 {
                     continue;
                 }
 
-                // Activation signal toggles the card state.
+                if (current.TryConsumeShieldOnExternalToggle())
+                {
+                    current.CurrentSlot.PulseHighlight(cardFeedbackDuration);
+                    continue;
+                }
+
                 bool nextState = !current.IsActivated;
                 current.SetActivated(nextState);
                 current.CurrentSlot.PulseHighlight(cardFeedbackDuration);
+
+                if (signal.hasBufferSource)
+                {
+                    current.GrantShieldOneCharge();
+                }
 
                 step++;
                 if (step > maxActivationSteps)
@@ -308,17 +370,15 @@ public class GameManager : MonoBehaviour
                     yield break;
                 }
 
-                // Only cards that end up active emit their ability.
                 if (nextState)
                 {
                     emitters.Add(current);
                 }
             }
 
-            // Play feedback for all cards in the same wave simultaneously.
             for (int i = 0; i < currentWave.Count; i++)
             {
-                Card current = currentWave[i];
+                Card current = currentWave[i].target;
                 if (current == null || current.CurrentSlot == null)
                 {
                     continue;
@@ -328,7 +388,7 @@ public class GameManager : MonoBehaviour
             }
             yield return new WaitForSeconds(cardFeedbackDuration);
 
-            HashSet<Card> nextWaveSet = new();
+            Dictionary<Card, ActivationSignal> nextWaveMap = new();
             foreach (Card emitter in emitters)
             {
                 if (emitter.Data == null)
@@ -336,18 +396,29 @@ public class GameManager : MonoBehaviour
                     continue;
                 }
 
+                bool bufferSource = IsBufferCard(emitter);
                 foreach (AbilityDirection dir in emitter.Data.GetAllDirections())
                 {
                     BoardSlot neighbor = boardManager.GetNeighbor(emitter.CurrentSlot, dir);
                     if (neighbor != null && neighbor.OccupiedCard != null)
                     {
-                        // Same-wave duplicated triggers collapse to one.
-                        nextWaveSet.Add(neighbor.OccupiedCard);
+                        Card target = neighbor.OccupiedCard;
+                        if (!nextWaveMap.TryGetValue(target, out ActivationSignal signal))
+                        {
+                            signal = new ActivationSignal
+                            {
+                                target = target,
+                                hasBufferSource = false
+                            };
+                            nextWaveMap[target] = signal;
+                        }
+
+                        signal.hasBufferSource |= bufferSource;
                     }
                 }
             }
 
-            currentWave = new List<Card>(nextWaveSet);
+            currentWave = new List<ActivationSignal>(nextWaveMap.Values);
 
             if (currentWave.Count > 0 && chainStepDelay > 0f)
             {
@@ -394,5 +465,19 @@ public class GameManager : MonoBehaviour
         public CardData card;
         public Vector2Int position;
         public bool isActivated;
+        public int shieldCharges;
+    }
+
+    private class ActivationSignal
+    {
+        public Card target;
+        public bool hasBufferSource;
+    }
+
+    private static bool IsBufferCard(Card card)
+    {
+        return card != null
+            && card.Data != null
+            && card.Data.abilityType == CardAbilityType.Buffer;
     }
 }
