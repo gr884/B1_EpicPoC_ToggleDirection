@@ -19,7 +19,11 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     // ── 덱 상태 ────────────────────────────────────────────
     private readonly List<CardData> _drawPile = new();
+    private readonly List<CardData> _discardPile = new();
     public int DrawPileCount => _drawPile.Count;
+    public int DiscardPileCount => _discardPile.Count;
+    public IReadOnlyList<CardData> DrawPile => _drawPile;
+    public IReadOnlyList<CardData> DiscardPile => _discardPile;
 
     // ── 손패 상태 ──────────────────────────────────────────
     private readonly List<CardView> _hand = new();
@@ -47,6 +51,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     public void ResetDeck()
     {
         _drawPile.Clear();
+        _discardPile.Clear();
         if (_startingDeck != null)
             _drawPile.AddRange(_startingDeck);
         if (_shuffleOnReset)
@@ -73,28 +78,16 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     private void RefillDrawPile()
     {
-        List<CardData> inUse = new();
-
-        foreach (CardView card in _hand)
-            if (card?.Data != null) inUse.Add(card.Data);
-
-        foreach (var slot in GridManager.Instance.Slots.Values)
-            if (slot.OccupiedCard?.Data != null && !slot.OccupiedCard.IsEnemy)
-                inUse.Add(slot.OccupiedCard.Data);
-
-        List<CardData> available = new(_startingDeck);
-        foreach (CardData used in inUse)
-            available.Remove(used);
-
-        if (available.Count == 0)
+        if (_discardPile.Count == 0)
         {
-            Debug.Log("[CardManager] 재활용할 카드 없음");
+            Debug.Log("[CardManager] 버린 파일 없음 — 드로우 불가");
             return;
         }
 
-        Shuffle(available);
-        _drawPile.AddRange(available);
-        Debug.Log($"[CardManager] 드로우파일 재구성 — {_drawPile.Count}장");
+        Shuffle(_discardPile);
+        _drawPile.AddRange(_discardPile);
+        _discardPile.Clear();
+        Debug.Log($"[CardManager] 버린 파일 → 드로우파일 재구성 — {_drawPile.Count}장");
     }
 
     // ── 손패 관리 ──────────────────────────────────────────
@@ -124,8 +117,11 @@ public class CardManager : SingletonBehaviour<CardManager>
     public void DiscardHand()
     {
         foreach (CardView card in _hand)
-            if (card != null)
-                PoolManager.Instance.Return(card.gameObject);
+        {
+            if (card == null) continue;
+            _discardPile.Add(card.Data);
+            PoolManager.Instance.Return(card.gameObject);
+        }
 
         _hand.Clear();
         OnHandChanged?.Invoke();
