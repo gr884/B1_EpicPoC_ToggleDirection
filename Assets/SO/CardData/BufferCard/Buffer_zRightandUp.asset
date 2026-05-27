@@ -10,10 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c00bc4be7969084f96211c3cad9c504, type: 3}
-  m_Name: zLeftandUp
+  m_Name: Buffer_zRightandUp
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardId: 13
-  displayName: "\uC704\uC67C"
-  abilityDirection: 1
-  additionalDirections: 07000000
-  icon: {fileID: -7922793936010632136, guid: f0d7f6754de3c864eb6dc6a58b9c975b, type: 3}
+  cardId: 14
+  displayName: "\uC624\uC704\uBC84\uD37C"
+  abilityType: 1
+  abilityDirection: 3
+  additionalDirections: 05000000
+  icon: {fileID: 1526132014401536809, guid: e0821b5b956f9da439a57e9df4c7a223, type: 3}

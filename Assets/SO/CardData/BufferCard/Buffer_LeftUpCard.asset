@@ -10,10 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c00bc4be7969084f96211c3cad9c504, type: 3}
-  m_Name: RightUpCard
+  m_Name: Buffer_LeftUpCard
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardId: 8
-  displayName: "\uC624\uB978\uC544\uB798"
-  abilityDirection: 2
+  cardId: 5
+  displayName: "\uC67C\uC704\uBC84\uD37C"
+  abilityType: 1
+  abilityDirection: 8
   additionalDirections: 
-  icon: {fileID: -3030066030375753366, guid: 05f7a63153987c246b86f41159df694c, type: 3}
+  icon: {fileID: -6994915466344122352, guid: 244b29b92900b3d41a7ff98f6d54295b, type: 3}

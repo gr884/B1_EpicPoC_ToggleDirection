@@ -15,12 +15,12 @@ MonoBehaviour:
   rows: 2
   columns: 2
   prePlacedCards:
-  - card: {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}
-    position: {x: 0, y: 0}
+  - card: {fileID: 11400000, guid: 8e81a624d707d6345bd163a5c336813a, type: 2}
+    position: {x: 0, y: 1}
     startsActivated: 0
   - card: {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}
-    position: {x: 1, y: 1}
+    position: {x: 1, y: 0}
     startsActivated: 0
   handCards:
-  - {fileID: 11400000, guid: 476ba35017cb3c9409c9dbad8f89ed3f, type: 2}
-  - {fileID: 11400000, guid: 4aa0db28a719782499078e413fde446c, type: 2}
+  - {fileID: 11400000, guid: 9c0e5210d6eb111499c573dbebef12d8, type: 2}
+  - {fileID: 11400000, guid: b887fb387158bce418553ad4b6078634, type: 2}

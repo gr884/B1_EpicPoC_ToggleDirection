@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -17,6 +17,7 @@ public class DeckManager : MonoBehaviour
     public void BuildHand(IEnumerable<CardData> handData)
     {
         EnsureRefs();
+        SyncHandCardSizeToBoard();
         ConfigureHandLayout();
         ClearHand();
 
@@ -100,6 +101,7 @@ public class DeckManager : MonoBehaviour
                 rect.anchoredPosition = Vector2.zero;
                 rect.offsetMin = Vector2.zero;
                 rect.offsetMax = Vector2.zero;
+                rect.localScale = Vector3.one;
             }
             else
             {
@@ -107,6 +109,7 @@ public class DeckManager : MonoBehaviour
                 rect.anchorMax = new Vector2(0.5f, 0.5f);
                 rect.pivot = new Vector2(0.5f, 0.5f);
                 rect.sizeDelta = handCardSize;
+                rect.localScale = Vector3.one;
             }
         }
 
@@ -123,7 +126,6 @@ public class DeckManager : MonoBehaviour
         HorizontalLayoutGroup layout = handRoot.GetComponent<HorizontalLayoutGroup>();
         if (layout != null)
         {
-            // Use explicit centered positioning to avoid layout-driven drift/overlap.
             layout.enabled = false;
         }
     }
@@ -173,6 +175,33 @@ public class DeckManager : MonoBehaviour
             rect.pivot = new Vector2(0.5f, 0.5f);
             rect.sizeDelta = handCardSize;
             rect.anchoredPosition = new Vector2(start + (i * step), 0f);
+            rect.localScale = Vector3.one;
+        }
+    }
+
+    private void SyncHandCardSizeToBoard()
+    {
+        BoardSlot sampleSlot = FindFirstObjectByType<BoardSlot>();
+        if (sampleSlot == null)
+        {
+            return;
+        }
+
+        RectTransform slotRect = sampleSlot.GetComponent<RectTransform>();
+        if (slotRect == null)
+        {
+            return;
+        }
+
+        Vector2 size = slotRect.rect.size;
+        if (size.x <= 0f || size.y <= 0f)
+        {
+            size = slotRect.sizeDelta;
+        }
+
+        if (size.x > 0f && size.y > 0f)
+        {
+            handCardSize = size;
         }
     }
 }
