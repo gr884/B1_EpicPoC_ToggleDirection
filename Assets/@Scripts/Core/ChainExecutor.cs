@@ -56,7 +56,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
-            if (card == null || !card.IsActivated) continue;
+            if (card == null || !card.IsActivated || card.IsEnemy) continue;
             if (card.Data?.effects == null) continue;
 
             foreach (CardEffect effect in card.Data.effects)

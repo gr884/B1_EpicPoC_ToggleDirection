@@ -17,7 +17,6 @@ public class UI_GameEndPanel : MonoBehaviour
 
     private void Start()
     {
-        BattleManager.Instance.OnBattleEnded += OnBattleEnded;
         GameManager.Instance.OnStateChanged += OnStateChanged;
         _restartButton.onClick.AddListener(OnRestart);
         SetVisible(false);
@@ -25,16 +24,8 @@ public class UI_GameEndPanel : MonoBehaviour
 
     private void OnDestroy()
     {
-        if (BattleManager.Instance != null)
-            BattleManager.Instance.OnBattleEnded -= OnBattleEnded;
         if (GameManager.Instance != null)
             GameManager.Instance.OnStateChanged -= OnStateChanged;
-    }
-
-    private void OnBattleEnded(bool victory)
-    {
-        // 전투 종료지만 게임 전체가 끝난 게 아니면 표시 안 함
-        // GameClear/GameOver 상태에서만 표시
     }
 
     private void OnStateChanged(GameManager.GameState state)

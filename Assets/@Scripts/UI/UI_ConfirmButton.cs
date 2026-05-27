@@ -25,21 +25,13 @@ public class UI_ConfirmButton : MonoBehaviour
 
     private void OnPhaseChanged(BattleManager.BattlePhase phase)
     {
-        // FreePlace, Turn 모두 확정 버튼 표시
-        SetVisible(true);
+        // PlayerTurn일 때만 확정 버튼 표시
+        SetVisible(phase == BattleManager.BattlePhase.PlayerTurn);
     }
 
     private void OnClick()
     {
-        switch (BattleManager.Instance.CurrentPhase)
-        {
-            case BattleManager.BattlePhase.FreePlace:
-                BattleManager.Instance.ConfirmFreePlace();
-                break;
-            case BattleManager.BattlePhase.Turn:
-                BattleManager.Instance.ConfirmTurn();
-                break;
-        }
+        BattleManager.Instance.ConfirmPlayerTurn();
     }
 
     private void SetVisible(bool visible)

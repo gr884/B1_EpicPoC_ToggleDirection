@@ -5,34 +5,38 @@ public class UI_EnemyStatsView : MonoBehaviour
 {
     [SerializeField] private TMP_Text _attackText;
     [SerializeField] private TMP_Text _defenseText;
+    [SerializeField] private Enemy _enemy;
 
     private void Start()
     {
         ChainExecutor.Instance.OnStatsUpdated += OnStatsUpdated;
         ChainExecutor.Instance.OnChainStarted += Refresh;
-        BattleManager.Instance.OnPhaseChanged += _ => Refresh();
+        BattleManager.Instance.OnPhaseChanged += OnPhaseChanged;
         Refresh();
     }
 
     private void OnDestroy()
     {
-        if (ChainExecutor.Instance == null) return;
-        ChainExecutor.Instance.OnStatsUpdated -= OnStatsUpdated;
-        ChainExecutor.Instance.OnChainStarted -= Refresh;
+        if (ChainExecutor.Instance != null)
+        {
+            ChainExecutor.Instance.OnStatsUpdated -= OnStatsUpdated;
+            ChainExecutor.Instance.OnChainStarted -= Refresh;
+        }
+        if (BattleManager.Instance != null)
+            BattleManager.Instance.OnPhaseChanged -= OnPhaseChanged;
     }
 
     private void OnStatsUpdated(ChainResult _) => Refresh();
+    private void OnPhaseChanged(BattleManager.BattlePhase _) => Refresh();
 
     private void Refresh()
     {
-        int baseAtk = BattleManager.Instance.GetEnemyBaseDamage();
-        int bonusAtk = BattleManager.Instance.GetEnemyCardBonus(EffectType.Damage);
-        int bonusDef = BattleManager.Instance.GetEnemyCardBonus(EffectType.Defense);
+        if (_enemy == null) return;
 
-        if (_attackText != null)
-            _attackText.text = bonusAtk > 0 ? $"{baseAtk} + {bonusAtk}" : $"{baseAtk}";
+        int bonusAtk = _enemy.GetCardBonus(EffectType.Damage);
+        int bonusDef = _enemy.GetCardBonus(EffectType.Defense);
 
-        if (_defenseText != null)
-            _defenseText.text = bonusDef.ToString();
+        if (_attackText != null) _attackText.text = bonusAtk.ToString();
+        if (_defenseText != null) _defenseText.text = bonusDef.ToString();
     }
 }

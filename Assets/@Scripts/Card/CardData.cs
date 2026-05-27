@@ -38,7 +38,7 @@ public class CardEffect
     public CountScope scope;
 
     [Header("발동 조건")]
-    public int threshold;   // N개 이상일 때 발동
+    public int threshold;
 
     [Header("효과")]
     public EffectType effectType;
@@ -53,9 +53,6 @@ public class CardData : ScriptableObject
     public string displayName;
     [TextArea(2, 5)]
     public string description;
-
-    [Header("Durability")]
-    public int maxDurability = 5;
 
     [Header("Directions")]
     public List<CardDirection> directions = new();

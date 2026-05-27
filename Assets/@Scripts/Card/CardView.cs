@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
@@ -11,7 +10,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private Image _backgroundImage;
     [SerializeField] private Image _iconImage;
     [SerializeField] private TMP_Text _titleText;
-    [SerializeField] private TMP_Text _durabilityText;
 
     [Header("Direction Icons")]
     [SerializeField] private Image _upLeft;
@@ -33,7 +31,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public bool IsActivated { get; private set; }
     public bool IsEnemy { get; private set; }
     public GridSlot CurrentSlot { get; private set; }
-    public int CurrentDurability { get; private set; }
 
     private RectTransform _rectTransform;
 
@@ -48,8 +45,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         IsActivated = startsActivated;
         IsEnemy = isEnemy;
         CurrentSlot = null;
-        CurrentDurability = data != null ? data.maxDurability : 0;
-        RefreshDurabilityText();
 
         if (_iconImage != null)
         {
@@ -62,12 +57,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         RefreshDirectionIcons();
         RefreshVisual();
-    }
-
-    public void SetDurability(int value)
-    {
-        CurrentDurability = Mathf.Max(0, value);
-        RefreshDurabilityText();
     }
 
     public void SetPlaced(GridSlot slot)
@@ -88,14 +77,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     }
 
     // ── UI 이벤트 ──────────────────────────────────────────
-
-    public bool ReduceDurability()
-    {
-        CurrentDurability = Mathf.Max(0, CurrentDurability - 1);
-        RefreshDurabilityText();
-        RefreshVisual();
-        return CurrentDurability <= 0;
-    }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
@@ -138,12 +119,10 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private void RefreshDirectionIcons()
     {
-        // 전부 끄고 시작
         HideAllDirectionIcons();
 
         if (Data == null) return;
 
-        // 해당 방향만 켜기
         foreach (CardDirection dir in Data.GetAllDirections())
         {
             Image target = GetDirectionImage(dir);
@@ -175,12 +154,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         CardDirection.UpLeft => _upLeft,
         _ => null
     };
-
-    private void RefreshDurabilityText()
-    {
-        if (_durabilityText != null)
-            _durabilityText.text = CurrentDurability.ToString();
-    }
 
     private void RefreshVisual()
     {
