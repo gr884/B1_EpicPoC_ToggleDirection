@@ -12,15 +12,16 @@ public class UI_PlayerActionView : MonoBehaviour
     private void Start()
     {
         ChainExecutor.Instance.OnStatsUpdated += OnStatsUpdated;
-        ChainExecutor.Instance.OnChainStarted += ResetView;
-        ResetView();
+        BattleManager.Instance.OnPhaseChanged += OnPhaseChanged;
+        Refresh(0, 0, 0);
     }
 
     private void OnDestroy()
     {
-        if (ChainExecutor.Instance == null) return;
-        ChainExecutor.Instance.OnStatsUpdated -= OnStatsUpdated;
-        ChainExecutor.Instance.OnChainStarted -= ResetView;
+        if (ChainExecutor.Instance != null)
+            ChainExecutor.Instance.OnStatsUpdated -= OnStatsUpdated;
+        if (BattleManager.Instance != null)
+            BattleManager.Instance.OnPhaseChanged -= OnPhaseChanged;
     }
 
     private void OnStatsUpdated(ChainResult result)
@@ -32,7 +33,11 @@ public class UI_PlayerActionView : MonoBehaviour
         );
     }
 
-    private void ResetView() => Refresh(0, 0, 0);
+    private void OnPhaseChanged(BattleManager.BattlePhase phase)
+    {
+        if (phase == BattleManager.BattlePhase.PlayerTurn)
+            Refresh(0, 0, 0);
+    }
 
     private void Refresh(int attack, int defend, int heal)
     {

@@ -125,6 +125,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         // EnemyTurn은 짧게 — Intent 표시 후 PlayerTurn으로
         yield return new WaitForSeconds(0.5f);
 
+        CardManager.Instance.DiscardGrid();
         IsProcessing = false;
         EnterPhase(BattlePhase.PlayerTurn);
         CardManager.Instance.DiscardAndDraw();
@@ -161,6 +162,10 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private void EnterPhase(BattlePhase phase)
     {
         CurrentPhase = phase;
+
+        if (phase == BattlePhase.PlayerTurn)
+            ChainExecutor.Instance.ResetAccumulatedResult();
+
         OnPhaseChanged?.Invoke(phase);
         Debug.Log($"[BattleManager] Phase → {phase}");
     }

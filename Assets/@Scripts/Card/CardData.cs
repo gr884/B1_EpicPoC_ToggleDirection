@@ -24,11 +24,18 @@ public enum EffectType
 
 public enum CountScope
 {
-    None,           // 조건 없이 On되면 즉시 발동
-    Row,            // 같은 행에서 On된 개수
-    Column,         // 같은 열에서 On된 개수
-    Cross,          // 같은 행 + 같은 열에서 On된 개수 합산
-    Total,          // 그리드 전체에서 On된 총 개수
+    None,
+    Row,
+    Column,
+    Cross,
+    Total,
+}
+
+public enum RecallDestination
+{
+    Hand,        // 손패로
+    DrawPileTop, // 드로우 파일 맨 위로
+    DrawPile,    // 드로우 파일 랜덤 위치로
 }
 
 [Serializable]
@@ -53,6 +60,9 @@ public class CardData : ScriptableObject
     public string displayName;
     [TextArea(2, 5)]
     public string description;
+
+    [Header("Recall")]
+    public RecallDestination recallDestination = RecallDestination.Hand;
 
     [Header("Directions")]
     public List<CardDirection> directions = new();

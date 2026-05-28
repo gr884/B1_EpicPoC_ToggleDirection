@@ -121,7 +121,7 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated)
     {
-        GameObject obj = PoolManager.Instance.Get(cardPrefab, Vector3.zero, slot.transform);
+        GameObject obj = PoolManager.Instance.Get(cardPrefab, slot.transform);
         CardView card = obj.GetComponent<CardView>();
         if (card == null) return null;
 

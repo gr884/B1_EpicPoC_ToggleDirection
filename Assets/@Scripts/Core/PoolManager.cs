@@ -14,10 +14,10 @@ public class PoolManager : SingletonBehaviour<PoolManager>
 
     public T Get<T>(GameObject prefab, Transform parent = null) where T : Component
     {
-        return Get(prefab, Vector3.zero, parent).GetComponent<T>();
+        return Get(prefab, parent).GetComponent<T>();
     }
 
-    public GameObject Get(GameObject prefab, Vector3 position, Transform parent = null)
+    public GameObject Get(GameObject prefab, Transform parent = null)
     {
         if (!_pools.ContainsKey(prefab))
         {
@@ -30,14 +30,18 @@ public class PoolManager : SingletonBehaviour<PoolManager>
         if (_pools[prefab].Count > 0)
         {
             obj = _pools[prefab].Dequeue();
-            obj.transform.SetParent(parent);
-            obj.transform.position = position;
-            obj.transform.rotation = Quaternion.identity;
+            obj.transform.SetParent(parent ?? _poolRoots[prefab], false);
+            obj.transform.localPosition = Vector3.zero;
+            obj.transform.localRotation = Quaternion.identity;
+            obj.transform.localScale = Vector3.one;
             obj.SetActive(true);
         }
         else
         {
-            obj = Instantiate(prefab, position, Quaternion.identity, parent ?? _poolRoots[prefab]);
+            obj = Instantiate(prefab, parent ?? _poolRoots[prefab]);
+            obj.transform.localPosition = Vector3.zero;
+            obj.transform.localRotation = Quaternion.identity;
+            obj.transform.localScale = Vector3.one;
             _instanceToPrefab[obj] = prefab;
         }
 

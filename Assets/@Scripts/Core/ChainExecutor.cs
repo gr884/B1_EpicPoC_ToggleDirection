@@ -13,12 +13,21 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     public event Action<ChainResult> OnChainFinished;
     public event Action<ChainResult> OnStatsUpdated;
 
-    public IReadOnlyCollection<CardView> ActivatedCards => _activatedCards;
     private readonly HashSet<CardView> _activatedCards = new();
+    public IReadOnlyCollection<CardView> ActivatedCards => _activatedCards;
+
+    // 누적 결과
+    private ChainResult _accumulatedResult = new();
 
     public void Init()
     {
         Debug.Log("[ChainExecutor] Init");
+    }
+
+    public void ResetAccumulatedResult()
+    {
+        _accumulatedResult = new ChainResult();
+        OnStatsUpdated?.Invoke(_accumulatedResult);
     }
 
     public void ExecuteFrom(CardView rootCard)
@@ -43,37 +52,29 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
 
-        OnChainFinished?.Invoke(CalculateEffects());
+        OnChainFinished?.Invoke(_accumulatedResult);
     }
 
-    // ── 효과 집계 ──────────────────────────────────────────
+    // ── 효과 누적 ──────────────────────────────────────────
 
-    private ChainResult CalculateEffects()
+    private void AccumulateEffects(CardView card)
     {
-        ChainResult result = new();
+        if (card?.Data?.effects == null) return;
 
-        // 그리드 전체에서 현재 On 상태인 카드 기준으로 계산
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        foreach (CardEffect effect in card.Data.effects)
         {
-            CardView card = slot.OccupiedCard;
-            if (card == null || !card.IsActivated || card.IsEnemy) continue;
-            if (card.Data?.effects == null) continue;
+            float value = EvaluateEffect(effect, card);
+            if (value <= 0f) continue;
 
-            foreach (CardEffect effect in card.Data.effects)
+            switch (effect.effectType)
             {
-                float value = EvaluateEffect(effect, card);
-                if (value <= 0f) continue;
-
-                switch (effect.effectType)
-                {
-                    case EffectType.Damage: result.damage += value; break;
-                    case EffectType.Defense: result.defense += value; break;
-                    case EffectType.Heal: result.heal += value; break;
-                }
+                case EffectType.Damage: _accumulatedResult.damage += value; break;
+                case EffectType.Defense: _accumulatedResult.defense += value; break;
+                case EffectType.Heal: _accumulatedResult.heal += value; break;
             }
         }
 
-        return result;
+        OnStatsUpdated?.Invoke(_accumulatedResult);
     }
 
     private float EvaluateEffect(CardEffect effect, CardView card)
@@ -155,12 +156,15 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 {
                     emitters.Add(current);
                     activatedCards.Add(current);
-                    OnStatsUpdated?.Invoke(CalculateEffects());
+
+                    // On될 때 그 시점 기준으로 효과 누적
+                    if (!current.IsEnemy)
+                        AccumulateEffects(current);
                 }
                 else
                 {
                     activatedCards.Remove(current);
-                    OnStatsUpdated?.Invoke(CalculateEffects());
+                    // Off돼도 누적값 차감 없음
                 }
             }
 

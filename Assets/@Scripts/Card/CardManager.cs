@@ -13,10 +13,6 @@ public class CardManager : SingletonBehaviour<CardManager>
     [SerializeField] private List<CardData> _startingDeck = new();
     [SerializeField] private bool _shuffleOnReset = true;
 
-    [Header("Hand Layout")]
-    [SerializeField] private Vector2 _cardSize = new Vector2(80f, 80f);
-    [SerializeField] private float _cardSpacing = 10f;
-
     // ── 덱 상태 ────────────────────────────────────────────
     private readonly List<CardData> _drawPile = new();
     private readonly List<CardData> _discardPile = new();
@@ -104,7 +100,6 @@ public class CardManager : SingletonBehaviour<CardManager>
         foreach (CardData data in drawn)
             SpawnToHand(data);
 
-        ArrangeHand();
         OnHandChanged?.Invoke();
     }
 
@@ -127,6 +122,59 @@ public class CardManager : SingletonBehaviour<CardManager>
         OnHandChanged?.Invoke();
     }
 
+    // ── 회수 ───────────────────────────────────────────────
+
+    public void RecallCard(CardView card)
+    {
+        if (card == null || card.IsEnemy) return;
+
+        GridSlot slot = card.CurrentSlot;
+        if (slot == null) return;
+
+        slot.ClearCard();
+
+        switch (card.Data.recallDestination)
+        {
+            case RecallDestination.Hand:
+                CardData recallData = card.Data;
+                PoolManager.Instance.Return(card.gameObject);
+                SpawnToHand(recallData);
+                OnHandChanged?.Invoke();
+                break;
+
+            case RecallDestination.DrawPileTop:
+                _drawPile.Add(card.Data);
+                PoolManager.Instance.Return(card.gameObject);
+                break;
+
+            case RecallDestination.DrawPile:
+                int index = UnityEngine.Random.Range(0, _drawPile.Count + 1);
+                _drawPile.Insert(index, card.Data);
+                PoolManager.Instance.Return(card.gameObject);
+                break;
+        }
+
+        Debug.Log($"[CardManager] 카드 회수 — {card.Data.displayName} → {card.Data.recallDestination}");
+    }
+
+    // ── 그리드 초기화 ─────────────────────────────────────
+
+    public void DiscardGrid()
+    {
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            if (slot.IsEmpty) continue;
+            CardView card = slot.OccupiedCard;
+            if (card.IsEnemy) continue;
+
+            _discardPile.Add(card.Data);
+            slot.ClearCard();
+            PoolManager.Instance.Return(card.gameObject);
+        }
+
+        Debug.Log("[CardManager] 그리드 플레이어 카드 → 버린 파일");
+    }
+
     // ── 카드 배치 ──────────────────────────────────────────
 
     public bool TryPlaceCard(CardView card, GridSlot targetSlot)
@@ -139,7 +187,6 @@ public class CardManager : SingletonBehaviour<CardManager>
         targetSlot.AssignCard(card);
         card.SetDraggable(false);
         _hand.Remove(card);
-        ArrangeHand();
         OnHandChanged?.Invoke();
 
         ChainExecutor.Instance.ExecuteFrom(card);
@@ -150,7 +197,7 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     private void SpawnToHand(CardData data)
     {
-        GameObject obj = PoolManager.Instance.Get(_cardPrefab, Vector3.zero, _handRoot);
+        GameObject obj = PoolManager.Instance.Get(_cardPrefab, _handRoot);
         CardView card = obj.GetComponent<CardView>();
         card.Initialize(data);
         card.SetDraggable(true);
@@ -158,30 +205,12 @@ public class CardManager : SingletonBehaviour<CardManager>
         RectTransform rect = obj.GetComponent<RectTransform>();
         if (rect != null)
         {
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.sizeDelta = _cardSize;
+            rect.localPosition = Vector3.zero;
+            rect.localRotation = Quaternion.identity;
+            rect.localScale = Vector3.one;
         }
 
         _hand.Add(card);
-    }
-
-    private void ArrangeHand()
-    {
-        int count = _hand.Count;
-        if (count == 0) return;
-
-        float step = _cardSize.x + _cardSpacing;
-        float start = -((count - 1) * 0.5f) * step;
-
-        for (int i = 0; i < count; i++)
-        {
-            if (_hand[i] == null) continue;
-            RectTransform rect = _hand[i].GetComponent<RectTransform>();
-            if (rect != null)
-                rect.anchoredPosition = new Vector2(start + i * step, 0f);
-        }
     }
 
     private static void Shuffle(List<CardData> list)
