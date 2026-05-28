@@ -22,4 +22,4 @@ MonoBehaviour:
     position: {x: 4, y: 0}
     startsActivated: 0
   handCards:
-  - {fileID: 11400000, guid: d7fe0c6d99075334d8cca7e6f3e23853, type: 2}
+  - {fileID: 11400000, guid: 60c48eb3a50095049bb6c3997620410c, type: 2}

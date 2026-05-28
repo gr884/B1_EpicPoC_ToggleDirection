@@ -19,11 +19,11 @@ MonoBehaviour:
     position: {x: 1, y: 1}
     startsActivated: 0
   - card: {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}
-    position: {x: 3, y: 2}
-    startsActivated: 0
-  - card: {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}
     position: {x: 3, y: 0}
     startsActivated: 0
+  - card: {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}
+    position: {x: 3, y: 2}
+    startsActivated: 0
   handCards:
-  - {fileID: 11400000, guid: d7fe0c6d99075334d8cca7e6f3e23853, type: 2}
+  - {fileID: 11400000, guid: 60c48eb3a50095049bb6c3997620410c, type: 2}
   - {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}

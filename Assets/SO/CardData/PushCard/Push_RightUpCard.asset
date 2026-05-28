@@ -1,0 +1,20 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3c00bc4be7969084f96211c3cad9c504, type: 3}
+  m_Name: Push_RightUpCard
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardId: 8
+  displayName: "\uC624\uB978\uC704\uBC84\uD37C"
+  abilityType: 2
+  abilityDirection: 2
+  additionalDirections: 
+  icon: {fileID: -3030066030375753366, guid: 05f7a63153987c246b86f41159df694c, type: 3}
