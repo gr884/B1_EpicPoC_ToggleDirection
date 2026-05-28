@@ -1,38 +1,53 @@
 using TMPro;
 using UnityEngine;
+using UnityEngine.UI;
 
+// 적의 다음 행동(인텐트)을 표시하는 UI (슬레이더스파이어 방식)
 public class UI_EnemyStatsView : MonoBehaviour
 {
-    [SerializeField] private TMP_Text _attackText;
-    [SerializeField] private TMP_Text _defenseText;
+    [SerializeField] private Image _intentIcon;
+    [SerializeField] private TMP_Text _intentTypeText;
+    [SerializeField] private TMP_Text _intentValueText;
 
     private void Start()
     {
-        ChainExecutor.Instance.OnStatsUpdated += OnStatsUpdated;
-        ChainExecutor.Instance.OnChainStarted += Refresh;
-        BattleManager.Instance.OnPhaseChanged += _ => Refresh();
-        Refresh();
+        BattleManager.Instance.OnEnemyIntentChanged += Refresh;
+        Refresh(BattleManager.Instance.GetCurrentEnemyIntent());
     }
 
     private void OnDestroy()
     {
-        if (ChainExecutor.Instance == null) return;
-        ChainExecutor.Instance.OnStatsUpdated -= OnStatsUpdated;
-        ChainExecutor.Instance.OnChainStarted -= Refresh;
+        if (BattleManager.Instance != null)
+            BattleManager.Instance.OnEnemyIntentChanged -= Refresh;
     }
 
-    private void OnStatsUpdated(ChainResult _) => Refresh();
-
-    private void Refresh()
+    private void Refresh(EnemyAction action)
     {
-        int baseAtk = BattleManager.Instance.GetEnemyBaseDamage();
-        int bonusAtk = BattleManager.Instance.GetEnemyCardBonus(EffectType.Damage);
-        int bonusDef = BattleManager.Instance.GetEnemyCardBonus(EffectType.Defense);
+        if (action == null) return;
 
-        if (_attackText != null)
-            _attackText.text = bonusAtk > 0 ? $"{baseAtk} + {bonusAtk}" : $"{baseAtk}";
+        if (_intentIcon != null)
+        {
+            _intentIcon.sprite = action.icon;
+            _intentIcon.enabled = action.icon != null;
+        }
 
-        if (_defenseText != null)
-            _defenseText.text = bonusDef.ToString();
+        if (_intentTypeText != null)
+        {
+            string label = string.IsNullOrEmpty(action.description)
+                ? ActionTypeLabel(action.actionType)
+                : action.description;
+            _intentTypeText.text = label;
+        }
+
+        if (_intentValueText != null)
+            _intentValueText.text = action.value > 0 ? action.value.ToString() : "";
     }
+
+    private static string ActionTypeLabel(EnemyActionType type) => type switch
+    {
+        EnemyActionType.Attack => "ATK",
+        EnemyActionType.Defense => "DEF",
+        EnemyActionType.Buff => "BUFF",
+        _ => type.ToString()
+    };
 }

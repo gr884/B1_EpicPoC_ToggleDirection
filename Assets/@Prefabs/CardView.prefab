@@ -145,7 +145,6 @@ MonoBehaviour:
   _backgroundImage: {fileID: 2642657138618880970}
   _iconImage: {fileID: 3330362157908072635}
   _titleText: {fileID: 2048165948938930470}
-  _durabilityText: {fileID: 5282602608816667070}
   _upLeft: {fileID: 185283423569331805}
   _up: {fileID: 7833594294094666333}
   _upRight: {fileID: 466435057524838201}
@@ -187,7 +186,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &2029553787961782306
 RectTransform:
   m_ObjectHideFlags: 0

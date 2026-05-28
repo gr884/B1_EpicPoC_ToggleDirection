@@ -11,15 +11,22 @@ public class UI_BattleStatsView : MonoBehaviour
     private void Start()
     {
         ChainExecutor.Instance.OnStatsUpdated += Refresh;
-        ChainExecutor.Instance.OnChainStarted += ResetStats;
+        BattleManager.Instance.OnTurnStateChanged += OnTurnStateChanged;
         ResetStats();
     }
 
     private void OnDestroy()
     {
-        if (ChainExecutor.Instance == null) return;
-        ChainExecutor.Instance.OnStatsUpdated -= Refresh;
-        ChainExecutor.Instance.OnChainStarted -= ResetStats;
+        if (ChainExecutor.Instance != null)
+            ChainExecutor.Instance.OnStatsUpdated -= Refresh;
+        if (BattleManager.Instance != null)
+            BattleManager.Instance.OnTurnStateChanged -= OnTurnStateChanged;
+    }
+
+    private void OnTurnStateChanged(BattleManager.TurnState state)
+    {
+        if (state == BattleManager.TurnState.PlayerTurn)
+            ResetStats();
     }
 
     private void Refresh(ChainResult result)

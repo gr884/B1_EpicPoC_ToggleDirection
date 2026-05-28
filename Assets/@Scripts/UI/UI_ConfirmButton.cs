@@ -1,3 +1,4 @@
+using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -5,6 +6,7 @@ public class UI_ConfirmButton : MonoBehaviour
 {
     [SerializeField] private CanvasGroup _canvasGroup;
     [SerializeField] private Button _button;
+    [SerializeField] private TMP_Text _labelText;
 
     private void Awake()
     {
@@ -13,33 +15,25 @@ public class UI_ConfirmButton : MonoBehaviour
 
     private void Start()
     {
-        BattleManager.Instance.OnPhaseChanged += OnPhaseChanged;
+        BattleManager.Instance.OnTurnStateChanged += OnTurnStateChanged;
+        if (_labelText != null) _labelText.text = "END";
         SetVisible(false);
     }
 
     private void OnDestroy()
     {
         if (BattleManager.Instance != null)
-            BattleManager.Instance.OnPhaseChanged -= OnPhaseChanged;
+            BattleManager.Instance.OnTurnStateChanged -= OnTurnStateChanged;
     }
 
-    private void OnPhaseChanged(BattleManager.BattlePhase phase)
+    private void OnTurnStateChanged(BattleManager.TurnState state)
     {
-        // FreePlace, Turn 모두 확정 버튼 표시
-        SetVisible(true);
+        SetVisible(state == BattleManager.TurnState.PlayerTurn);
     }
 
     private void OnClick()
     {
-        switch (BattleManager.Instance.CurrentPhase)
-        {
-            case BattleManager.BattlePhase.FreePlace:
-                BattleManager.Instance.ConfirmFreePlace();
-                break;
-            case BattleManager.BattlePhase.Turn:
-                BattleManager.Instance.ConfirmTurn();
-                break;
-        }
+        BattleManager.Instance.ConfirmPlayerTurn();
     }
 
     private void SetVisible(bool visible)

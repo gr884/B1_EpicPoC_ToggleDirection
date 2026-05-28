@@ -5,7 +5,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 
-public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
     [Header("Refs")]
     [SerializeField] private Image _backgroundImage;
@@ -35,6 +35,15 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public GridSlot CurrentSlot { get; private set; }
     public int CurrentDurability { get; private set; }
 
+    // maxDurability == 0이면 무제한 전파
+    public bool CanPropagate => Data == null || Data.maxDurability == 0 || CurrentDurability > 0;
+
+    // 런타임 방향 (드로우 시 확률 생성) — null이면 CardData.directions 사용
+    private List<CardDirection> _runtimeDirections;
+    // 런타임 회전: 0~7, 1 step = 45° 시계 방향
+    private int _rotationOffset;
+    private bool _isHovered;
+
     private RectTransform _rectTransform;
 
     private void Awake()
@@ -48,8 +57,9 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         IsActivated = startsActivated;
         IsEnemy = isEnemy;
         CurrentSlot = null;
+        _runtimeDirections = null;
+        _rotationOffset = 0;
         CurrentDurability = data != null ? data.maxDurability : 0;
-        RefreshDurabilityText();
 
         if (_iconImage != null)
         {
@@ -62,11 +72,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         RefreshDirectionIcons();
         RefreshVisual();
-    }
-
-    public void SetDurability(int value)
-    {
-        CurrentDurability = Mathf.Max(0, value);
         RefreshDurabilityText();
     }
 
@@ -81,31 +86,93 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         RefreshVisual();
     }
 
+    public void ReduceDurability()
+    {
+        if (Data == null || Data.maxDurability == 0) return;
+        if (CurrentDurability > 0) CurrentDurability--;
+        RefreshDurabilityText();
+    }
+
     public void SetDraggable(bool draggable)
     {
         CardDragHandler drag = GetComponent<CardDragHandler>();
         if (drag != null) drag.enabled = draggable;
     }
 
-    // ── UI 이벤트 ──────────────────────────────────────────
+    // ── Q/E 회전 입력 ─────────────────────────────────────────
 
-    public bool ReduceDurability()
+    private void Update()
     {
-        CurrentDurability = Mathf.Max(0, CurrentDurability - 1);
-        RefreshDurabilityText();
-        RefreshVisual();
-        return CurrentDurability <= 0;
+        if (!_isHovered || Data == null) return;
+        if (BattleManager.Instance == null) return;
+
+        bool canRotate = BattleManager.Instance.CurrentTurn == BattleManager.TurnState.PlayerTurn
+            && !BattleManager.Instance.IsChainRunning;
+        if (!canRotate) return;
+
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            _rotationOffset = (_rotationOffset + 2) % 8; // 90° 시계
+            RefreshDirectionIcons();
+        }
+        else if (Input.GetKeyDown(KeyCode.Q))
+        {
+            _rotationOffset = (_rotationOffset + 6) % 8; // 90° 반시계
+            RefreshDirectionIcons();
+        }
+    }
+
+    // ── 런타임 방향 (확률 생성 + 회전 반영) ──────────────────
+
+    public void SetRuntimeDirections(List<CardDirection> dirs)
+    {
+        _runtimeDirections = dirs;
+        _rotationOffset = 0;
+        RefreshDirectionIcons();
+    }
+
+    public CardInstance GetCardInstance() =>
+        new CardInstance { Data = Data, Directions = _runtimeDirections };
+
+    public IEnumerable<CardDirection> GetRuntimeDirections()
+    {
+        if (Data == null) yield break;
+
+        IEnumerable<CardDirection> source = _runtimeDirections != null
+            ? (IEnumerable<CardDirection>)_runtimeDirections
+            : Data.GetAllDirections();
+
+        foreach (CardDirection dir in source)
+            yield return _rotationOffset == 0 ? dir : RotateDir(dir, _rotationOffset);
+    }
+
+    private static CardDirection RotateDir(CardDirection dir, int steps)
+    {
+        if (dir == CardDirection.None) return CardDirection.None;
+        // 열거형 값: Up=1 ~ UpLeft=8 순서로 45° 단위 시계 방향
+        int v = (int)dir;
+        return (CardDirection)(((v - 1 + steps) % 8) + 1);
     }
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        _isHovered = true;
         if (Data != null)
             UI_Tooltip.Instance.Show(Data, Input.mousePosition);
     }
 
     public void OnPointerExit(PointerEventData eventData)
     {
+        _isHovered = false;
         UI_Tooltip.Instance.Hide();
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (CurrentSlot == null) return;
+
+        if (eventData.button == PointerEventData.InputButton.Right)
+            BattleManager.Instance.RecallCardToGraveyard(this);
     }
 
     // ── 피드백 ─────────────────────────────────────────────
@@ -138,13 +205,11 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private void RefreshDirectionIcons()
     {
-        // 전부 끄고 시작
         HideAllDirectionIcons();
 
         if (Data == null) return;
 
-        // 해당 방향만 켜기
-        foreach (CardDirection dir in Data.GetAllDirections())
+        foreach (CardDirection dir in GetRuntimeDirections())
         {
             Image target = GetDirectionImage(dir);
             if (target != null) target.enabled = true;
@@ -176,12 +241,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         _ => null
     };
 
-    private void RefreshDurabilityText()
-    {
-        if (_durabilityText != null)
-            _durabilityText.text = CurrentDurability.ToString();
-    }
-
     private void RefreshVisual()
     {
         if (_backgroundImage == null) return;
@@ -190,5 +249,17 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             _backgroundImage.color = IsActivated ? _enemyActiveColor : _enemyInactiveColor;
         else
             _backgroundImage.color = IsActivated ? _activeColor : _inactiveColor;
+    }
+
+    private void RefreshDurabilityText()
+    {
+        if (_durabilityText == null) return;
+        if (Data == null || Data.maxDurability == 0)
+        {
+            _durabilityText.enabled = false;
+            return;
+        }
+        _durabilityText.enabled = true;
+        _durabilityText.text = CurrentDurability.ToString();
     }
 }

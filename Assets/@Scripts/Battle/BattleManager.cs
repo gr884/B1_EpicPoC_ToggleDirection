@@ -5,57 +5,57 @@ using UnityEngine;
 
 public class BattleManager : SingletonBehaviour<BattleManager>
 {
-    public enum BattlePhase { FreePlace, Turn }
+    public enum TurnState { PlayerTurn, EnemyTurn }
 
     [Header("Actor Views")]
     [SerializeField] private BattleActorView _playerView;
     [SerializeField] private BattleActorView _enemyView;
 
-    [Header("Battle Settings")]
-    [SerializeField] private int _maxCardsPerTurn = 2;
-
-    [Header("Enemy Card")]
-    [SerializeField] private GameObject _cardPrefab;
-
-    [Header("Debug")]
-    [SerializeField] private bool _reduceAllOnTurn = false;
-
     // ── 전투 상태 ──────────────────────────────────────────
-    public BattlePhase CurrentPhase { get; private set; }
+    public TurnState CurrentTurn { get; private set; }
     public bool IsChainRunning { get; private set; }
-    public int MaxCardsPerTurn => _maxCardsPerTurn;
     public int PlayerHp => _playerView != null ? _playerView.CurrentHp : 0;
 
     // ── 이벤트 ────────────────────────────────────────────
-    public event Action<BattlePhase> OnPhaseChanged;
-    public event Action<bool> OnBattleEnded; // true = 승리
+    public event Action<TurnState> OnTurnStateChanged;
+    public event Action<EnemyAction> OnEnemyIntentChanged;
+    public event Action<bool> OnBattleEnded;
+
+    // ── 내부 상태 ─────────────────────────────────────────
+    private EnemyDataSO _currentEnemyData;
+    private int _playerMaxHp;
+    private int _enemyPatternIndex;
+    private int _enemyBuffDamage;
+    private int _enemyCurrentDefense;
 
     public void Init()
     {
+        ChainExecutor.Instance.OnChainStarted += OnChainStarted;
         ChainExecutor.Instance.OnChainFinished += OnChainFinished;
         GameManager.Instance.OnStateChanged += OnGameStateChanged;
         Debug.Log("[BattleManager] Init");
     }
 
+    private void OnChainStarted() => IsChainRunning = true;
+
     private void OnGameStateChanged(GameManager.GameState state)
     {
         if (state == GameManager.GameState.Playing)
-            _playerMaxHp = 0; // 게임 시작 시 리셋
+            _playerMaxHp = 0;
     }
 
     // ── 전투 시작 ──────────────────────────────────────────
 
-    private EnemyDataSO _currentEnemyData;
-    private int _playerMaxHp;
-
     public void StartBattle(int playerHp, EnemyDataSO enemyData)
     {
         _currentEnemyData = enemyData;
+        _enemyPatternIndex = 0;
+        _enemyBuffDamage = 0;
+        _enemyCurrentDefense = 0;
 
         int enemyHp = enemyData != null ? enemyData.maxHp : 20;
         string enemyName = enemyData != null ? enemyData.displayName : "Enemy";
 
-        // 최대 HP는 처음 한 번만 설정
         if (_playerMaxHp == 0) _playerMaxHp = playerHp;
 
         _playerView.Setup("Player", _playerMaxHp, playerHp);
@@ -64,178 +64,165 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _playerView.OnDied += () => EndBattle(false);
         _enemyView.OnDied += () => EndBattle(true);
 
-        // 적 카드 배치
-        if (enemyData != null && _cardPrefab != null)
-            GridManager.Instance.PlaceEnemyCards(enemyData, _cardPrefab);
-
-        EnterPhase(BattlePhase.FreePlace);
         CardManager.Instance.StartBattleDraw();
+
+        OnEnemyIntentChanged?.Invoke(GetCurrentEnemyIntent());
+        EnterPlayerTurn();
 
         Debug.Log($"[BattleManager] 전투 시작 — 플레이어 HP: {playerHp} / 적 HP: {enemyHp}");
     }
 
-    // ── 자유 배치 확정 버튼 ────────────────────────────────
+    // ── 배치 시 체인 트리거 ───────────────────────────────
 
-    public void ConfirmFreePlace()
+    public void TriggerChainFromCard(CardView card)
     {
-        if (CurrentPhase != BattlePhase.FreePlace || IsChainRunning) return;
-        StartCoroutine(AttackRoutine());
+        if (CurrentTurn != TurnState.PlayerTurn) return;
+        if (IsChainRunning) return;
+        if (card == null || card.CurrentSlot == null) return;
+
+        ChainExecutor.Instance.ExecuteFrom(card);
     }
 
-    public void ConfirmTurn()
+    // ── 확정 버튼 (턴 종료) ───────────────────────────────
+
+    public void ConfirmPlayerTurn()
     {
-        if (CurrentPhase != BattlePhase.Turn || IsChainRunning) return;
-        CardManager.Instance.ResetTurnPlaceCount();
-        StartCoroutine(TurnRoutine());
+        if (CurrentTurn != TurnState.PlayerTurn || IsChainRunning) return;
+        StartCoroutine(PlayerTurnEndRoutine());
     }
 
-    // ── 체인 결과 처리 ─────────────────────────────────────
+    // ── 카드 묘지 회수 ────────────────────────────────────
 
-    private ChainResult _lastChainResult;
-
-    private void OnChainFinished(ChainResult result)
+    public void RecallCardToGraveyard(CardView card)
     {
-        _lastChainResult = result;
+        if (CurrentTurn != TurnState.PlayerTurn || IsChainRunning) return;
+        if (card == null || card.CurrentSlot == null) return;
+
+        GridSlot slot = card.CurrentSlot;
+        UserCardPool.Instance.DiscardToGraveyard(card.GetCardInstance());
+        slot.ClearCard();
+        PoolManager.Instance.Return(card.gameObject);
+
+        Debug.Log("[BattleManager] 카드 묘지 회수");
     }
 
-    // ── 자유 배치 확정 루틴 ────────────────────────────────
+    private void OnChainFinished(ChainResult _)
+    {
+        IsChainRunning = false; // 전파 완료 — 다음 카드 배치 허용
+    }
 
-    private IEnumerator AttackRoutine()
+    // ── 플레이어 턴 종료 루틴 ─────────────────────────────
+
+    private IEnumerator PlayerTurnEndRoutine()
     {
         IsChainRunning = true;
-        yield return StartCoroutine(ProcessCombat());
-        IsChainRunning = false;
-        if (_playerView.IsDead) yield break;
-        EnterPhase(BattlePhase.Turn);
-        CardManager.Instance.DrawToHand(UserCardPool.Instance.TurnDrawCount);
-    }
 
-    // ── 턴 루틴 ────────────────────────────────────────────
+        // 큐에 쌓인 모든 효과를 순차 실행 (UI 항목 제거 포함)
+        ChainResult result = new ChainResult();
+        yield return StartCoroutine(ChainExecutor.Instance.ExecutePendingEffects(result));
 
-    private IEnumerator TurnRoutine()
-    {
-        IsChainRunning = true;
-        yield return StartCoroutine(ProcessCombat());
-        IsChainRunning = false;
-        if (_playerView.IsDead) yield break;
-        CardManager.Instance.DrawToHand(UserCardPool.Instance.TurnDrawCount);
-    }
+        int damage = Mathf.RoundToInt(result.damage);
+        int defense = Mathf.RoundToInt(result.defense);
+        int heal = Mathf.RoundToInt(result.heal);
 
-    // ── 공통 전투 처리 ─────────────────────────────────────
+        int effectiveDamage = Mathf.Max(0, damage - _enemyCurrentDefense);
+        _enemyCurrentDefense = 0;
 
-    private IEnumerator ProcessCombat()
-    {
-        int damage = Mathf.RoundToInt(_lastChainResult?.damage ?? 0);
-        int defense = Mathf.RoundToInt(_lastChainResult?.defense ?? 0);
-        int heal = Mathf.RoundToInt(_lastChainResult?.heal ?? 0);
-        int enemyDefense = GetEnemyCardBonus(EffectType.Defense);
-        int playerDamage = Mathf.Max(0, damage - enemyDefense);
-
-        _enemyView.TakeDamage(playerDamage);
+        _enemyView.TakeDamage(effectiveDamage);
         yield return new WaitForSeconds(0.5f);
 
-        if (_enemyView.IsDead) yield break;
+        if (_enemyView.IsDead) { IsChainRunning = false; yield break; }
 
         if (heal > 0) _playerView.Heal(heal);
 
-        int enemyRaw = CalculateEnemyDamage();
-        int remaining = Mathf.Max(0, enemyRaw - defense);
-        _playerView.TakeDamage(remaining);
+        yield return new WaitForSeconds(0.3f);
+
+        yield return StartCoroutine(EnemyTurnRoutine(defense));
+
+        IsChainRunning = false;
+    }
+
+    // ── 적 턴 루틴 ────────────────────────────────────────
+
+    private IEnumerator EnemyTurnRoutine(int playerDefense)
+    {
+        CurrentTurn = TurnState.EnemyTurn;
+        OnTurnStateChanged?.Invoke(TurnState.EnemyTurn);
+
+        EnemyAction action = GetCurrentEnemyIntent();
+
+        switch (action.actionType)
+        {
+            case EnemyActionType.Attack:
+                int incoming = Mathf.Max(0, action.value + _enemyBuffDamage - playerDefense);
+                _enemyBuffDamage = 0;
+                _playerView.TakeDamage(incoming);
+                break;
+
+            case EnemyActionType.Defense:
+                _enemyCurrentDefense += action.value;
+                break;
+
+            case EnemyActionType.Buff:
+                _enemyBuffDamage += action.value;
+                break;
+        }
 
         yield return new WaitForSeconds(0.5f);
 
-        ReduceAllCardDurability();
+        if (_playerView.IsDead) yield break;
+
+        if (_currentEnemyData != null && _currentEnemyData.actions.Count > 0)
+            _enemyPatternIndex = (_enemyPatternIndex + 1) % _currentEnemyData.actions.Count;
+
+        OnEnemyIntentChanged?.Invoke(GetCurrentEnemyIntent());
+
+        yield return new WaitForSeconds(0.3f);
+
+        EnterPlayerTurn();
     }
 
-    // ── 내구도 처리 ────────────────────────────────────────
+    // ── 플레이어 턴 시작 ──────────────────────────────────
 
-    public void ReduceAllCardDurability()
+    private void EnterPlayerTurn()
     {
-        List<GridSlot> toRemove = new();
+        CurrentTurn = TurnState.PlayerTurn;
+        ChainExecutor.Instance.ClearPendingEffects();
 
+        ClearFieldCards();
+        CardManager.Instance.DrawToHand(UserCardPool.Instance.InitialDrawCount);
+        OnTurnStateChanged?.Invoke(TurnState.PlayerTurn);
+
+        Debug.Log("[BattleManager] 플레이어 턴 시작");
+    }
+
+    private void ClearFieldCards()
+    {
+        List<GridSlot> occupied = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-        {
-            if (slot.IsEmpty) continue;
+            if (!slot.IsEmpty) occupied.Add(slot);
 
-            // _reduceAllOnTurn: 놓인 카드 전부 / false: 활성화된 카드만
-            if (!_reduceAllOnTurn && !slot.OccupiedCard.IsActivated) continue;
-
-            bool expired = slot.OccupiedCard.ReduceDurability();
-            if (expired) toRemove.Add(slot);
-        }
-
-        foreach (GridSlot slot in toRemove)
+        foreach (GridSlot slot in occupied)
         {
             CardView card = slot.OccupiedCard;
+            UserCardPool.Instance.DiscardToGraveyard(card.GetCardInstance());
             slot.ClearCard();
             PoolManager.Instance.Return(card.gameObject);
-            Debug.Log("[BattleManager] 내구도 소진으로 카드 제거");
         }
-
-        // 적 카드 수 보충
-        if (toRemove.Count > 0 && _currentEnemyData != null && _cardPrefab != null)
-            StartCoroutine(ReplenishEnemyCardsRoutine());
+        Debug.Log($"[BattleManager] 필드 카드 전체 제거 — {occupied.Count}장");
     }
 
-    // ── 적 카드 보충 ───────────────────────────────────────
+    // ── 적 인텐트 ──────────────────────────────────────────
 
-    private IEnumerator ReplenishEnemyCardsRoutine()
+    public EnemyAction GetCurrentEnemyIntent()
     {
+        if (_currentEnemyData == null || _currentEnemyData.actions == null || _currentEnemyData.actions.Count == 0)
+            return new EnemyAction { actionType = EnemyActionType.Attack, value = 5, description = "ATK" };
 
-        int needed = _currentEnemyData.randomCardCount - GridManager.Instance.GetEnemyCardCount();
-
-        for (int i = 0; i < needed; i++)
-        {
-            GridSlot slot = GridManager.Instance.PlaceOneEnemyCard(_currentEnemyData, _cardPrefab);
-            if (slot == null) break;
-
-            // 체인 발동
-            ChainExecutor.Instance.ExecuteFrom(slot.OccupiedCard);
-
-            // 체인 끝날 때까지 대기
-            bool chainDone = false;
-            System.Action<ChainResult> onFinished = _ => chainDone = true;
-            ChainExecutor.Instance.OnChainFinished += onFinished;
-            yield return new WaitUntil(() => chainDone);
-            ChainExecutor.Instance.OnChainFinished -= onFinished;
-
-            Debug.Log($"[BattleManager] 적 카드 보충 {i + 1}/{needed}");
-        }
+        return _currentEnemyData.actions[_enemyPatternIndex % _currentEnemyData.actions.Count];
     }
 
-    public int GetEnemyBaseDamage() => _currentEnemyData != null ? _currentEnemyData.baseDamage : 5;
-
-    public int GetEnemyCardBonus(EffectType type)
-    {
-        int bonus = 0;
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-        {
-            CardView card = slot.OccupiedCard;
-            if (card == null || !card.IsEnemy || !card.IsActivated) continue;
-            if (card.Data?.effects == null) continue;
-
-            foreach (CardEffect effect in card.Data.effects)
-            {
-                if (effect.scope != CountScope.None) continue;
-                if (effect.effectType == type)
-                    bonus += Mathf.RoundToInt(effect.value);
-            }
-        }
-        return bonus;
-    }
-
-    // ── 데미지 계산 ────────────────────────────────────────
-
-    private int CalculateEnemyDamage() => GetEnemyBaseDamage() + GetEnemyCardBonus(EffectType.Damage);
-
-    // ── 유틸 ───────────────────────────────────────────────
-
-    private void EnterPhase(BattlePhase phase)
-    {
-        CurrentPhase = phase;
-        OnPhaseChanged?.Invoke(phase);
-        Debug.Log($"[BattleManager] Phase → {phase}");
-    }
+    // ── 전투 종료 ─────────────────────────────────────────
 
     private void EndBattle(bool victory)
     {
@@ -246,11 +233,15 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     protected override void Dispose()
     {
         if (ChainExecutor.Instance != null)
+        {
+            ChainExecutor.Instance.OnChainStarted -= OnChainStarted;
             ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
+        }
         if (GameManager.Instance != null)
             GameManager.Instance.OnStateChanged -= OnGameStateChanged;
 
-        OnPhaseChanged = null;
+        OnTurnStateChanged = null;
+        OnEnemyIntentChanged = null;
         OnBattleEnded = null;
         base.Dispose();
     }
