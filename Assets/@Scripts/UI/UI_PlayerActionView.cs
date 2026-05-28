@@ -1,53 +1,59 @@
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 
 public class UI_PlayerActionView : MonoBehaviour
 {
+    [Header("Fixed Shield UI (Optional)")]
+    [SerializeField] private TMP_Text _shieldValueText;
+
+    [Header("Fallback Dynamic Entries")]
     [SerializeField] private Transform _container;
     [SerializeField] private UI_ActionEntry _entryPrefab;
     [SerializeField] private ActionIconSO _icons;
+    [SerializeField] private Player _player;
 
     private readonly List<UI_ActionEntry> _entries = new();
 
     private void Start()
     {
-        ChainExecutor.Instance.OnStatsUpdated += OnStatsUpdated;
-        BattleManager.Instance.OnPhaseChanged += OnPhaseChanged;
-        Refresh(0, 0, 0);
+        if (_player == null)
+            _player = FindFirstObjectByType<Player>();
+
+        if (_player != null)
+            _player.OnBlockChanged += OnBlockChanged;
+
+        Refresh(_player != null ? _player.CurrentBlock : 0);
     }
 
     private void OnDestroy()
     {
-        if (ChainExecutor.Instance != null)
-            ChainExecutor.Instance.OnStatsUpdated -= OnStatsUpdated;
-        if (BattleManager.Instance != null)
-            BattleManager.Instance.OnPhaseChanged -= OnPhaseChanged;
+        if (_player != null)
+            _player.OnBlockChanged -= OnBlockChanged;
     }
 
-    private void OnStatsUpdated(ChainResult result)
+    private void OnBlockChanged(int block)
     {
-        Refresh(
-            attack: Mathf.RoundToInt(result.damage),
-            defend: Mathf.RoundToInt(result.defense),
-            heal: Mathf.RoundToInt(result.heal)
-        );
+        Refresh(block);
     }
 
-    private void OnPhaseChanged(BattleManager.BattlePhase phase)
+    private void Refresh(int block)
     {
-        if (phase == BattleManager.BattlePhase.PlayerTurn)
-            Refresh(0, 0, 0);
-    }
+        if (_shieldValueText != null)
+        {
+            _shieldValueText.text = block.ToString();
+            return;
+        }
 
-    private void Refresh(int attack, int defend, int heal)
-    {
+        if (_container == null || _entryPrefab == null || _icons == null)
+            return;
+
         foreach (UI_ActionEntry entry in _entries)
             Destroy(entry.gameObject);
         _entries.Clear();
 
-        if (attack > 0) AddEntry(_icons.attack, attack.ToString());
-        if (defend > 0) AddEntry(_icons.defend, defend.ToString());
-        if (heal > 0) AddEntry(_icons.heal, heal.ToString());
+        if (block > 0)
+            AddEntry(_icons.defend, block.ToString());
     }
 
     private void AddEntry(Sprite icon, string value)

@@ -15,22 +15,17 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     [SerializeField] private List<EnemyDataSO> _enemyList = new();
 
     private int _currentEnemyIndex = 0;
+    private bool _isWaitingForNextBattle;
 
     public BattlePhase CurrentPhase { get; private set; }
     public bool IsProcessing { get; private set; }
+    public bool IsWaitingForNextBattle => _isWaitingForNextBattle;
 
     public event Action<BattlePhase> OnPhaseChanged;
     public event Action OnBattleEnded;
 
-    private ChainResult _lastChainResult;
-
-    private void OnChainFinished(ChainResult result) => _lastChainResult = result;
-
-    // ── 초기화 ─────────────────────────────────────────────
-
     public void Init()
     {
-        ChainExecutor.Instance.OnChainFinished += OnChainFinished;
         GameManager.Instance.OnStateChanged += OnGameStateChanged;
         Debug.Log("[BattleManager] Init");
     }
@@ -41,24 +36,36 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             _player.Setup(_player.MaxHp);
     }
 
-    // ── 전투 시작 ──────────────────────────────────────────
-
     public void StartBattle()
     {
         _currentEnemyIndex = 0;
+        _isWaitingForNextBattle = false;
         StartBattleInternal();
     }
 
     public void NextBattle()
     {
+        _isWaitingForNextBattle = false;
         StartBattleInternal();
+    }
+
+    public bool TryConsumeNextBattleRequest()
+    {
+        if (!_isWaitingForNextBattle) return false;
+        if (GameManager.Instance.CurrentState != GameManager.GameState.Playing) return false;
+
+        _isWaitingForNextBattle = false;
+        return true;
     }
 
     private void StartBattleInternal()
     {
-        EnemyDataSO enemyData = _currentEnemyIndex < _enemyList.Count
-            ? _enemyList[_currentEnemyIndex]
-            : null;
+        EnemyDataSO enemyData = GetCurrentEnemyData();
+        if (enemyData == null)
+        {
+            GameManager.Instance.GameClear();
+            return;
+        }
 
         _player.OnDied -= HandlePlayerDied;
         _enemy.OnDied -= HandleEnemyDied;
@@ -69,76 +76,82 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         EnterPhase(BattlePhase.PlayerTurn);
 
-        Debug.Log($"[BattleManager] 전투 시작 — {_currentEnemyIndex + 1}/{_enemyList.Count}");
+        Debug.Log($"[BattleManager] Battle Start {_currentEnemyIndex + 1}/{_enemyList.Count}");
     }
-
-    // ── 플레이어 턴 확정 ───────────────────────────────────
 
     public void ConfirmPlayerTurn()
     {
+        if (_isWaitingForNextBattle) return;
         if (CurrentPhase != BattlePhase.PlayerTurn || IsProcessing) return;
         StartCoroutine(PlayerTurnRoutine());
     }
 
-    // ── 턴 루틴 ────────────────────────────────────────────
+    public void ApplyImmediateEffect(EffectType type, float value)
+    {
+        if (_isWaitingForNextBattle) return;
+        if (CurrentPhase != BattlePhase.PlayerTurn || IsProcessing) return;
+
+        int amount = Mathf.RoundToInt(value);
+        if (amount <= 0) return;
+
+        switch (type)
+        {
+            case EffectType.Damage:
+                _enemy.TakeAttack(amount);
+                break;
+            case EffectType.Defense:
+                _player.GainBlock(amount);
+                break;
+            case EffectType.Heal:
+                _player.Heal(amount);
+                break;
+        }
+    }
 
     private IEnumerator PlayerTurnRoutine()
     {
         IsProcessing = true;
-
-        ChainResult result = _lastChainResult ?? new ChainResult();
-
-        int playerDamage = Mathf.RoundToInt(result.damage);
-        int playerDefense = Mathf.RoundToInt(result.defense);
-        int playerHeal = Mathf.RoundToInt(result.heal);
-
-        // 플레이어 공격 - 적 방어
-        _enemy.TakeAttack(playerDamage);
-        yield return new WaitForSeconds(0.5f);
-
-        if (_enemy.IsDead) { IsProcessing = false; yield break; }
-
-        // 힐
-        if (playerHeal > 0)
-            _player.Heal(playerHeal);
-
-        // 적 공격 - 플레이어 방어
-        int enemyAttack = _enemy.GetIntentValue(EnemyIntentType.Attack);
-        int remaining = Mathf.Max(0, enemyAttack - playerDefense);
-        _player.TakeAttack(remaining);
-        yield return new WaitForSeconds(0.5f);
-
-        if (_player.IsDead) { IsProcessing = false; yield break; }
-
-        // Intent 갱신
-        _enemy.AdvanceIntent();
-
-        IsProcessing = false;
         EnterPhase(BattlePhase.EnemyTurn);
-        StartCoroutine(EnemyTurnRoutine());
-    }
 
-    private IEnumerator EnemyTurnRoutine()
-    {
-        IsProcessing = true;
+        // Enemy's previously-held block expires when its turn starts.
+        _enemy.ClearBlock();
 
-        // EnemyTurn은 짧게 — Intent 표시 후 PlayerTurn으로
-        yield return new WaitForSeconds(0.5f);
+        int enemyAttack = _enemy.GetIntentValue(EnemyIntentType.Attack);
+        int enemyDefend = _enemy.GetIntentValue(EnemyIntentType.Defend);
 
+        _player.TakeAttackWithBlock(enemyAttack);
+        yield return new WaitForSeconds(0.35f);
+
+        if (_player.IsDead)
+        {
+            IsProcessing = false;
+            yield break;
+        }
+
+        // Enemy intent defend is executed now and stays during the next player turn.
+        _enemy.GainBlock(enemyDefend);
+        yield return new WaitForSeconds(0.15f);
+
+        _enemy.AdvanceIntent();
         CardManager.Instance.DiscardGrid();
+
         IsProcessing = false;
         EnterPhase(BattlePhase.PlayerTurn);
         CardManager.Instance.DiscardAndDraw();
     }
-
-    // ── 전투 종료 ──────────────────────────────────────────
 
     private void HandlePlayerDied() => EndBattle(false);
     private void HandleEnemyDied() => EndBattle(true);
 
     private void EndBattle(bool victory)
     {
-        Debug.Log($"[BattleManager] 전투 종료 — {(victory ? "승리" : "패배")}");
+        // Stop in-flight turn coroutines to avoid applying stale enemy attacks after death.
+        StopAllCoroutines();
+        IsProcessing = false;
+        if (ChainExecutor.Instance != null)
+            ChainExecutor.Instance.CancelCurrentChain();
+
+        Debug.Log($"[BattleManager] Battle End {(victory ? "Victory" : "Defeat")}");
 
         if (!victory)
         {
@@ -148,32 +161,45 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         _currentEnemyIndex++;
 
-        if (_currentEnemyIndex >= _enemyList.Count)
+        if (GetCurrentEnemyData() == null)
         {
             GameManager.Instance.GameClear();
             return;
         }
 
+        _isWaitingForNextBattle = true;
+        EnterPhase(BattlePhase.EnemyTurn); // hide confirm button while waiting for next battle
         OnBattleEnded?.Invoke();
     }
-
-    // ── 유틸 ───────────────────────────────────────────────
 
     private void EnterPhase(BattlePhase phase)
     {
         CurrentPhase = phase;
 
         if (phase == BattlePhase.PlayerTurn)
+        {
+            _player.ClearBlock();
             ChainExecutor.Instance.ResetAccumulatedResult();
+            CardManager.Instance.ResetTurnCost();
+        }
 
         OnPhaseChanged?.Invoke(phase);
-        Debug.Log($"[BattleManager] Phase → {phase}");
+        Debug.Log($"[BattleManager] Phase {phase}");
+    }
+
+    private EnemyDataSO GetCurrentEnemyData()
+    {
+        while (_currentEnemyIndex < _enemyList.Count)
+        {
+            EnemyDataSO data = _enemyList[_currentEnemyIndex];
+            if (data != null) return data;
+            _currentEnemyIndex++;
+        }
+        return null;
     }
 
     protected override void Dispose()
     {
-        if (ChainExecutor.Instance != null)
-            ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
         if (GameManager.Instance != null)
             GameManager.Instance.OnStateChanged -= OnGameStateChanged;
 

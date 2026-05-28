@@ -26,7 +26,10 @@ public class UI_ConfirmButton : MonoBehaviour
     private void OnPhaseChanged(BattleManager.BattlePhase phase)
     {
         // PlayerTurn일 때만 확정 버튼 표시
-        SetVisible(phase == BattleManager.BattlePhase.PlayerTurn);
+        SetVisible(
+            phase == BattleManager.BattlePhase.PlayerTurn
+            && !BattleManager.Instance.IsWaitingForNextBattle
+        );
     }
 
     private void OnClick()

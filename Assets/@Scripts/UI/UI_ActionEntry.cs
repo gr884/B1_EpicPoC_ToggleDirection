@@ -18,4 +18,10 @@ public class UI_ActionEntry : MonoBehaviour
         if (_valueText != null)
             _valueText.text = value;
     }
+
+    public void SetValue(string value)
+    {
+        if (_valueText != null)
+            _valueText.text = value;
+    }
 }

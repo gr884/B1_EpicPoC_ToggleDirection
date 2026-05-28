@@ -31,6 +31,13 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
 
     private void OnBattleEnded()
     {
+        // Wait for UI_NextButton click.
+    }
+
+    public void ProceedToNextBattle()
+    {
+        if (!BattleManager.Instance.TryConsumeNextBattleRequest()) return;
+
         GridManager.Instance.BuildGrid();
         CardManager.Instance.StartBattleDraw();
         BattleManager.Instance.NextBattle();

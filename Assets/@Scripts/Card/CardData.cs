@@ -71,6 +71,9 @@ public class CardData : ScriptableObject
     [Header("Recall")]
     public RecallDestination recallDestination = RecallDestination.Hand;
 
+    [Header("Cost")]
+    [Min(0)] public int playCost = 1;
+
     [Header("Directions")]
     public List<CardDirection> directions = new();
 

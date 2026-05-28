@@ -13,6 +13,9 @@ public class CardManager : SingletonBehaviour<CardManager>
     [SerializeField] private List<CardData> _startingDeck = new();
     [SerializeField] private bool _shuffleOnReset = true;
 
+    [Header("Cost")]
+    [SerializeField, Min(0)] private int _maxCostPerTurn = 3;
+
     // ── 덱 상태 ────────────────────────────────────────────
     private readonly List<CardData> _drawPile = new();
     private readonly List<CardData> _discardPile = new();
@@ -25,21 +28,24 @@ public class CardManager : SingletonBehaviour<CardManager>
     private readonly List<CardView> _hand = new();
     public IReadOnlyList<CardView> Hand => _hand;
     public int HandCount => _hand.Count;
+    public int MaxCostPerTurn => _maxCostPerTurn;
+    public int CurrentCost { get; private set; }
 
     public event Action OnHandChanged;
+    public event Action<int, int> OnCostChanged;
 
     // ── 초기화 ─────────────────────────────────────────────
 
     public void Init()
     {
         ChainExecutor.Instance.OnChainFinished += OnChainFinished;
+        CurrentCost = _maxCostPerTurn;
         Debug.Log("[CardManager] Init");
     }
 
     private void OnChainFinished(ChainResult result)
     {
-        foreach (CardView card in _hand)
-            if (card != null) card.SetDraggable(true);
+        UpdateHandDraggableState();
     }
 
     // ── 덱 관리 ────────────────────────────────────────────
@@ -100,6 +106,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         foreach (CardData data in drawn)
             SpawnToHand(data);
 
+        UpdateHandDraggableState();
         OnHandChanged?.Invoke();
     }
 
@@ -119,6 +126,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         }
 
         _hand.Clear();
+        UpdateHandDraggableState();
         OnHandChanged?.Invoke();
     }
 
@@ -139,6 +147,7 @@ public class CardManager : SingletonBehaviour<CardManager>
                 CardData recallData = card.Data;
                 PoolManager.Instance.Return(card.gameObject);
                 SpawnToHand(recallData);
+                UpdateHandDraggableState();
                 OnHandChanged?.Invoke();
                 break;
 
@@ -183,10 +192,13 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (BattleManager.Instance.IsProcessing) return false;
         if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
         if (!_hand.Contains(card)) return false;
+        if (!CanAfford(card.Data)) return false;
 
         targetSlot.AssignCard(card);
         card.SetDraggable(false);
         _hand.Remove(card);
+        SpendCost(card.Data.playCost);
+        UpdateHandDraggableState();
         OnHandChanged?.Invoke();
 
         ChainExecutor.Instance.ExecuteFrom(card);
@@ -213,6 +225,38 @@ public class CardManager : SingletonBehaviour<CardManager>
         _hand.Add(card);
     }
 
+    public void ResetTurnCost()
+    {
+        CurrentCost = _maxCostPerTurn;
+        OnCostChanged?.Invoke(CurrentCost, _maxCostPerTurn);
+        UpdateHandDraggableState();
+    }
+
+    private bool CanAfford(CardData data)
+    {
+        if (data == null) return false;
+        return CurrentCost >= Mathf.Max(0, data.playCost);
+    }
+
+    private void SpendCost(int amount)
+    {
+        CurrentCost = Mathf.Max(0, CurrentCost - Mathf.Max(0, amount));
+        OnCostChanged?.Invoke(CurrentCost, _maxCostPerTurn);
+    }
+
+    private void UpdateHandDraggableState()
+    {
+        bool canPlayCards = BattleManager.Instance != null
+            && !BattleManager.Instance.IsProcessing
+            && BattleManager.Instance.CurrentPhase == BattleManager.BattlePhase.PlayerTurn;
+
+        foreach (CardView card in _hand)
+        {
+            if (card == null) continue;
+            card.SetDraggable(canPlayCards && CanAfford(card.Data));
+        }
+    }
+
     private static void Shuffle(List<CardData> list)
     {
         for (int i = list.Count - 1; i > 0; i--)
@@ -227,6 +271,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (ChainExecutor.Instance != null)
             ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
         OnHandChanged = null;
+        OnCostChanged = null;
         base.Dispose();
     }
 }

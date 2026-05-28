@@ -30,6 +30,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnStatsUpdated?.Invoke(_accumulatedResult);
     }
 
+    public void CancelCurrentChain()
+    {
+        StopAllCoroutines();
+    }
+
     public void ExecuteFrom(CardView rootCard)
     {
         StartCoroutine(ExecuteChain(rootCard));
@@ -57,7 +62,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 효과 누적 ──────────────────────────────────────────
 
-    private void AccumulateEffects(CardView card)
+    private void ApplyEffectsImmediately(CardView card)
     {
         if (card?.Data?.effects == null) return;
 
@@ -70,14 +75,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
-                    AddToResult(effect.effectType, effect.value);
+                    ApplyEffect(effect.effectType, effect.value);
                 continue;
             }
 
             // AtLeast
             if (effect.scope == CountScope.None)
             {
-                AddToResult(effect.effectType, effect.value);
+                ApplyEffect(effect.effectType, effect.value);
                 continue;
             }
 
@@ -92,19 +97,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         foreach (var kv in atLeastBest)
-            AddToResult(kv.Key, kv.Value.value);
-
-        OnStatsUpdated?.Invoke(_accumulatedResult);
+            ApplyEffect(kv.Key, kv.Value.value);
     }
 
-    private void AddToResult(EffectType type, float value)
+    private void ApplyEffect(EffectType type, float value)
     {
-        switch (type)
-        {
-            case EffectType.Damage: _accumulatedResult.damage += value; break;
-            case EffectType.Defense: _accumulatedResult.defense += value; break;
-            case EffectType.Heal: _accumulatedResult.heal += value; break;
-        }
+        if (BattleManager.Instance == null) return;
+        BattleManager.Instance.ApplyImmediateEffect(type, value);
     }
 
     private bool IsFullActivated(CountScope scope, CardView card)
@@ -202,7 +201,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                     // On될 때 그 시점 기준으로 효과 누적
                     if (!current.IsEnemy)
-                        AccumulateEffects(current);
+                        ApplyEffectsImmediately(current);
                 }
                 else
                 {
