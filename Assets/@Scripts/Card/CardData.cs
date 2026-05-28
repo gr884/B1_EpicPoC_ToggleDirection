@@ -38,6 +38,12 @@ public enum RecallDestination
     DrawPile,    // 드로우 파일 랜덤 위치로
 }
 
+public enum ThresholdType
+{
+    AtLeast,  // N개 이상 (같은 EffectType 중 가장 높은 조건만 적용)
+    Full,     // 범위 전체가 켜졌을 때
+}
+
 [Serializable]
 public class CardEffect
 {
@@ -45,7 +51,8 @@ public class CardEffect
     public CountScope scope;
 
     [Header("발동 조건")]
-    public int threshold;
+    public ThresholdType thresholdType;
+    public int threshold; // AtLeast일 때만 사용
 
     [Header("효과")]
     public EffectType effectType;

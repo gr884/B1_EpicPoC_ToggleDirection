@@ -61,29 +61,72 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (card?.Data?.effects == null) return;
 
+        // AtLeast: EffectType별로 가장 높은 threshold를 만족하는 것 하나만 적용
+        // Full: 조건 만족 시 적용
+        var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
+
         foreach (CardEffect effect in card.Data.effects)
         {
-            float value = EvaluateEffect(effect, card);
-            if (value <= 0f) continue;
-
-            switch (effect.effectType)
+            if (effect.thresholdType == ThresholdType.Full)
             {
-                case EffectType.Damage: _accumulatedResult.damage += value; break;
-                case EffectType.Defense: _accumulatedResult.defense += value; break;
-                case EffectType.Heal: _accumulatedResult.heal += value; break;
+                if (IsFullActivated(effect.scope, card))
+                    AddToResult(effect.effectType, effect.value);
+                continue;
+            }
+
+            // AtLeast
+            if (effect.scope == CountScope.None)
+            {
+                AddToResult(effect.effectType, effect.value);
+                continue;
+            }
+
+            int count = CountByScope(effect.scope, card);
+            if (count < effect.threshold) continue;
+
+            if (!atLeastBest.ContainsKey(effect.effectType) ||
+                effect.threshold > atLeastBest[effect.effectType].threshold)
+            {
+                atLeastBest[effect.effectType] = (effect.threshold, effect.value);
             }
         }
+
+        foreach (var kv in atLeastBest)
+            AddToResult(kv.Key, kv.Value.value);
 
         OnStatsUpdated?.Invoke(_accumulatedResult);
     }
 
-    private float EvaluateEffect(CardEffect effect, CardView card)
+    private void AddToResult(EffectType type, float value)
     {
-        if (effect.scope == CountScope.None)
-            return effect.value;
+        switch (type)
+        {
+            case EffectType.Damage: _accumulatedResult.damage += value; break;
+            case EffectType.Defense: _accumulatedResult.defense += value; break;
+            case EffectType.Heal: _accumulatedResult.heal += value; break;
+        }
+    }
 
-        int count = CountByScope(effect.scope, card);
-        return count >= effect.threshold ? effect.value : 0f;
+    private bool IsFullActivated(CountScope scope, CardView card)
+    {
+        if (card?.CurrentSlot == null) return false;
+        Vector2Int pos = card.CurrentSlot.Position;
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            bool inScope = scope switch
+            {
+                CountScope.Row => slot.Position.y == pos.y,
+                CountScope.Column => slot.Position.x == pos.x,
+                CountScope.Cross => slot.Position.y == pos.y || slot.Position.x == pos.x,
+                CountScope.Total => true,
+                _ => false
+            };
+
+            if (inScope && (slot.IsEmpty || !slot.OccupiedCard.IsActivated))
+                return false;
+        }
+        return true;
     }
 
     private int CountByScope(CountScope scope, CardView card)

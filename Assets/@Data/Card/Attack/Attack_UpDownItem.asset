@@ -14,12 +14,19 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
   displayName: "\uACF5\uACA9"
-  description: "\uACF5\uACA9 + 1"
-  maxDurability: 3
+  description: "\uACF5\uACA9 + 5\n\uAC19\uC740 \uC5F4 \uC804\uBD80 \uD65C\uC131\uD654
+    \uC2DC,\n\uCD94\uAC00 \uACF5\uACA9 + 5"
+  recallDestination: 0
   directions: 0100000005000000
   effects:
   - scope: 0
+    thresholdType: 0
     threshold: 0
     effectType: 0
-    value: 1
+    value: 5
+  - scope: 2
+    thresholdType: 1
+    threshold: 0
+    effectType: 0
+    value: 5
   icon: {fileID: -2237518807768803992, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

@@ -6,7 +6,6 @@ public class UI_Tooltip : SingletonBehaviour<UI_Tooltip>
 {
     [Header("Refs")]
     [SerializeField] private CanvasGroup _canvasGroup;
-    [SerializeField] private Image _iconImage;
     [SerializeField] private TMP_Text _nameText;
     [SerializeField] private TMP_Text _descriptionText;
 
@@ -34,8 +33,6 @@ public class UI_Tooltip : SingletonBehaviour<UI_Tooltip>
     {
         if (data == null) return;
 
-        _iconImage.sprite = data.icon;
-        _iconImage.enabled = data.icon != null;
         _nameText.text = data.displayName;
         _descriptionText.text = data.description;
 

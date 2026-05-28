@@ -19,6 +19,12 @@ MonoBehaviour:
   intentPattern:
   - intents:
     - type: 0
-      value: 5
+      value: 20
     - type: 1
-      value: 2
+      value: 10
+  - intents:
+    - type: 0
+      value: 30
+  - intents:
+    - type: 1
+      value: 20
