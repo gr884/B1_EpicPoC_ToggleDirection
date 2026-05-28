@@ -44,7 +44,6 @@ public class GridManager : SingletonBehaviour<GridManager>
 
                 GridSlot slot = Instantiate(_slotPrefab, _gridRoot);
                 slot.Setup(pos);
-
                 _slots[pos] = slot;
             }
         }
@@ -52,7 +51,7 @@ public class GridManager : SingletonBehaviour<GridManager>
         Debug.Log($"[GridManager] 그리드 생성 완료 ({_rows}x{_columns})");
     }
 
-    // ── 리셋 (카드만 제거, 슬롯 유지) ────────────────────────
+    // ── 리셋 ───────────────────────────────────────────────
 
     public void ResetCards()
     {
@@ -63,81 +62,28 @@ public class GridManager : SingletonBehaviour<GridManager>
         Debug.Log("[GridManager] 그리드 카드 리셋");
     }
 
-    // ── 적 카드 배치 ───────────────────────────────────────
+    // ── 적 카드 배치 (특수 기믹용) ─────────────────────────
 
-    public List<GridSlot> PlaceEnemyCards(EnemyDataSO enemyData, GameObject cardPrefab)
+    /// <summary>
+    /// 특정 위치에 적 카드 한 장 배치.
+    /// </summary>
+    public CardView PlaceEnemyCard(CardData data, GameObject cardPrefab, Vector2Int position, bool startsActivated = true)
     {
-        if (enemyData == null || cardPrefab == null) return new();
-
-        List<GridSlot> placed = enemyData.isRandom
-            ? PlaceEnemyCardsRandom(enemyData, cardPrefab)
-            : PlaceEnemyCardsFixed(enemyData, cardPrefab);
-
-        Debug.Log($"[GridManager] 적 카드 {placed.Count}개 배치");
-        return placed;
+        GridSlot slot = GetSlot(position);
+        if (slot == null || !slot.IsEmpty) return null;
+        return SpawnEnemyCard(data, cardPrefab, slot, startsActivated);
     }
 
-    private List<GridSlot> PlaceEnemyCardsRandom(EnemyDataSO enemyData, GameObject cardPrefab)
+    /// <summary>
+    /// 빈 슬롯 중 랜덤한 위치에 적 카드 한 장 배치.
+    /// </summary>
+    public CardView PlaceEnemyCardRandom(CardData data, GameObject cardPrefab, bool startsActivated = true)
     {
-        List<GridSlot> placed = new();
-        if (enemyData.randomCardPool == null || enemyData.randomCardPool.Count == 0) return placed;
-
         List<GridSlot> emptySlots = GetEmptySlots();
+        if (emptySlots.Count == 0) return null;
+
         Shuffle(emptySlots);
-
-        int count = Mathf.Min(enemyData.randomCardCount, emptySlots.Count);
-        for (int i = 0; i < count; i++)
-        {
-            CardData data = enemyData.randomCardPool[Random.Range(0, enemyData.randomCardPool.Count)];
-            CardView card = SpawnEnemyCard(data, cardPrefab, emptySlots[i]);
-            if (card != null) placed.Add(emptySlots[i]);
-        }
-
-        return placed;
-    }
-
-    private List<GridSlot> PlaceEnemyCardsFixed(EnemyDataSO enemyData, GameObject cardPrefab)
-    {
-        List<GridSlot> placed = new();
-        if (enemyData.fixedPlacements == null) return placed;
-
-        foreach (EnemyCardPlacement placement in enemyData.fixedPlacements)
-        {
-            if (placement?.cardData == null) continue;
-
-            GridSlot slot = GetSlot(placement.position);
-            if (slot == null || !slot.IsEmpty) continue;
-
-            CardView card = SpawnEnemyCard(placement.cardData, cardPrefab, slot);
-            if (card != null) placed.Add(slot);
-        }
-
-        return placed;
-    }
-
-    private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated = true)
-    {
-        GameObject obj = PoolManager.Instance.Get(cardPrefab, Vector3.zero, slot.transform);
-        CardView card = obj.GetComponent<CardView>();
-        if (card == null) return null;
-
-        card.Initialize(data, isEnemy: true, startsActivated: startsActivated);
-        card.SetDraggable(false);
-
-        RectTransform rect = obj.GetComponent<RectTransform>();
-        if (rect != null)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = Vector2.zero;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            rect.localScale = Vector3.one;
-        }
-
-        slot.AssignCard(card);
-        return card;
+        return SpawnEnemyCard(data, cardPrefab, emptySlots[0], startsActivated);
     }
 
     public int GetEnemyCardCount()
@@ -173,6 +119,31 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     // ── 내부 ───────────────────────────────────────────────
 
+    private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated)
+    {
+        GameObject obj = PoolManager.Instance.Get(cardPrefab, Vector3.zero, slot.transform);
+        CardView card = obj.GetComponent<CardView>();
+        if (card == null) return null;
+
+        card.Initialize(data, isEnemy: true, startsActivated: startsActivated);
+        card.SetDraggable(false);
+
+        RectTransform rect = obj.GetComponent<RectTransform>();
+        if (rect != null)
+        {
+            rect.anchorMin = Vector2.zero;
+            rect.anchorMax = Vector2.one;
+            rect.pivot = new Vector2(0.5f, 0.5f);
+            rect.anchoredPosition = Vector2.zero;
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+            rect.localScale = Vector3.one;
+        }
+
+        slot.AssignCard(card);
+        return card;
+    }
+
     private void ClearGrid()
     {
         _slots.Clear();
@@ -184,7 +155,7 @@ public class GridManager : SingletonBehaviour<GridManager>
     {
         for (int i = list.Count - 1; i > 0; i--)
         {
-            int j = Random.Range(0, i + 1);
+            int j = UnityEngine.Random.Range(0, i + 1);
             (list[i], list[j]) = (list[j], list[i]);
         }
     }

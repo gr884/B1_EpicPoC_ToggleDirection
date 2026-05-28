@@ -20,7 +20,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     public bool IsProcessing { get; private set; }
 
     public event Action<BattlePhase> OnPhaseChanged;
-    public event Action OnBattleEnded; // 다음 전투가 있을 때만 발행
+    public event Action OnBattleEnded;
 
     private ChainResult _lastChainResult;
 
@@ -88,12 +88,30 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         ChainResult result = _lastChainResult ?? new ChainResult();
 
-        _enemy.TakeAttack(result);
+        int playerDamage = Mathf.RoundToInt(result.damage);
+        int playerDefense = Mathf.RoundToInt(result.defense);
+        int playerHeal = Mathf.RoundToInt(result.heal);
+
+        // 플레이어 공격 - 적 방어
+        _enemy.TakeAttack(playerDamage);
         yield return new WaitForSeconds(0.5f);
 
         if (_enemy.IsDead) { IsProcessing = false; yield break; }
 
-        _player.ApplyChainResult(result);
+        // 힐
+        if (playerHeal > 0)
+            _player.Heal(playerHeal);
+
+        // 적 공격 - 플레이어 방어
+        int enemyAttack = _enemy.GetIntentValue(EnemyIntentType.Attack);
+        int remaining = Mathf.Max(0, enemyAttack - playerDefense);
+        _player.TakeAttack(remaining);
+        yield return new WaitForSeconds(0.5f);
+
+        if (_player.IsDead) { IsProcessing = false; yield break; }
+
+        // Intent 갱신
+        _enemy.AdvanceIntent();
 
         IsProcessing = false;
         EnterPhase(BattlePhase.EnemyTurn);
@@ -104,10 +122,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     {
         IsProcessing = true;
 
-        _enemy.Attack(_player);
+        // EnemyTurn은 짧게 — Intent 표시 후 PlayerTurn으로
         yield return new WaitForSeconds(0.5f);
-
-        if (_player.IsDead) { IsProcessing = false; yield break; }
 
         IsProcessing = false;
         EnterPhase(BattlePhase.PlayerTurn);
@@ -121,6 +137,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     private void EndBattle(bool victory)
     {
+        Debug.Log($"[BattleManager] 전투 종료 — {(victory ? "승리" : "패배")}");
+
         if (!victory)
         {
             GameManager.Instance.GameOver();
@@ -135,7 +153,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             return;
         }
 
-        // 다음 전투가 있을 때만 발행
         OnBattleEnded?.Invoke();
     }
 

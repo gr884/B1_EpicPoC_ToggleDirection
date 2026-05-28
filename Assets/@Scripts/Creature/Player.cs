@@ -9,8 +9,6 @@ public class Player : MonoBehaviour
     [SerializeField] private int _handSize = 5;
 
     public int HandSize => _handSize;
-    private int _currentDefense;
-
     public int MaxHp => _maxHp;
     public int CurrentHp => _view != null ? _view.CurrentHp : 0;
     public bool IsDead => _view != null && _view.IsDead;
@@ -21,7 +19,6 @@ public class Player : MonoBehaviour
 
     public void Setup(int currentHp)
     {
-        _currentDefense = 0;
 
         _view.OnDied -= HandleDied;
         _view.OnDied += HandleDied;
@@ -30,20 +27,14 @@ public class Player : MonoBehaviour
 
     // ── 전투 로직 ──────────────────────────────────────────
 
-    public void ApplyChainResult(ChainResult result)
+    public void TakeAttack(int damage)
     {
-        _currentDefense = Mathf.RoundToInt(result.defense);
-
-        int heal = Mathf.RoundToInt(result.heal);
-        if (heal > 0)
-            _view.Heal(heal);
+        _view.TakeDamage(Mathf.Max(0, damage));
     }
 
-    public void TakeAttack(int rawDamage)
+    public void Heal(int amount)
     {
-        int remaining = Mathf.Max(0, rawDamage - _currentDefense);
-        _currentDefense = 0;
-        _view.TakeDamage(remaining);
+        _view.Heal(amount);
     }
 
     // ── 내부 ───────────────────────────────────────────────

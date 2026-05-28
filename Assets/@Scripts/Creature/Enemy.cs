@@ -1,67 +1,74 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
     [SerializeField] private BattleActorView _view;
-    [SerializeField] private GameObject _cardPrefab;
 
     private EnemyDataSO _data;
+    private int _intentIndex;
 
     public bool IsDead => _view != null && _view.IsDead;
+    public EnemyIntentTurn CurrentIntentTurn { get; private set; }
 
     public event Action OnDied;
+    public event Action<EnemyIntentTurn> OnIntentChanged;
 
     // ── 초기화 ─────────────────────────────────────────────
 
     public void Setup(EnemyDataSO data)
     {
         _data = data;
+        _intentIndex = 0;
 
         _view.OnDied -= HandleDied;
         _view.OnDied += HandleDied;
         _view.Setup(data.displayName, data.maxHp);
 
-        GridManager.Instance.PlaceEnemyCards(data, _cardPrefab);
+        RefreshIntent();
     }
 
     // ── 전투 로직 ──────────────────────────────────────────
 
-    public void TakeAttack(ChainResult result)
+    public void TakeAttack(int playerDamage)
     {
-        int damage = Mathf.RoundToInt(result.damage);
-        int defense = GetCardBonus(EffectType.Defense);
-        _view.TakeDamage(Mathf.Max(0, damage - defense));
+        int defense = GetIntentValue(EnemyIntentType.Defend);
+        _view.TakeDamage(Mathf.Max(0, playerDamage - defense));
     }
 
-    public void Attack(Player player)
+    public int GetIntentValue(EnemyIntentType type)
     {
-        int raw = _data.baseDamage + GetCardBonus(EffectType.Damage);
-        player.TakeAttack(raw);
+        if (CurrentIntentTurn == null) return 0;
+
+        int total = 0;
+        foreach (EnemyIntentData intent in CurrentIntentTurn.intents)
+            if (intent.type == type)
+                total += intent.value;
+        return total;
     }
 
-    // ── 카드 보너스 ────────────────────────────────────────
-
-    public int GetCardBonus(EffectType type)
+    public void AdvanceIntent()
     {
-        int bonus = 0;
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-        {
-            CardView card = slot.OccupiedCard;
-            if (card == null || !card.IsEnemy || !card.IsActivated) continue;
-            if (card.Data?.effects == null) continue;
-
-            foreach (CardEffect effect in card.Data.effects)
-            {
-                if (effect.scope != CountScope.None) continue;
-                if (effect.effectType == type)
-                    bonus += Mathf.RoundToInt(effect.value);
-            }
-        }
-        return bonus;
+        if (_data?.intentPattern == null || _data.intentPattern.Count == 0) return;
+        _intentIndex = (_intentIndex + 1) % _data.intentPattern.Count;
+        RefreshIntent();
     }
 
     // ── 내부 ───────────────────────────────────────────────
+
+    private void RefreshIntent()
+    {
+        if (_data?.intentPattern == null || _data.intentPattern.Count == 0)
+        {
+            CurrentIntentTurn = null;
+            OnIntentChanged?.Invoke(null);
+            return;
+        }
+
+        CurrentIntentTurn = _data.intentPattern[_intentIndex];
+        OnIntentChanged?.Invoke(CurrentIntentTurn);
+    }
 
     private void HandleDied() => OnDied?.Invoke();
 
@@ -71,5 +78,6 @@ public class Enemy : MonoBehaviour
             _view.OnDied -= HandleDied;
 
         OnDied = null;
+        OnIntentChanged = null;
     }
 }
