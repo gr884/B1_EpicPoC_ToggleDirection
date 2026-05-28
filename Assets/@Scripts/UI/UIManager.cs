@@ -12,6 +12,14 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Enemy _enemy;
     [SerializeField] private UI_ActionEntry _playerShieldEntry;
     [SerializeField] private UI_ActionEntry _enemyShieldEntry;
+    [SerializeField] private TMP_Text _playerShieldValueText;
+    [SerializeField] private TMP_Text _enemyShieldValueText;
+    [SerializeField] private TMP_Text _blockText;
+    [SerializeField] private TMP_Text _blockUsedText;
+    [SerializeField] private TMP_Text _blockRemainingText;
+
+    private int _lastPlayerBlock = int.MinValue;
+    private int _lastEnemyBlock = int.MinValue;
 
     private void Start()
     {
@@ -22,18 +30,37 @@ public class UIManager : MonoBehaviour
 
         BindShieldEntriesIfNeeded();
 
-        CardManager.Instance.OnCostChanged += OnCostChanged;
+        if (CardManager.Instance != null)
+            CardManager.Instance.OnCostChanged += OnCostChanged;
+
         if (_player != null)
         {
             _player.OnBlockChanged += OnBlockChanged;
+            _player.OnBlockConsumed += OnBlockConsumed;
         }
         if (_enemy != null)
         {
             _enemy.OnBlockChanged += OnEnemyBlockChanged;
+            _enemy.OnBlockConsumed += OnEnemyBlockConsumed;
         }
         RefreshCost();
         RefreshBlock();
         RefreshEnemyBlock();
+    }
+
+    private void LateUpdate()
+    {
+        if (_player != null && _player.CurrentBlock != _lastPlayerBlock)
+        {
+            OnBlockChanged(_player.CurrentBlock);
+            _lastPlayerBlock = _player.CurrentBlock;
+        }
+
+        if (_enemy != null && _enemy.CurrentBlock != _lastEnemyBlock)
+        {
+            OnEnemyBlockChanged(_enemy.CurrentBlock);
+            _lastEnemyBlock = _enemy.CurrentBlock;
+        }
     }
 
     private void OnDestroy()
@@ -43,10 +70,12 @@ public class UIManager : MonoBehaviour
         if (_player != null)
         {
             _player.OnBlockChanged -= OnBlockChanged;
+            _player.OnBlockConsumed -= OnBlockConsumed;
         }
         if (_enemy != null)
         {
             _enemy.OnBlockChanged -= OnEnemyBlockChanged;
+            _enemy.OnBlockConsumed -= OnEnemyBlockConsumed;
         }
     }
 
@@ -66,40 +95,130 @@ public class UIManager : MonoBehaviour
     {
         if (_playerShieldEntry != null)
             _playerShieldEntry.SetValue(currentBlock.ToString());
+        if (_playerShieldValueText != null)
+            _playerShieldValueText.text = currentBlock.ToString();
+
+        if (_blockText != null)
+            _blockText.text = currentBlock.ToString();
+    }
+
+    private void OnBlockConsumed(int usedBlock, int remainingBlock)
+    {
+        if (_blockUsedText != null)
+            _blockUsedText.text = usedBlock.ToString();
+        if (_blockRemainingText != null)
+            _blockRemainingText.text = remainingBlock.ToString();
     }
 
     private void OnEnemyBlockChanged(int currentBlock)
     {
         if (_enemyShieldEntry != null)
             _enemyShieldEntry.SetValue(currentBlock.ToString());
+        if (_enemyShieldValueText != null)
+            _enemyShieldValueText.text = currentBlock.ToString();
+    }
+
+    private void OnEnemyBlockConsumed(int usedBlock, int remainingBlock)
+    {
+        if (_enemyShieldEntry != null)
+            _enemyShieldEntry.SetValue(remainingBlock.ToString());
+        if (_enemyShieldValueText != null)
+            _enemyShieldValueText.text = remainingBlock.ToString();
     }
 
     private void RefreshBlock()
     {
         if (_player == null) return;
         OnBlockChanged(_player.CurrentBlock);
+        OnBlockConsumed(0, _player.CurrentBlock);
+        _lastPlayerBlock = _player.CurrentBlock;
     }
 
     private void RefreshEnemyBlock()
     {
         if (_enemy == null) return;
         OnEnemyBlockChanged(_enemy.CurrentBlock);
+        OnEnemyBlockConsumed(0, _enemy.CurrentBlock);
+        _lastEnemyBlock = _enemy.CurrentBlock;
     }
 
     private void BindShieldEntriesIfNeeded()
     {
         if (_playerShieldEntry == null)
         {
-            GameObject playerShield = GameObject.Find("PlayerInfo/ShieldInfo");
-            if (playerShield != null)
-                _playerShieldEntry = playerShield.GetComponent<UI_ActionEntry>();
+            _playerShieldEntry = FindShieldEntryUnderOwner("PlayerInfo");
+        }
+        if (_playerShieldValueText == null)
+        {
+            _playerShieldValueText = FindShieldValueTextUnderOwner("PlayerInfo");
         }
 
         if (_enemyShieldEntry == null)
         {
-            GameObject enemyShield = GameObject.Find("EnemyInfo/ShieldInfo");
-            if (enemyShield != null)
-                _enemyShieldEntry = enemyShield.GetComponent<UI_ActionEntry>();
+            _enemyShieldEntry = FindShieldEntryUnderOwner("EnemyInfo");
         }
+        if (_enemyShieldValueText == null)
+        {
+            _enemyShieldValueText = FindShieldValueTextUnderOwner("EnemyInfo");
+        }
+    }
+
+    private UI_ActionEntry FindShieldEntryUnderOwner(string ownerName)
+    {
+        UI_ActionEntry[] entries = FindObjectsByType<UI_ActionEntry>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (UI_ActionEntry entry in entries)
+        {
+            if (entry == null || entry.gameObject.name != "ShieldInfo")
+                continue;
+
+            Transform current = entry.transform.parent;
+            while (current != null)
+            {
+                if (current.name == ownerName)
+                    return entry;
+                current = current.parent;
+            }
+        }
+
+        return null;
+    }
+
+    private TMP_Text FindShieldValueTextUnderOwner(string ownerName)
+    {
+        TMP_Text[] texts = FindObjectsByType<TMP_Text>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None
+        );
+
+        foreach (TMP_Text text in texts)
+        {
+            if (text == null)
+                continue;
+
+            bool hasShieldInfo = false;
+            bool hasOwner = false;
+
+            Transform current = text.transform.parent;
+            while (current != null)
+            {
+                if (current.name == "ShieldInfo")
+                    hasShieldInfo = true;
+                if (current.name == ownerName)
+                {
+                    hasOwner = true;
+                    break;
+                }
+                current = current.parent;
+            }
+
+            if (hasShieldInfo && hasOwner)
+                return text;
+        }
+
+        return null;
     }
 }
