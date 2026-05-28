@@ -10,11 +10,11 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3c00bc4be7969084f96211c3cad9c504, type: 3}
-  m_Name: Buffer_zRightandUp
+  m_Name: RightPush
   m_EditorClassIdentifier: Assembly-CSharp::CardData
-  cardId: 14
-  displayName: "\uC624\uC704\uBC84\uD37C"
-  abilityType: 1
+  cardId: 22
+  displayName: "\uC624\uBC00"
+  abilityType: 2
   abilityDirection: 3
-  additionalDirections: 01000000
-  icon: {fileID: -394221167459137477, guid: a608706b76d228c4ab0d480df4705607, type: 3}
+  additionalDirections: 
+  icon: {fileID: 4553357440917884160, guid: 4f6dd2abacf51de4f89e286012edbcce, type: 3}

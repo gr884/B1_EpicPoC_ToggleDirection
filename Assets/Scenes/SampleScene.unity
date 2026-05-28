@@ -1068,16 +1068,16 @@ MonoBehaviour:
   uiManager: {fileID: 737879380}
   levels:
   - {fileID: 11400000, guid: 9040f10a96651074e97ae4d0e5c921d0, type: 2}
-  - {fileID: 11400000, guid: f923a026898873b4aa25949fb78bf12b, type: 2}
-  - {fileID: 11400000, guid: 6883f8160f709724ca7080a9027b94fd, type: 2}
-  - {fileID: 11400000, guid: 8c032394daaedf14aa99956cb528ad07, type: 2}
-  - {fileID: 11400000, guid: 9034adebc4ebb33459caf33800da799e, type: 2}
-  - {fileID: 11400000, guid: 6e3cbbb420674df4fa8fbddb1f61e661, type: 2}
-  - {fileID: 11400000, guid: 57714ace1de8f0b449dc217f53a93684, type: 2}
-  startLevelIndex: 0
+  - {fileID: 11400000, guid: c3061a9f3b4007a47a015f9ebbf0c773, type: 2}
+  - {fileID: 11400000, guid: 3b3893f5ccb8f054ebe7aabd8ab94525, type: 2}
+  - {fileID: 11400000, guid: c3f0a38d8a3a83348a16c5fb2c82d079, type: 2}
+  - {fileID: 11400000, guid: ebdf89681c133f647bb3dd89a7bcb791, type: 2}
+  - {fileID: 11400000, guid: 6eb9eb6f5feebc445b6f0ddd65674678, type: 2}
+  startLevelIndex: 4
   maxActivationSteps: 2048
   chainStepDelay: 0.2
   cardFeedbackDuration: 0.22
+  pushStepDelay: 0.08
 --- !u!4 &737879384
 Transform:
   m_ObjectHideFlags: 0

@@ -15,6 +15,6 @@ MonoBehaviour:
   cardId: 14
   displayName: "\uC67C\uC544\uBC84\uD37C"
   abilityType: 1
-  abilityDirection: 3
+  abilityDirection: 7
   additionalDirections: 05000000
-  icon: {fileID: 1526132014401536809, guid: e0821b5b956f9da439a57e9df4c7a223, type: 3}
+  icon: {fileID: -1645417889168574651, guid: ff656b1587eb4f84d85f84216de06b37, type: 3}

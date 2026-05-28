@@ -17,6 +17,7 @@ public class Card : MonoBehaviour
     [SerializeField] private Color normalIconColor = Color.white;
     [SerializeField] private Color bufferIconColor = new Color(0.55f, 0.8f, 1f, 1f);
     [SerializeField] private Color shieldOverlayColor = new Color(0.35f, 0.65f, 1f, 0.35f);
+    [SerializeField] private Color pushIconColor = Color.yellow;
 
     public CardData Data { get; private set; }
     public bool IsActivated { get; private set; }
@@ -110,6 +111,9 @@ public class Card : MonoBehaviour
 
     private void RefreshVisual()
     {
+        bool isBuffer = Data != null && Data.abilityType == CardAbilityType.Buffer;
+        bool isPush = Data != null && Data.abilityType == CardAbilityType.Push;
+
         if (backgroundImage != null)
         {
             // Buffer card background must stay in the same scheme as normal cards.
@@ -118,8 +122,9 @@ public class Card : MonoBehaviour
 
         if (iconImage != null)
         {
-            bool isBuffer = Data != null && Data.abilityType == CardAbilityType.Buffer;
-            iconImage.color = isBuffer ? bufferIconColor : normalIconColor;
+            if (isPush) iconImage.color = pushIconColor;
+            else if (isBuffer) iconImage.color = bufferIconColor;
+            else iconImage.color = normalIconColor;
         }
 
         RefreshShieldVisual();

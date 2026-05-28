@@ -1,0 +1,30 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 89b3d50345dbcc74495313af203fde45, type: 3}
+  m_Name: Level2_4
+  m_EditorClassIdentifier: Assembly-CSharp::LevelData
+  rows: 2
+  columns: 3
+  prePlacedCards:
+  - card: {fileID: 11400000, guid: 079ddefd158cfec4a9ee73a195cd0aeb, type: 2}
+    position: {x: 0, y: 1}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 29929b10930c9f44dbed394ed7b97271, type: 2}
+    position: {x: 1, y: 0}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}
+    position: {x: 2, y: 0}
+    startsActivated: 0
+  handCards:
+  - {fileID: 11400000, guid: 4063aedd66938ea4bbdff147fb5265d6, type: 2}
+  - {fileID: 11400000, guid: 92c1ffdfce490da419ce5f753ba8095b, type: 2}
+  - {fileID: 11400000, guid: b887fb387158bce418553ad4b6078634, type: 2}

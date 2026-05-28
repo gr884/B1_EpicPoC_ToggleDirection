@@ -17,7 +17,8 @@ public enum AbilityDirection
 public enum CardAbilityType
 {
     Normal,
-    Buffer
+    Buffer,
+    Push
 }
 
 [CreateAssetMenu(menuName = "EpicPoC/Card Data", fileName = "CardData")]

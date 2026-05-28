@@ -10,17 +10,20 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 89b3d50345dbcc74495313af203fde45, type: 3}
-  m_Name: TempLv
+  m_Name: Level3_3
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
-  rows: 2
-  columns: 2
+  rows: 3
+  columns: 5
   prePlacedCards:
-  - card: {fileID: 11400000, guid: 8e81a624d707d6345bd163a5c336813a, type: 2}
-    position: {x: 0, y: 1}
+  - card: {fileID: 11400000, guid: 4019f8c8a6508b045b16e2b694f75746, type: 2}
+    position: {x: 1, y: 1}
     startsActivated: 0
   - card: {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}
-    position: {x: 1, y: 0}
+    position: {x: 3, y: 2}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}
+    position: {x: 3, y: 0}
     startsActivated: 0
   handCards:
-  - {fileID: 11400000, guid: 9c0e5210d6eb111499c573dbebef12d8, type: 2}
-  - {fileID: 11400000, guid: b887fb387158bce418553ad4b6078634, type: 2}
+  - {fileID: 11400000, guid: d7fe0c6d99075334d8cca7e6f3e23853, type: 2}
+  - {fileID: 11400000, guid: 7bcd6f3c52ad80b4b8b733231df8bbdb, type: 2}

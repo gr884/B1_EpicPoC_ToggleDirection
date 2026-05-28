@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 89b3d50345dbcc74495313af203fde45, type: 3}
-  m_Name: Level6
+  m_Name: Level1_6
   m_EditorClassIdentifier: Assembly-CSharp::LevelData
   rows: 3
   columns: 4

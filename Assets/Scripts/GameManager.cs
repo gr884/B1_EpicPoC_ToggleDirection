@@ -14,8 +14,9 @@ public class GameManager : MonoBehaviour
 
     [Header("Safety")]
     [SerializeField] private int maxActivationSteps = 2048;
-    [SerializeField] private float chainStepDelay = 0.5f;
-    [SerializeField] private float cardFeedbackDuration = 0.22f;
+    [SerializeField] private float chainStepDelay = 0.18f;
+    [SerializeField] private float cardFeedbackDuration = 0.12f;
+    [SerializeField] private float pushStepDelay = 0.14f;
 
     private int currentLevelIndex;
     private bool levelEnded;
@@ -396,6 +397,12 @@ public class GameManager : MonoBehaviour
                     continue;
                 }
 
+                if (IsPushCard(emitter))
+                {
+                    yield return ResolvePushEmission(emitter, nextWaveMap);
+                    continue;
+                }
+
                 bool bufferSource = IsBufferCard(emitter);
                 foreach (AbilityDirection dir in emitter.Data.GetAllDirections())
                 {
@@ -479,5 +486,97 @@ public class GameManager : MonoBehaviour
         return card != null
             && card.Data != null
             && card.Data.abilityType == CardAbilityType.Buffer;
+    }
+
+    private static bool IsPushCard(Card card)
+    {
+        return card != null
+            && card.Data != null
+            && card.Data.abilityType == CardAbilityType.Push;
+    }
+
+    private System.Collections.IEnumerator ResolvePushEmission(Card emitter, Dictionary<Card, ActivationSignal> nextWaveMap)
+    {
+        if (emitter == null || emitter.CurrentSlot == null || emitter.Data == null || boardManager == null)
+        {
+            yield break;
+        }
+
+        foreach (AbilityDirection dir in emitter.Data.GetAllDirections())
+        {
+            BoardSlot first = boardManager.GetNeighbor(emitter.CurrentSlot, dir);
+            if (first == null || first.OccupiedCard == null)
+            {
+                continue;
+            }
+
+            Card pushed = first.OccupiedCard;
+            BoardSlot current = first;
+            while (true)
+            {
+                BoardSlot next = boardManager.GetNeighbor(current, dir);
+                if (next == null || !next.IsEmpty())
+                {
+                    break;
+                }
+
+                // Move one cell per step (snappy ice-like movement).
+                current.ClearCard();
+                next.AssignCard(pushed);
+                FitCardToSlot(pushed, next);
+                current = next;
+
+                if (pushStepDelay > 0f)
+                {
+                    yield return new WaitForSeconds(pushStepDelay);
+                }
+            }
+
+            // Only the pushed card toggles when it finally stops.
+            AddSignal(nextWaveMap, pushed, false);
+        }
+    }
+
+    private static void AddSignal(Dictionary<Card, ActivationSignal> map, Card target, bool hasBufferSource)
+    {
+        if (map == null || target == null)
+        {
+            return;
+        }
+
+        if (!map.TryGetValue(target, out ActivationSignal signal))
+        {
+            signal = new ActivationSignal
+            {
+                target = target,
+                hasBufferSource = false
+            };
+            map[target] = signal;
+        }
+
+        signal.hasBufferSource |= hasBufferSource;
+    }
+
+    private static void FitCardToSlot(Card card, BoardSlot slot)
+    {
+        if (card == null || slot == null)
+        {
+            return;
+        }
+
+        RectTransform rect = card.GetComponent<RectTransform>();
+        if (rect == null)
+        {
+            return;
+        }
+
+        rect.SetParent(slot.transform, false);
+        rect.anchorMin = Vector2.zero;
+        rect.anchorMax = Vector2.one;
+        rect.pivot = new Vector2(0.5f, 0.5f);
+        rect.anchoredPosition = Vector2.zero;
+        rect.offsetMin = Vector2.zero;
+        rect.offsetMax = Vector2.zero;
+        rect.localScale = Vector3.one;
     }
 }
