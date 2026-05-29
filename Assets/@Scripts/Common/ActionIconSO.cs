@@ -6,4 +6,5 @@ public class ActionIconSO : ScriptableObject
     public Sprite attack;
     public Sprite defend;
     public Sprite heal;
+    public Sprite contaminate;
 }

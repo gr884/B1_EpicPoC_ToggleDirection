@@ -1,0 +1,64 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 023c446197fe4444ea9e21c83ae6c55b, type: 3}
+  m_Name: EliteEnemyData
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyDataSO
+  enemyId: 
+  displayName: Elite Enemy
+  maxHp: 40
+  sprite: {fileID: 0}
+  intentPattern:
+  - intents:
+    - type: 2
+      value: 0
+      hits: 0
+      spawnCount: 3
+      cursePerCard: 2
+  - intents:
+    - type: 0
+      value: 5
+      hits: 4
+      spawnCount: 0
+      cursePerCard: 0
+    - type: 1
+      value: 10
+      hits: 1
+      spawnCount: 0
+      cursePerCard: 0
+  - intents:
+    - type: 0
+      value: 10
+      hits: 1
+      spawnCount: 0
+      cursePerCard: 0
+    - type: 1
+      value: 10
+      hits: 1
+      spawnCount: 0
+      cursePerCard: 0
+  - intents:
+    - type: 2
+      value: 0
+      hits: 1
+      spawnCount: 4
+      cursePerCard: 2
+  - intents:
+    - type: 0
+      value: 4
+      hits: 3
+      spawnCount: 0
+      cursePerCard: 0
+    - type: 1
+      value: 15
+      hits: 1
+      spawnCount: 0
+      cursePerCard: 0

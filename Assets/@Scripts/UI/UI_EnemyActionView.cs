@@ -36,6 +36,7 @@ public class UI_EnemyActionView : MonoBehaviour
             {
                 EnemyIntentType.Attack => _icons.attack,
                 EnemyIntentType.Defend => _icons.defend,
+                EnemyIntentType.Contaminate => _icons.contaminate,
                 _ => null
             };
 

@@ -6,6 +6,7 @@ public enum EnemyIntentType
 {
     Attack,
     Defend,
+    Contaminate,
 }
 
 [Serializable]
@@ -13,7 +14,9 @@ public class EnemyIntentData
 {
     public EnemyIntentType type;
     public int value;
-    [Min(1)] public int hits = 1; // 공격 횟수 (Attack 타입에서만 사용)
+    [Min(1)] public int hits = 1;        // 공격 횟수 (Attack)
+    public int spawnCount = 3;           // 배치할 오브젝트 수 (Contaminate 등)
+    public int cursePerCard = 2;         // 끄지 못한 오염 카드당 저주 카드 수 (Contaminate)
 }
 
 [Serializable]

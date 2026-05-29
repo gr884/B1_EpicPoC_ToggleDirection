@@ -453,6 +453,7 @@ MonoBehaviour:
   _player: {fileID: 1113997785}
   _enemy: {fileID: 743872837}
   _enemyList:
+  - {fileID: 11400000, guid: ffe97d4c08816a147bec545cf3a5e3c3, type: 2}
   - {fileID: 11400000, guid: e97fea7291b1df1489114efc8e808f25, type: 2}
   - {fileID: 11400000, guid: a781314443e24d046bfaf7a0b8a29d45, type: 2}
 --- !u!1 &164179292
@@ -1234,7 +1235,7 @@ MonoBehaviour:
     m_Top: 0
     m_Bottom: 0
   m_ChildAlignment: 3
-  m_Spacing: 8
+  m_Spacing: 15
   m_ChildForceExpandWidth: 0
   m_ChildForceExpandHeight: 0
   m_ChildControlWidth: 0
@@ -2292,6 +2293,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   _view: {fileID: 1334230416}
+  _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
+  _contaminateCardData: {fileID: 11400000, guid: 244fb21ae56f8854f8acfd40b07bc956, type: 2}
+  _curseCardData: {fileID: 11400000, guid: bd1f9590466dc5e4d8c3ac112b7a9bc0, type: 2}
 --- !u!4 &743872838
 Transform:
   m_ObjectHideFlags: 0

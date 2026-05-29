@@ -72,6 +72,25 @@ public class CardManager : SingletonBehaviour<CardManager>
         Debug.Log($"[CardManager] 덱에 카드 추가 — {data.displayName} (총 {_startingDeck.Count}장)");
     }
 
+    /// <summary>현재 드로우 파일의 랜덤 위치에 저주 카드를 삽입합니다.</summary>
+    public void InsertCurseCard(CardData curseCard)
+    {
+        if (curseCard == null) return;
+        int index = UnityEngine.Random.Range(0, _drawPile.Count + 1);
+        _drawPile.Insert(index, curseCard);
+        Debug.Log($"[CardManager] 저주 카드 삽입 — {curseCard.displayName} (드로우 파일 {index}번째)");
+    }
+
+    /// <summary>손패의 저주 카드 데미지 합산을 반환합니다.</summary>
+    public int GetCurseHandDamage()
+    {
+        int total = 0;
+        foreach (CardView card in _hand)
+            if (card != null && card.Data != null && card.Data.isCurseCard)
+                total += card.Data.curseDamage;
+        return total;
+    }
+
     /// <summary>덱에서 카드를 영구 제거합니다. 없으면 false 반환.</summary>
     public bool RemoveCard(CardData data)
     {
@@ -230,6 +249,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (BattleManager.Instance.IsProcessing) return false;
         if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
         if (!_hand.Contains(card)) return false;
+        if (card.Data != null && card.Data.isUnplayable) return false;
         if (!_player.SpendCost(card.Data.cost)) return false;
 
         targetSlot.AssignCard(card);

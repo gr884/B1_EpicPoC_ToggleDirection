@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
+  m_Name: ContaminateCardData
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardId: 
+  displayName: "\uC624\uC5FC"
+  description: "\uD574\uB2F9 \uD134\uC5D0 \uBE44\uD65C\uC131\uD654 \uC2DC\uD0A4\uC9C0
+    \uC54A\uC73C\uBA74 \uB301\uC5D0 \uC800\uC8FC \uCE74\uB4DC\uAC00 2\uC7A5 \uB4E4\uC5B4\uAC11\uB2C8\uB2E4."
+  cost: 0
+  isUnplayable: 0
+  isCurseCard: 0
+  range: 1
+  recallDestination: 0
+  directions: 
+  effects: []
+  icon: {fileID: -4163482380471444658, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

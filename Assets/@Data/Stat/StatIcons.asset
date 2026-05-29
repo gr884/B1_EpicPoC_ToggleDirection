@@ -15,3 +15,4 @@ MonoBehaviour:
   attack: {fileID: -2237518807768803992, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
   defend: {fileID: 7544613302241952520, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
   heal: {fileID: -3950227044187616466, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  contaminate: {fileID: 6142951696119051614, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

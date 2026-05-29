@@ -77,6 +77,11 @@ public class CardData : ScriptableObject
     [Header("Cost")]
     [Min(0)] public int cost = 1;
 
+    [Header("Curse")]
+    public bool isUnplayable = false;  // 사용 불가 카드 (배치 거부)
+    public bool isCurseCard = false;   // 손패에 있을 때 턴 종료 시 데미지
+    public int curseDamage = 3;        // 손패에 있을 때 입히는 데미지 (isCurseCard = true일 때만 사용)
+
     [Header("Range")]
     [Min(1)] public int range = 1;
 

@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
     [SerializeField] private BattleActorView _view;
+    [SerializeField] private GameObject _cardPrefab;
+    [SerializeField] private CardData _contaminateCardData;
+    [SerializeField] private CardData _curseCardData;
 
     private EnemyDataSO _data;
     private int _intentIndex;
@@ -11,6 +15,7 @@ public class Enemy : MonoBehaviour
     public bool IsDead => _view != null && _view.IsDead;
     public int CurrentDefense { get; private set; }
     public EnemyIntentTurn CurrentIntentTurn { get; private set; }
+    public CardData CurseCardData => _curseCardData;
 
     public event Action OnDied;
     public event Action<EnemyIntentTurn> OnIntentChanged;
@@ -62,16 +67,54 @@ public class Enemy : MonoBehaviour
     {
         if (CurrentIntentTurn == null) return;
 
-        // 적 턴 시작 시 이전 Defense 리셋 후 새로 쌓음
         CurrentDefense = 0;
         foreach (EnemyIntentData intent in CurrentIntentTurn.intents)
         {
-            if (intent.type == EnemyIntentType.Defend)
-                CurrentDefense += intent.value;
+            switch (intent.type)
+            {
+                case EnemyIntentType.Defend:
+                    CurrentDefense += intent.value;
+                    break;
+                case EnemyIntentType.Contaminate:
+                    ExecuteContaminate(intent.spawnCount, intent.cursePerCard);
+                    break;
+            }
         }
 
         _view.SetDefense(CurrentDefense);
         Debug.Log($"[Enemy] Intent 실행 완료 — Defense {CurrentDefense}");
+    }
+
+    private void ExecuteContaminate(int count, int cursePerCard)
+    {
+        if (_contaminateCardData == null || _cardPrefab == null) return;
+
+        var emptySlots = GridManager.Instance.GetEmptySlots();
+        Shuffle(emptySlots);
+        int placed = 0;
+
+        foreach (GridSlot slot in emptySlots)
+        {
+            if (placed >= count) break;
+            CardView card = GridManager.Instance.PlaceEnemyCard(
+                _contaminateCardData, _cardPrefab, slot.Position, startsActivated: true);
+            if (card != null)
+            {
+                card.SetContaminateCurseCount(cursePerCard);
+                placed++;
+            }
+        }
+
+        Debug.Log($"[Enemy] 오염 카드 {placed}개 배치");
+    }
+
+    private static void Shuffle<T>(List<T> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = UnityEngine.Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
     }
 
     public void AdvanceIntent()

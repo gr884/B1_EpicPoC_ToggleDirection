@@ -36,6 +36,12 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public bool IsEnemy { get; private set; }
     public GridSlot CurrentSlot { get; private set; }
     public int PreserveStack { get; private set; }
+    public int ContaminateCurseCount { get; private set; }
+
+    public void SetContaminateCurseCount(int count)
+    {
+        ContaminateCurseCount = count;
+    }
 
     public void AddPreserve(int amount)
     {
@@ -79,6 +85,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         IsEnemy = isEnemy;
         CurrentSlot = null;
         PreserveStack = 0;
+        ContaminateCurseCount = 0;
         RefreshPreserveUI();
 
         if (_selectionOverlay != null)

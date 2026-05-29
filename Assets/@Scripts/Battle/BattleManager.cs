@@ -98,9 +98,61 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
+        // 오염 카드 처리 — 아직 ON 상태인 오염 카드당 저주 카드 삽입
+        ProcessContaminateCards();
+
+        // 손패 저주 카드 데미지
+        int curseDamage = CardManager.Instance.GetCurseHandDamage();
+        if (curseDamage > 0)
+        {
+            _player.TakeAttack(curseDamage);
+            Debug.Log($"[BattleManager] 손패 저주 카드 데미지 {curseDamage}");
+            yield return new WaitForSeconds(0.3f);
+        }
+
+        if (!_isBattleActive) { IsProcessing = false; yield break; }
+
         IsProcessing = false;
         EnterPhase(BattlePhase.EnemyTurn);
         StartCoroutine(EnemyTurnRoutine());
+    }
+
+    private void ProcessContaminateCards()
+    {
+        List<GridSlot> contaminateSlots = new();
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            if (slot.IsEmpty) continue;
+            CardView card = slot.OccupiedCard;
+            if (!card.IsEnemy || card.ContaminateCurseCount <= 0) continue;
+            contaminateSlots.Add(slot);
+        }
+
+        foreach (GridSlot slot in contaminateSlots)
+        {
+            CardView card = slot.OccupiedCard;
+
+            // 아직 ON 상태면 저주 카드 삽입
+            if (card.IsActivated)
+            {
+                CardData curseCard = _enemy.CurseCardData;
+                if (curseCard != null)
+                {
+                    for (int i = 0; i < card.ContaminateCurseCount; i++)
+                        CardManager.Instance.InsertCurseCard(curseCard);
+                    Debug.Log($"[BattleManager] 오염 카드 미제거 — 저주 카드 {card.ContaminateCurseCount}장 삽입");
+                }
+            }
+            else
+            {
+                Debug.Log("[BattleManager] 오염 카드 제거 성공 — 저주 없음");
+            }
+
+            // ON/OFF 상관없이 오염 카드 그리드에서 제거
+            slot.ClearCard();
+            PoolManager.Instance.Return(card.gameObject);
+        }
     }
 
     private IEnumerator EnemyTurnRoutine()
@@ -111,7 +163,14 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        // 현재 Intent 실행: Defend → Defense 쌓음, Attack → hits만큼 반복 피격
+        // 플레이어 카드 먼저 정리
+        CardManager.Instance.DiscardGrid();
+
+        yield return new WaitForSeconds(0.3f);
+
+        if (!_isBattleActive) { IsProcessing = false; yield break; }
+
+        // 현재 Intent 실행: Defend → Defense 쌓음, Attack → hits만큼 반복 피격, Contaminate → 오염 카드 배치
         _enemy.ExecuteIntents();
         if (_enemy.CurrentIntentTurn != null)
         {
@@ -137,7 +196,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         // 다음 플레이어 턴에 보여줄 Intent로 갱신 (실행 아님)
         _enemy.AdvanceIntent();
 
-        CardManager.Instance.DiscardGrid();
         IsProcessing = false;
         EnterPhase(BattlePhase.PlayerTurn);
         CardManager.Instance.DiscardAndDraw();
