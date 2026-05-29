@@ -10,6 +10,10 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private Image _backgroundImage;
     [SerializeField] private Image _iconImage;
     [SerializeField] private TMP_Text _titleText;
+    [SerializeField] private TMP_Text _costText;
+    [SerializeField] private GameObject _preserveRoot;
+    [SerializeField] private TMP_Text _preserveText;
+    [SerializeField] private GameObject _selectionOverlay;
 
     [Header("Direction Icons")]
     [SerializeField] private Image _upLeft;
@@ -31,6 +35,30 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public bool IsActivated { get; private set; }
     public bool IsEnemy { get; private set; }
     public GridSlot CurrentSlot { get; private set; }
+    public int PreserveStack { get; private set; }
+
+    public void AddPreserve(int amount)
+    {
+        PreserveStack += Mathf.Max(0, amount);
+        RefreshPreserveUI();
+    }
+
+    /// <summary>보존 스택 1 차감. 스택이 있으면 true(유지), 없으면 false(버려야 함) 반환.</summary>
+    public bool ConsumePreserve()
+    {
+        if (PreserveStack <= 0) return false;
+        PreserveStack--;
+        RefreshPreserveUI();
+        return true;
+    }
+
+    private void RefreshPreserveUI()
+    {
+        if (_preserveRoot != null)
+            _preserveRoot.SetActive(PreserveStack > 0);
+        if (_preserveText != null)
+            _preserveText.text = PreserveStack.ToString();
+    }
 
     private RectTransform _rectTransform;
     private CanvasGroup _canvasGroup;
@@ -50,6 +78,11 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         IsActivated = startsActivated;
         IsEnemy = isEnemy;
         CurrentSlot = null;
+        PreserveStack = 0;
+        RefreshPreserveUI();
+
+        if (_selectionOverlay != null)
+            _selectionOverlay.SetActive(false);
 
         if (_iconImage != null)
         {
@@ -59,6 +92,12 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         if (_titleText != null)
             _titleText.text = data != null ? data.displayName : "";
+
+        if (_costText != null)
+        {
+            _costText.gameObject.SetActive(!isEnemy);
+            _costText.text = data != null ? data.cost.ToString() : "";
+        }
 
         RefreshDirectionIcons();
         RefreshVisual();
@@ -79,6 +118,12 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         CardDragHandler drag = GetComponent<CardDragHandler>();
         if (drag != null) drag.enabled = draggable;
+    }
+
+    public void SetSelected(bool selected)
+    {
+        if (_selectionOverlay != null)
+            _selectionOverlay.SetActive(selected);
     }
 
     public void SetAffordable(bool affordable)

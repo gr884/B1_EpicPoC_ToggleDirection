@@ -58,13 +58,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
-                    ApplyEffect(effect.effectType, effect.value);
+                    ApplyEffect(effect.effectType, effect.value, card);
                 continue;
             }
 
             if (effect.scope == CountScope.None)
             {
-                ApplyEffect(effect.effectType, effect.value);
+                ApplyEffect(effect.effectType, effect.value, card);
                 continue;
             }
 
@@ -79,10 +79,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         foreach (var kv in atLeastBest)
-            ApplyEffect(kv.Key, kv.Value.value);
+            ApplyEffect(kv.Key, kv.Value.value, card);
     }
 
-    private void ApplyEffect(EffectType type, float value)
+    private void ApplyEffect(EffectType type, float value, CardView card = null)
     {
         switch (type)
         {
@@ -106,6 +106,22 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 int gainAmount = Mathf.Max(1, Mathf.RoundToInt(value));
                 BattleManager.Instance.Player.GainCost(gainAmount);
                 break;
+            case EffectType.Preserve:
+                int preserveAmount = Mathf.Max(1, Mathf.RoundToInt(value));
+                ApplyPreserveToNeighbors(card, preserveAmount);
+                break;
+        }
+    }
+
+    private void ApplyPreserveToNeighbors(CardView card, int amount)
+    {
+        if (card?.Data == null || card.CurrentSlot == null) return;
+
+        foreach (CardDirection dir in card.Data.GetAllDirections())
+        {
+            GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
+            if (neighbor != null && neighbor.OccupiedCard != null && !neighbor.OccupiedCard.IsEnemy)
+                neighbor.OccupiedCard.AddPreserve(amount);
         }
     }
 

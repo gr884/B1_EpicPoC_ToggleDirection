@@ -207,6 +207,13 @@ public class CardManager : SingletonBehaviour<CardManager>
             CardView card = slot.OccupiedCard;
             if (card.IsEnemy) continue;
 
+            // 보존 스택이 있으면 1 차감 후 유지
+            if (card.ConsumePreserve())
+            {
+                Debug.Log($"[CardManager] 보존 — {card.Data.displayName} 그리드 유지 (남은 스택: {card.PreserveStack})");
+                continue;
+            }
+
             _discardPile.Add(card.Data);
             slot.ClearCard();
             PoolManager.Instance.Return(card.gameObject);

@@ -13,6 +13,8 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
         switch (state)
         {
             case GameManager.GameState.Playing:
+                CardManager.Instance.DiscardHand();
+                CardManager.Instance.DiscardGrid();
                 GridManager.Instance.BuildGrid();
                 CardManager.Instance.StartBattleDraw();
                 BattleManager.Instance.StartBattle();
@@ -28,18 +30,8 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
         }
     }
 
-    public void OnExpandChosen()
-    {
-        GridManager.Instance.TryExpand();
-        StartNextBattle();
-    }
-
-    public void OnKeepChosen()
-    {
-        StartNextBattle();
-    }
-
-    private void StartNextBattle()
+    // UI_RewardPopup이 OnBattleEnded 구독 후 선택 완료 시 호출
+    public void OnRewardClosed()
     {
         CardManager.Instance.DiscardHand();
         CardManager.Instance.DiscardGrid();
