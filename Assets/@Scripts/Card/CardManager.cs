@@ -33,6 +33,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     public void Init()
     {
         ChainExecutor.Instance.OnChainFinished += OnChainFinished;
+        _player.OnCostChanged += RefreshHandAffordability;
         Debug.Log("[CardManager] Init");
     }
 
@@ -40,6 +41,14 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         foreach (CardView card in _hand)
             if (card != null) card.SetDraggable(true);
+        RefreshHandAffordability();
+    }
+
+    public void RefreshHandAffordability()
+    {
+        foreach (CardView card in _hand)
+            if (card != null)
+                card.SetAffordable(_player.CanSpend(card.Data.cost));
     }
 
     // ── 덱 관리 ────────────────────────────────────────────
@@ -53,6 +62,24 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (_shuffleOnReset)
             Shuffle(_drawPile);
         Debug.Log($"[CardManager] 덱 리셋 — {_drawPile.Count}장");
+    }
+
+    /// <summary>덱에 카드를 영구 추가합니다.</summary>
+    public void AddCard(CardData data)
+    {
+        if (data == null) return;
+        _startingDeck.Add(data);
+        Debug.Log($"[CardManager] 덱에 카드 추가 — {data.displayName} (총 {_startingDeck.Count}장)");
+    }
+
+    /// <summary>덱에서 카드를 영구 제거합니다. 없으면 false 반환.</summary>
+    public bool RemoveCard(CardData data)
+    {
+        if (data == null) return false;
+        bool removed = _startingDeck.Remove(data);
+        if (removed)
+            Debug.Log($"[CardManager] 덱에서 카드 제거 — {data.displayName} (총 {_startingDeck.Count}장)");
+        return removed;
     }
 
     private List<CardData> DrawCards(int count)
@@ -96,9 +123,22 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void DrawToHand(int count)
     {
-        List<CardData> drawn = DrawCards(count);
+        int available = _player.MaxHandSize - _hand.Count;
+        int drawCount = Mathf.Min(count, available);
+        int overflow = count - drawCount;
+
+        List<CardData> drawn = DrawCards(drawCount);
         foreach (CardData data in drawn)
             SpawnToHand(data);
+
+        // 손패 상한 초과분은 무덤으로
+        if (overflow > 0)
+        {
+            List<CardData> discarded = DrawCards(overflow);
+            foreach (CardData data in discarded)
+                _discardPile.Add(data);
+            Debug.Log($"[CardManager] 손패 상한 초과 — {overflow}장 무덤으로");
+        }
 
         OnHandChanged?.Invoke();
     }
@@ -183,6 +223,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (BattleManager.Instance.IsProcessing) return false;
         if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
         if (!_hand.Contains(card)) return false;
+        if (!_player.SpendCost(card.Data.cost)) return false;
 
         targetSlot.AssignCard(card);
         card.SetDraggable(false);
@@ -190,6 +231,28 @@ public class CardManager : SingletonBehaviour<CardManager>
         OnHandChanged?.Invoke();
 
         ChainExecutor.Instance.ExecuteFrom(card);
+        return true;
+    }
+
+    // ── 유저 회수 액션 ─────────────────────────────────────
+
+    public bool TryRecallCard(CardView card)
+    {
+        if (card == null || card.IsEnemy) return false;
+        if (card.CurrentSlot == null) return false;
+        if (BattleManager.Instance.IsProcessing) return false;
+        if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
+        if (!_player.SpendCost(1)) return false;
+
+        GridSlot slot = card.CurrentSlot;
+        slot.ClearCard();
+
+        CardData recallData = card.Data;
+        PoolManager.Instance.Return(card.gameObject);
+        SpawnToHand(recallData);
+        OnHandChanged?.Invoke();
+
+        Debug.Log($"[CardManager] 유저 회수 — {recallData.displayName} → 손패");
         return true;
     }
 
@@ -201,6 +264,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         CardView card = obj.GetComponent<CardView>();
         card.Initialize(data);
         card.SetDraggable(true);
+        card.SetAffordable(_player.CanSpend(data.cost));
 
         RectTransform rect = obj.GetComponent<RectTransform>();
         if (rect != null)
@@ -226,6 +290,8 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         if (ChainExecutor.Instance != null)
             ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
+        if (_player != null)
+            _player.OnCostChanged -= RefreshHandAffordability;
         OnHandChanged = null;
         base.Dispose();
     }

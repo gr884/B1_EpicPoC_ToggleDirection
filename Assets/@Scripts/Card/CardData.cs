@@ -24,6 +24,7 @@ public enum EffectType
 
     // 행동 효과 (즉시 실행)
     Draw,     // value = 드로우 장 수
+    GainCost, // value = 획득 cost 수
 }
 
 public enum CountScope
@@ -71,6 +72,9 @@ public class CardData : ScriptableObject
     public string displayName;
     [TextArea(2, 5)]
     public string description;
+
+    [Header("Cost")]
+    [Min(0)] public int cost = 1;
 
     [Header("Recall")]
     public RecallDestination recallDestination = RecallDestination.Hand;

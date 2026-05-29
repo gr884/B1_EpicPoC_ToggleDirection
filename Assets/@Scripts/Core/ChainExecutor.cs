@@ -108,6 +108,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 int drawCount = Mathf.Max(1, Mathf.RoundToInt(value));
                 CardManager.Instance.DrawToHand(drawCount);
                 break;
+            case EffectType.GainCost:
+                int gainAmount = Mathf.Max(1, Mathf.RoundToInt(value));
+                BattleManager.Instance.Player.GainCost(gainAmount);
+                break;
         }
     }
 

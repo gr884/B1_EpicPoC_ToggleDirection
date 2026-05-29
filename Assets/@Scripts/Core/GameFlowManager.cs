@@ -5,7 +5,6 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
     public void Init()
     {
         GameManager.Instance.OnStateChanged += OnGameStateChanged;
-        BattleManager.Instance.OnBattleEnded += OnBattleEnded;
         Debug.Log("[GameFlowManager] Init");
     }
 
@@ -29,8 +28,21 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
         }
     }
 
-    private void OnBattleEnded()
+    public void OnExpandChosen()
     {
+        GridManager.Instance.TryExpand();
+        StartNextBattle();
+    }
+
+    public void OnKeepChosen()
+    {
+        StartNextBattle();
+    }
+
+    private void StartNextBattle()
+    {
+        CardManager.Instance.DiscardHand();
+        CardManager.Instance.DiscardGrid();
         GridManager.Instance.BuildGrid();
         CardManager.Instance.StartBattleDraw();
         BattleManager.Instance.NextBattle();
@@ -40,8 +52,6 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
     {
         if (GameManager.Instance != null)
             GameManager.Instance.OnStateChanged -= OnGameStateChanged;
-        if (BattleManager.Instance != null)
-            BattleManager.Instance.OnBattleEnded -= OnBattleEnded;
         base.Dispose();
     }
 }

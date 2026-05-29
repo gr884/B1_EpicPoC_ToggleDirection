@@ -9,11 +9,16 @@ public class GridManager : SingletonBehaviour<GridManager>
     [SerializeField] private GridSlot _slotPrefab;
 
     [Header("Grid Settings")]
-    [SerializeField] private int _rows = 5;
-    [SerializeField] private int _columns = 5;
+    [SerializeField] private int _rows = 3;
+    [SerializeField] private int _columns = 3;
+    [SerializeField] private int _maxRows = 5;
+    [SerializeField] private int _maxColumns = 5;
 
     public int Rows => _rows;
     public int Columns => _columns;
+    public int MaxRows => _maxRows;
+    public int MaxColumns => _maxColumns;
+    public bool CanExpand => _rows < _maxRows || _columns < _maxColumns;
 
     private readonly Dictionary<Vector2Int, GridSlot> _slots = new();
     public IReadOnlyDictionary<Vector2Int, GridSlot> Slots => _slots;
@@ -22,6 +27,18 @@ public class GridManager : SingletonBehaviour<GridManager>
     {
         BuildGrid();
         Debug.Log("[GridManager] Init");
+    }
+
+    /// <summary>
+    /// 그리드를 한 단계 확장 (NxN → (N+1)x(N+1)). 최대 크기 초과 시 false 반환.
+    /// </summary>
+    public bool TryExpand()
+    {
+        if (!CanExpand) return false;
+        _rows = Mathf.Min(_rows + 1, _maxRows);
+        _columns = Mathf.Min(_columns + 1, _maxColumns);
+        Debug.Log($"[GridManager] 그리드 확장 → {_rows}x{_columns}");
+        return true;
     }
 
     public void BuildGrid()

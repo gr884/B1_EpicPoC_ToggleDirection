@@ -18,6 +18,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     public BattlePhase CurrentPhase { get; private set; }
     public bool IsProcessing { get; private set; }
+    public Player Player => _player;
 
     public event Action<BattlePhase> OnPhaseChanged;
     public event Action OnBattleEnded;
@@ -140,19 +141,22 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     // ── 전투 종료 ──────────────────────────────────────────
 
-    private void HandlePlayerDied() => EndBattle(false);
-    private void HandleEnemyDied() => EndBattle(true);
+    private void HandlePlayerDied() => StartCoroutine(EndBattleRoutine(false));
+    private void HandleEnemyDied() => StartCoroutine(EndBattleRoutine(true));
 
-    private void EndBattle(bool victory)
+    private IEnumerator EndBattleRoutine(bool victory)
     {
         _isBattleActive = false;
         IsProcessing = false;
         Debug.Log($"[BattleManager] 전투 종료 — {(victory ? "승리" : "패배")}");
 
+        // 진행 중인 코루틴이 정리될 시간 확보
+        yield return new WaitForSeconds(1f);
+
         if (!victory)
         {
             GameManager.Instance.GameOver();
-            return;
+            yield break;
         }
 
         _currentEnemyIndex++;
@@ -160,7 +164,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         if (_currentEnemyIndex >= _enemyList.Count)
         {
             GameManager.Instance.GameClear();
-            return;
+            yield break;
         }
 
         OnBattleEnded?.Invoke();
@@ -173,7 +177,10 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         CurrentPhase = phase;
 
         if (phase == BattlePhase.PlayerTurn)
+        {
             ChainExecutor.Instance.ResetAccumulatedResult();
+            _player.RestoreCost();
+        }
 
         OnPhaseChanged?.Invoke(phase);
         Debug.Log($"[BattleManager] Phase → {phase}");

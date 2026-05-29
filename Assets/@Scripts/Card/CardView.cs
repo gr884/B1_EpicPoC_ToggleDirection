@@ -4,7 +4,7 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 
-public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
+public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
     [Header("Refs")]
     [SerializeField] private Image _backgroundImage;
@@ -33,10 +33,15 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public GridSlot CurrentSlot { get; private set; }
 
     private RectTransform _rectTransform;
+    private CanvasGroup _canvasGroup;
+
+    [Header("Cost Feedback")]
+    [SerializeField] private float _unaffordableAlpha = 0.4f;
 
     private void Awake()
     {
         _rectTransform = GetComponent<RectTransform>();
+        _canvasGroup = GetComponent<CanvasGroup>();
     }
 
     public void Initialize(CardData data, bool isEnemy = false, bool startsActivated = false)
@@ -76,6 +81,14 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (drag != null) drag.enabled = draggable;
     }
 
+    public void SetAffordable(bool affordable)
+    {
+        if (_canvasGroup == null) return;
+        // 드래그 중 alpha는 CardDragHandler가 관리하므로, 손패에 있을 때만 적용
+        if (CurrentSlot == null)
+            _canvasGroup.alpha = affordable ? 1f : _unaffordableAlpha;
+    }
+
     // ── UI 이벤트 ──────────────────────────────────────────
 
     public void OnPointerEnter(PointerEventData eventData)
@@ -87,6 +100,13 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public void OnPointerExit(PointerEventData eventData)
     {
         UI_Tooltip.Instance.Hide();
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.button != PointerEventData.InputButton.Right) return;
+        if (CurrentSlot == null || IsEnemy) return;
+        CardManager.Instance.TryRecallCard(this);
     }
 
     // ── 피드백 ─────────────────────────────────────────────
