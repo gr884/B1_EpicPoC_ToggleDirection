@@ -77,6 +77,9 @@ public class CardData : ScriptableObject
     [Header("Cost")]
     [Min(0)] public int cost = 1;
 
+    [Header("Range")]
+    [Min(1)] public int range = 1;
+
     [Header("Recall")]
     public RecallDestination recallDestination = RecallDestination.Hand;
 

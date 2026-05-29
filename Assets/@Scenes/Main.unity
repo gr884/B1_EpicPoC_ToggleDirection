@@ -6731,7 +6731,7 @@ CanvasGroup:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1878055099}
   m_Enabled: 1
-  m_Alpha: 1
+  m_Alpha: 0
   m_Interactable: 1
   m_BlocksRaycasts: 1
   m_IgnoreParentGroups: 0
@@ -7317,6 +7317,14 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 081eee1644bc1e14d9e8193680d7eea6, type: 2}
   - {fileID: 11400000, guid: fa50791456888c040ac1fa0bed834d63, type: 2}
   - {fileID: 11400000, guid: 43f6030869e03114d8fc3d2154b21241, type: 2}
+  - {fileID: 11400000, guid: 32440bd218c724d4c8d04720f8e15521, type: 2}
+  - {fileID: 11400000, guid: 987430afc4f7cfb4fa72ac043a52c20d, type: 2}
+  - {fileID: 11400000, guid: 6e628087db2bf7b49ad2e79c8a1f67e0, type: 2}
+  - {fileID: 11400000, guid: 49e83773fdf55d84ca3645fb33ba4659, type: 2}
+  - {fileID: 11400000, guid: 114fe5b860d30df499f84d12a12d6425, type: 2}
+  - {fileID: 11400000, guid: f9685883d62ae794db5420cd23a1f418, type: 2}
+  - {fileID: 11400000, guid: 59bb57d16bc9ecb4b9d0b546e9c674b0, type: 2}
+  - {fileID: 11400000, guid: 5f4193194257e1341beb28e14c7e250f, type: 2}
   _shuffleOnReset: 1
 --- !u!1 &2058230710
 GameObject:

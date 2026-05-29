@@ -13,6 +13,7 @@ public class EnemyIntentData
 {
     public EnemyIntentType type;
     public int value;
+    [Min(1)] public int hits = 1; // 공격 횟수 (Attack 타입에서만 사용)
 }
 
 [Serializable]

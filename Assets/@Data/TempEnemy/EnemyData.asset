@@ -20,11 +20,15 @@ MonoBehaviour:
   - intents:
     - type: 0
       value: 20
+      hits: 1
     - type: 1
       value: 10
+      hits: 1
   - intents:
     - type: 0
-      value: 30
+      value: 4
+      hits: 5
   - intents:
     - type: 1
       value: 20
+      hits: 1

@@ -10,25 +10,19 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: Shield_LeftRightItem
+  m_Name: RangeAttack_LeftItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uBC29\uD3282"
-  description: "\uBC29\uD328 + 5\n\uAC19\uC740 \uD589 \uC804\uBD80 \uD65C\uC131\uD654
-    \uC2DC,\n\uCD94\uAC00 \uBC29\uD328 + 5"
-  cost: 1
-  range: 1
+  displayName: "\uBC94\uC704 \uACF5\uACA9"
+  description: "\uACF5\uACA9 + 5 (\uD654\uC0B4\uD45C \uBC29\uD5A5 2\uCE78)"
+  cost: 2
+  range: 2
   recallDestination: 0
-  directions: 0700000003000000
+  directions: 07000000
   effects:
   - scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 1
+    effectType: 0
     value: 5
-  - scope: 1
-    thresholdType: 1
-    threshold: 0
-    effectType: 1
-    value: 5
-  icon: {fileID: 7091169244081146720, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  icon: {fileID: -6143432583541295690, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

@@ -98,8 +98,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        _player.ResetDefense();
-
         IsProcessing = false;
         EnterPhase(BattlePhase.EnemyTurn);
         StartCoroutine(EnemyTurnRoutine());
@@ -113,11 +111,24 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        // 현재 Intent 실행: Defend → Defense 쌓음, Attack → 플레이어 피격
+        // 현재 Intent 실행: Defend → Defense 쌓음, Attack → hits만큼 반복 피격
         _enemy.ExecuteIntents();
-        int enemyAttack = _enemy.GetIntentValue(EnemyIntentType.Attack);
-        if (enemyAttack > 0)
-            _player.TakeAttack(enemyAttack);
+        if (_enemy.CurrentIntentTurn != null)
+        {
+            foreach (EnemyIntentData intent in _enemy.CurrentIntentTurn.intents)
+            {
+                if (intent.type != EnemyIntentType.Attack || intent.value <= 0) continue;
+                for (int i = 0; i < intent.hits; i++)
+                {
+                    _player.TakeAttack(intent.value);
+                    if (intent.hits > 1)
+                        yield return new WaitForSeconds(0.2f);
+                }
+            }
+        }
+
+        // 적 공격 이후 플레이어 Defense 리셋
+        _player.ResetDefense();
 
         yield return new WaitForSeconds(0.5f);
 

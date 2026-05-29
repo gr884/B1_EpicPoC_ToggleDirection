@@ -38,7 +38,12 @@ public class UI_EnemyActionView : MonoBehaviour
                 EnemyIntentType.Defend => _icons.defend,
                 _ => null
             };
-            AddEntry(icon, intent.value > 0 ? intent.value.ToString() : "");
+
+            string valueText = intent.type == EnemyIntentType.Attack && intent.hits > 1
+                ? $"{intent.value}x{intent.hits}"
+                : intent.value > 0 ? intent.value.ToString() : "";
+
+            AddEntry(icon, valueText);
         }
     }
 

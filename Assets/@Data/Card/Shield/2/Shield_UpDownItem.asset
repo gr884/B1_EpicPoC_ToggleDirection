@@ -16,6 +16,8 @@ MonoBehaviour:
   displayName: "\uBC29\uD3282"
   description: "\uBC29\uD328 + 5\n\uAC19\uC740 \uC5F4 \uBAA8\uB450 \uD65C\uC131\uD654\uC2DC,\n\uCD94\uAC00
     \uBC29\uD328 + 5"
+  cost: 1
+  range: 1
   recallDestination: 0
   directions: 0100000005000000
   effects:
@@ -29,4 +31,4 @@ MonoBehaviour:
     threshold: 0
     effectType: 1
     value: 5
-  icon: {fileID: 8767643907384140963, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  icon: {fileID: 7091169244081146720, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

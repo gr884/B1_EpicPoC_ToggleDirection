@@ -247,9 +247,17 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                 foreach (CardDirection dir in emitter.Data.GetAllDirections())
                 {
-                    GridSlot neighbor = GridManager.Instance.GetNeighbor(emitter.CurrentSlot, dir);
-                    if (neighbor != null && neighbor.OccupiedCard != null)
-                        nextWaveSet.Add(neighbor.OccupiedCard);
+                    GridSlot current = emitter.CurrentSlot;
+                    for (int i = 0; i < emitter.Data.range; i++)
+                    {
+                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                        if (neighbor == null) break;
+
+                        if (neighbor.OccupiedCard != null)
+                            nextWaveSet.Add(neighbor.OccupiedCard);
+
+                        current = neighbor;
+                    }
                 }
             }
 
