@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Shield_LeftRightItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uBC29\uD328"
+  displayName: "\uBC29\uD3282"
   description: "\uBC29\uD328 + 5\n\uAC19\uC740 \uD589 \uC804\uBD80 \uD65C\uC131\uD654
     \uC2DC,\n\uCD94\uAC00 \uBC29\uD328 + 5"
   recallDestination: 0
@@ -29,4 +29,4 @@ MonoBehaviour:
     threshold: 0
     effectType: 1
     value: 5
-  icon: {fileID: 7544613302241952520, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  icon: {fileID: 8767643907384140963, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

@@ -10,23 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: Shield_UpDownItem
+  m_Name: Draw_UpItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uBC29\uD3282"
-  description: "\uBC29\uD328 + 5\n\uAC19\uC740 \uC5F4 \uBAA8\uB450 \uD65C\uC131\uD654\uC2DC,\n\uCD94\uAC00
-    \uBC29\uD328 + 5"
+  displayName: "\uB4DC\uB85C\uC6B0"
+  description: "\uB4DC\uB85C\uC6B0 + 1"
   recallDestination: 0
-  directions: 0100000005000000
+  directions: 01000000
   effects:
   - scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 1
-    value: 5
-  - scope: 2
-    thresholdType: 1
-    threshold: 0
-    effectType: 1
-    value: 5
-  icon: {fileID: 8767643907384140963, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+    effectType: 3
+    value: 1
+  icon: {fileID: -5682562707457375525, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

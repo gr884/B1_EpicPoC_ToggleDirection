@@ -1629,8 +1629,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
   _gridRoot: {fileID: 1858280900}
   _slotPrefab: {fileID: 6841558488037871595, guid: 25d0d4d51bd985343a2adb238c9c7db9, type: 3}
-  _rows: 3
-  _columns: 3
+  _rows: 4
+  _columns: 4
 --- !u!1 &673428013
 GameObject:
   m_ObjectHideFlags: 0
@@ -5647,6 +5647,16 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
   - {fileID: 11400000, guid: b513eb9bde4265e4e9ff502698b04fe2, type: 2}
   - {fileID: 11400000, guid: 2280057d4977a7544a7d550b50822333, type: 2}
+  - {fileID: 11400000, guid: 47ab99d4a988b3249bb70247b5bae0e9, type: 2}
+  - {fileID: 11400000, guid: f42fba7989e55c443996df68129a82c0, type: 2}
+  - {fileID: 11400000, guid: 9b1997debaf27eb4e9caa002d837530a, type: 2}
+  - {fileID: 11400000, guid: c0ec33cd2346e5e4c9c00b9572c3b3c3, type: 2}
+  - {fileID: 11400000, guid: 8f4c8eedb242c7c46ac0d10a6ba031e8, type: 2}
+  - {fileID: 11400000, guid: 340007b6be7e2434fa12cfdc3074df15, type: 2}
+  - {fileID: 11400000, guid: cfdbd9a816d993e459274cbfe887cbd3, type: 2}
+  - {fileID: 11400000, guid: ea7e1a85e4151ed468d08ea2a609006f, type: 2}
+  - {fileID: 11400000, guid: 1a8a1723fda46c1498ab247f1f877a8d, type: 2}
+  - {fileID: 11400000, guid: daf72772009d0dc4e81618a8acdf1844, type: 2}
   _shuffleOnReset: 1
 --- !u!1 &2058230710
 GameObject:

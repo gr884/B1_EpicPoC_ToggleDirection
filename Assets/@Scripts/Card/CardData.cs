@@ -17,9 +17,13 @@ public enum CardDirection
 
 public enum EffectType
 {
+    // 수치 효과 (누적)
     Damage,
     Defense,
     Heal,
+
+    // 행동 효과 (즉시 실행)
+    Draw,     // value = 드로우 장 수
 }
 
 public enum CountScope

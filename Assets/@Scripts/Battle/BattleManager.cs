@@ -23,6 +23,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     public event Action OnBattleEnded;
 
     private ChainResult _lastChainResult;
+    private bool _isBattleActive;
 
     private void OnChainFinished(ChainResult result) => _lastChainResult = result;
 
@@ -65,6 +66,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _player.OnDied += HandlePlayerDied;
         _enemy.OnDied += HandleEnemyDied;
 
+        _isBattleActive = true;
         _enemy.Setup(enemyData);
 
         EnterPhase(BattlePhase.PlayerTurn);
@@ -94,13 +96,18 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         // 플레이어 공격 - 적 방어
         _enemy.TakeAttack(playerDamage);
+
+        if (!_isBattleActive) { IsProcessing = false; yield break; }
+
         yield return new WaitForSeconds(0.5f);
 
-        if (_enemy.IsDead) { IsProcessing = false; yield break; }
+        if (!_isBattleActive) { IsProcessing = false; yield break; }
 
         // 힐
         if (playerHeal > 0)
             _player.Heal(playerHeal);
+
+        if (!_isBattleActive) { IsProcessing = false; yield break; }
 
         // 적 공격 - 플레이어 방어
         int enemyAttack = _enemy.GetIntentValue(EnemyIntentType.Attack);
@@ -108,7 +115,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _player.TakeAttack(remaining);
         yield return new WaitForSeconds(0.5f);
 
-        if (_player.IsDead) { IsProcessing = false; yield break; }
+        if (!_isBattleActive) { IsProcessing = false; yield break; }
 
         // Intent 갱신
         _enemy.AdvanceIntent();
@@ -138,6 +145,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     private void EndBattle(bool victory)
     {
+        _isBattleActive = false;
+        IsProcessing = false;
         Debug.Log($"[BattleManager] 전투 종료 — {(victory ? "승리" : "패배")}");
 
         if (!victory)

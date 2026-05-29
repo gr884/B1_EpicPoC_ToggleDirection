@@ -104,6 +104,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             case EffectType.Damage: _accumulatedResult.damage += value; break;
             case EffectType.Defense: _accumulatedResult.defense += value; break;
             case EffectType.Heal: _accumulatedResult.heal += value; break;
+            case EffectType.Draw:
+                int drawCount = Mathf.Max(1, Mathf.RoundToInt(value));
+                CardManager.Instance.DrawToHand(drawCount);
+                break;
         }
     }
 
