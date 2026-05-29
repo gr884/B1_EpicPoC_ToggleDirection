@@ -8,6 +8,8 @@ public class BattleActorView : MonoBehaviour
     [Header("Refs")]
     [SerializeField] private TMP_Text _hpText;
     [SerializeField] private Slider _hpSlider;
+    [SerializeField] private GameObject _defenseRoot;
+    [SerializeField] private TMP_Text _defenseText;
 
     [Header("Feedback")]
     [SerializeField] private float _hitMoveAmount = 12f;
@@ -38,6 +40,7 @@ public class BattleActorView : MonoBehaviour
         _label = label;
         _maxHp = Mathf.Max(1, maxHp);
         _currentHp = _maxHp;
+        SetDefense(0);
         Refresh();
     }
 
@@ -46,6 +49,7 @@ public class BattleActorView : MonoBehaviour
         _label = label;
         _maxHp = Mathf.Max(1, maxHp);
         _currentHp = Mathf.Clamp(currentHp, 0, _maxHp);
+        SetDefense(0);
         Refresh();
     }
 
@@ -71,6 +75,14 @@ public class BattleActorView : MonoBehaviour
     {
         _currentHp = Mathf.Min(_maxHp, _currentHp + Mathf.Max(0, amount));
         Refresh();
+    }
+
+    public void SetDefense(int defense)
+    {
+        if (_defenseRoot != null)
+            _defenseRoot.SetActive(defense > 0);
+        if (_defenseText != null)
+            _defenseText.text = defense.ToString();
     }
 
     // ── 내부 ───────────────────────────────────────────────

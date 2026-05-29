@@ -10,24 +10,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     [SerializeField] private float _cardFeedbackDuration = 0.22f;
 
     public event Action OnChainStarted;
-    public event Action<ChainResult> OnChainFinished;
-    public event Action<ChainResult> OnStatsUpdated;
+    public event Action OnChainFinished;
 
     private readonly HashSet<CardView> _activatedCards = new();
     public IReadOnlyCollection<CardView> ActivatedCards => _activatedCards;
 
-    // 누적 결과
-    private ChainResult _accumulatedResult = new();
-
     public void Init()
     {
         Debug.Log("[ChainExecutor] Init");
-    }
-
-    public void ResetAccumulatedResult()
-    {
-        _accumulatedResult = new ChainResult();
-        OnStatsUpdated?.Invoke(_accumulatedResult);
     }
 
     public void ExecuteFrom(CardView rootCard)
@@ -52,17 +42,15 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
 
-        OnChainFinished?.Invoke(_accumulatedResult);
+        OnChainFinished?.Invoke();
     }
 
-    // ── 효과 누적 ──────────────────────────────────────────
+    // ── 효과 처리 ──────────────────────────────────────────
 
-    private void AccumulateEffects(CardView card)
+    private void ApplyEffects(CardView card)
     {
         if (card?.Data?.effects == null) return;
 
-        // AtLeast: EffectType별로 가장 높은 threshold를 만족하는 것 하나만 적용
-        // Full: 조건 만족 시 적용
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
         foreach (CardEffect effect in card.Data.effects)
@@ -70,14 +58,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
-                    AddToResult(effect.effectType, effect.value);
+                    ApplyEffect(effect.effectType, effect.value);
                 continue;
             }
 
-            // AtLeast
             if (effect.scope == CountScope.None)
             {
-                AddToResult(effect.effectType, effect.value);
+                ApplyEffect(effect.effectType, effect.value);
                 continue;
             }
 
@@ -92,18 +79,25 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         foreach (var kv in atLeastBest)
-            AddToResult(kv.Key, kv.Value.value);
-
-        OnStatsUpdated?.Invoke(_accumulatedResult);
+            ApplyEffect(kv.Key, kv.Value.value);
     }
 
-    private void AddToResult(EffectType type, float value)
+    private void ApplyEffect(EffectType type, float value)
     {
         switch (type)
         {
-            case EffectType.Damage: _accumulatedResult.damage += value; break;
-            case EffectType.Defense: _accumulatedResult.defense += value; break;
-            case EffectType.Heal: _accumulatedResult.heal += value; break;
+            case EffectType.Damage:
+                int damage = Mathf.Max(1, Mathf.RoundToInt(value));
+                BattleManager.Instance.DealDamageToEnemy(damage);
+                break;
+            case EffectType.Defense:
+                int defense = Mathf.Max(1, Mathf.RoundToInt(value));
+                BattleManager.Instance.Player.AddDefense(defense);
+                break;
+            case EffectType.Heal:
+                int heal = Mathf.Max(1, Mathf.RoundToInt(value));
+                BattleManager.Instance.Player.Heal(heal);
+                break;
             case EffectType.Draw:
                 int drawCount = Mathf.Max(1, Mathf.RoundToInt(value));
                 CardManager.Instance.DrawToHand(drawCount);
@@ -208,14 +202,19 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     emitters.Add(current);
                     activatedCards.Add(current);
 
-                    // On될 때 그 시점 기준으로 효과 누적
                     if (!current.IsEnemy)
-                        AccumulateEffects(current);
+                        ApplyEffects(current);
+
+                    // 적이 죽었으면 체인 중단
+                    if (BattleManager.Instance.Enemy.IsDead)
+                    {
+                        Debug.Log("[ChainExecutor] 적 사망 — 체인 중단");
+                        yield break;
+                    }
                 }
                 else
                 {
                     activatedCards.Remove(current);
-                    // Off돼도 누적값 차감 없음
                 }
             }
 
@@ -246,14 +245,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         OnChainStarted = null;
         OnChainFinished = null;
-        OnStatsUpdated = null;
         base.Dispose();
     }
-}
-
-public class ChainResult
-{
-    public float damage;
-    public float defense;
-    public float heal;
 }

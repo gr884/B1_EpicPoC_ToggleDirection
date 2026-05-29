@@ -15,24 +15,20 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     [SerializeField] private List<EnemyDataSO> _enemyList = new();
 
     private int _currentEnemyIndex = 0;
+    private bool _isBattleActive;
 
     public BattlePhase CurrentPhase { get; private set; }
     public bool IsProcessing { get; private set; }
     public Player Player => _player;
+    public Enemy Enemy => _enemy;
 
     public event Action<BattlePhase> OnPhaseChanged;
     public event Action OnBattleEnded;
-
-    private ChainResult _lastChainResult;
-    private bool _isBattleActive;
-
-    private void OnChainFinished(ChainResult result) => _lastChainResult = result;
 
     // ── 초기화 ─────────────────────────────────────────────
 
     public void Init()
     {
-        ChainExecutor.Instance.OnChainFinished += OnChainFinished;
         GameManager.Instance.OnStateChanged += OnGameStateChanged;
         Debug.Log("[BattleManager] Init");
     }
@@ -83,43 +79,26 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         StartCoroutine(PlayerTurnRoutine());
     }
 
+    // ── 전투 액션 ──────────────────────────────────────────
+
+    public void DealDamageToEnemy(int damage)
+    {
+        _enemy.TakeAttack(damage);
+    }
+
     // ── 턴 루틴 ────────────────────────────────────────────
 
     private IEnumerator PlayerTurnRoutine()
     {
         IsProcessing = true;
 
-        ChainResult result = _lastChainResult ?? new ChainResult();
-
-        int playerDamage = Mathf.RoundToInt(result.damage);
-        int playerDefense = Mathf.RoundToInt(result.defense);
-        int playerHeal = Mathf.RoundToInt(result.heal);
-
-        // 플레이어 공격 - 적 방어
-        _enemy.TakeAttack(playerDamage);
-
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
         yield return new WaitForSeconds(0.5f);
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        // 힐
-        if (playerHeal > 0)
-            _player.Heal(playerHeal);
-
-        if (!_isBattleActive) { IsProcessing = false; yield break; }
-
-        // 적 공격 - 플레이어 방어
-        int enemyAttack = _enemy.GetIntentValue(EnemyIntentType.Attack);
-        int remaining = Mathf.Max(0, enemyAttack - playerDefense);
-        _player.TakeAttack(remaining);
-        yield return new WaitForSeconds(0.5f);
-
-        if (!_isBattleActive) { IsProcessing = false; yield break; }
-
-        // Intent 갱신
-        _enemy.AdvanceIntent();
+        _player.ResetDefense();
 
         IsProcessing = false;
         EnterPhase(BattlePhase.EnemyTurn);
@@ -130,8 +109,22 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     {
         IsProcessing = true;
 
-        // EnemyTurn은 짧게 — Intent 표시 후 PlayerTurn으로
         yield return new WaitForSeconds(0.5f);
+
+        if (!_isBattleActive) { IsProcessing = false; yield break; }
+
+        // 현재 Intent 실행: Defend → Defense 쌓음, Attack → 플레이어 피격
+        _enemy.ExecuteIntents();
+        int enemyAttack = _enemy.GetIntentValue(EnemyIntentType.Attack);
+        if (enemyAttack > 0)
+            _player.TakeAttack(enemyAttack);
+
+        yield return new WaitForSeconds(0.5f);
+
+        if (!_isBattleActive) { IsProcessing = false; yield break; }
+
+        // 다음 플레이어 턴에 보여줄 Intent로 갱신 (실행 아님)
+        _enemy.AdvanceIntent();
 
         CardManager.Instance.DiscardGrid();
         IsProcessing = false;
@@ -150,7 +143,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         IsProcessing = false;
         Debug.Log($"[BattleManager] 전투 종료 — {(victory ? "승리" : "패배")}");
 
-        // 진행 중인 코루틴이 정리될 시간 확보
         yield return new WaitForSeconds(1f);
 
         if (!victory)
@@ -177,10 +169,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         CurrentPhase = phase;
 
         if (phase == BattlePhase.PlayerTurn)
-        {
-            ChainExecutor.Instance.ResetAccumulatedResult();
             _player.RestoreCost();
-        }
 
         OnPhaseChanged?.Invoke(phase);
         Debug.Log($"[BattleManager] Phase → {phase}");
@@ -188,8 +177,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     protected override void Dispose()
     {
-        if (ChainExecutor.Instance != null)
-            ChainExecutor.Instance.OnChainFinished -= OnChainFinished;
         if (GameManager.Instance != null)
             GameManager.Instance.OnStateChanged -= OnGameStateChanged;
 

@@ -37,7 +37,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         Debug.Log("[CardManager] Init");
     }
 
-    private void OnChainFinished(ChainResult result)
+    private void OnChainFinished()
     {
         foreach (CardView card in _hand)
             if (card != null) card.SetDraggable(true);

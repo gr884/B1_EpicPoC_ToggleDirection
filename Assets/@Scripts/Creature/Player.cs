@@ -18,9 +18,11 @@ public class Player : MonoBehaviour
 
     public int MaxCost => _maxCost;
     public int CurrentCost { get; private set; }
+    public int CurrentDefense { get; private set; }
 
     public event Action OnDied;
     public event Action OnCostChanged;
+    public event Action OnDefenseChanged;
 
     // ── 초기화 ─────────────────────────────────────────────
 
@@ -55,11 +57,32 @@ public class Player : MonoBehaviour
         OnCostChanged?.Invoke();
     }
 
+    // ── Defense ────────────────────────────────────────────
+
+    public void AddDefense(int amount)
+    {
+        CurrentDefense += Mathf.Max(0, amount);
+        _view.SetDefense(CurrentDefense);
+        OnDefenseChanged?.Invoke();
+    }
+
+    public void ResetDefense()
+    {
+        CurrentDefense = 0;
+        _view.SetDefense(0);
+        OnDefenseChanged?.Invoke();
+    }
+
     // ── 전투 로직 ──────────────────────────────────────────
 
     public void TakeAttack(int damage)
     {
-        _view.TakeDamage(Mathf.Max(0, damage));
+        int blocked = Mathf.Min(CurrentDefense, damage);
+        CurrentDefense -= blocked;
+        int remaining = damage - blocked;
+        _view.SetDefense(CurrentDefense);
+        _view.TakeDamage(Mathf.Max(0, remaining));
+        OnDefenseChanged?.Invoke();
     }
 
     public void Heal(int amount)
@@ -78,5 +101,6 @@ public class Player : MonoBehaviour
 
         OnDied = null;
         OnCostChanged = null;
+        OnDefenseChanged = null;
     }
 }

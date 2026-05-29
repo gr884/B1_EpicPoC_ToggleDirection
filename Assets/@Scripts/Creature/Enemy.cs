@@ -1,5 +1,4 @@
 using System;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
@@ -10,6 +9,7 @@ public class Enemy : MonoBehaviour
     private int _intentIndex;
 
     public bool IsDead => _view != null && _view.IsDead;
+    public int CurrentDefense { get; private set; }
     public EnemyIntentTurn CurrentIntentTurn { get; private set; }
 
     public event Action OnDied;
@@ -21,20 +21,25 @@ public class Enemy : MonoBehaviour
     {
         _data = data;
         _intentIndex = 0;
+        CurrentDefense = 0;
 
         _view.OnDied -= HandleDied;
         _view.OnDied += HandleDied;
         _view.Setup(data.displayName, data.maxHp);
 
+        // 첫 플레이어 턴에 표시할 Intent 로드 (실행 아님)
         RefreshIntent();
     }
 
     // ── 전투 로직 ──────────────────────────────────────────
 
-    public void TakeAttack(int playerDamage)
+    public void TakeAttack(int damage)
     {
-        int defense = GetIntentValue(EnemyIntentType.Defend);
-        _view.TakeDamage(Mathf.Max(0, playerDamage - defense));
+        int blocked = Mathf.Min(CurrentDefense, damage);
+        CurrentDefense -= blocked;
+        int remaining = damage - blocked;
+        _view.SetDefense(CurrentDefense);
+        _view.TakeDamage(Mathf.Max(0, remaining));
     }
 
     public int GetIntentValue(EnemyIntentType type)
@@ -46,6 +51,27 @@ public class Enemy : MonoBehaviour
             if (intent.type == type)
                 total += intent.value;
         return total;
+    }
+
+    /// <summary>
+    /// 적 턴에 현재 Intent를 실행합니다.
+    /// Attack은 BattleManager에서 GetIntentValue로 처리.
+    /// Defend는 여기서 Defense로 쌓음.
+    /// </summary>
+    public void ExecuteIntents()
+    {
+        if (CurrentIntentTurn == null) return;
+
+        // 적 턴 시작 시 이전 Defense 리셋 후 새로 쌓음
+        CurrentDefense = 0;
+        foreach (EnemyIntentData intent in CurrentIntentTurn.intents)
+        {
+            if (intent.type == EnemyIntentType.Defend)
+                CurrentDefense += intent.value;
+        }
+
+        _view.SetDefense(CurrentDefense);
+        Debug.Log($"[Enemy] Intent 실행 완료 — Defense {CurrentDefense}");
     }
 
     public void AdvanceIntent()
