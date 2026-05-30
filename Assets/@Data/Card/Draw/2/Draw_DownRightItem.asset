@@ -13,8 +13,13 @@ MonoBehaviour:
   m_Name: Draw_DownRightItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uB4DC\uB85C\uC6B0"
-  description: "\uB4DC\uB85C\uC6B0 + 1"
+  displayName: "\uACF5\uACA9 \uB4DC\uB85C\uC6B0"
+  description: "\uACF5\uACA9 + 3, \uB4DC\uB85C\uC6B0 + 1"
+  cost: 1
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  range: 1
   recallDestination: 0
   directions: 0500000003000000
   effects:
@@ -23,4 +28,9 @@ MonoBehaviour:
     threshold: 0
     effectType: 3
     value: 1
+  - scope: 0
+    thresholdType: 0
+    threshold: 0
+    effectType: 0
+    value: 3
   icon: {fileID: -5682562707457375525, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

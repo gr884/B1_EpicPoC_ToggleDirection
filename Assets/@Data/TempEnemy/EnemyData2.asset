@@ -14,21 +14,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDataSO
   enemyId: 
   displayName: Enemy2
-  maxHp: 25
+  maxHp: 50
   sprite: {fileID: 0}
   intentPattern:
   - intents:
     - type: 1
       value: 15
+      hits: 1
+      spawnCount: 3
+      cursePerCard: 2
     - type: 0
       value: 10
+      hits: 1
+      spawnCount: 3
+      cursePerCard: 2
   - intents:
     - type: 1
       value: 15
+      hits: 1
+      spawnCount: 3
+      cursePerCard: 2
     - type: 0
       value: 15
+      hits: 1
+      spawnCount: 3
+      cursePerCard: 2
   - intents:
     - type: 1
       value: 10
+      hits: 1
+      spawnCount: 3
+      cursePerCard: 2
     - type: 0
       value: 20
+      hits: 1
+      spawnCount: 3
+      cursePerCard: 2

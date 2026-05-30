@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDataSO
   enemyId: 
   displayName: Elite Enemy
-  maxHp: 40
+  maxHp: 70
   sprite: {fileID: 0}
   intentPattern:
   - intents:

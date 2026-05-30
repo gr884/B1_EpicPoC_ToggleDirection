@@ -14,8 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
   displayName: "\uBCF4\uC874"
-  description: "\uBCF4\uC874 + 1"
+  description: "\uBC29\uC5B4 + 3, \uBCF4\uC874 + 1"
   cost: 1
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  range: 1
   recallDestination: 0
   directions: 05000000
   effects:
@@ -24,4 +28,9 @@ MonoBehaviour:
     threshold: 0
     effectType: 5
     value: 1
+  - scope: 0
+    thresholdType: 0
+    threshold: 0
+    effectType: 1
+    value: 3
   icon: {fileID: 2676158786987829394, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

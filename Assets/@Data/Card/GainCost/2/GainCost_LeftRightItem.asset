@@ -14,9 +14,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
   displayName: "\uC5D0\uB108\uC9C0 \uACF5\uAE092"
-  description: "\uC5D0\uB108\uC9C0 \uACF5\uAE09 + 1\n\uAC19\uC740 \uD589 \uC804\uBD80
-    \uD65C\uC131\uD654 \uC2DC,\n\uCD94\uAC00 \uC5D0\uB108\uC9C0 \uACF5\uAE09 + 1"
+  description: "Cost + 1\n\uAC19\uC740 \uC5F4 \uC804\uBD80 \uD65C\uC131\uD654 \uC2DC,\n\uCD94\uAC00
+    Cost + 1"
   cost: 2
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  range: 1
   recallDestination: 0
   directions: 0700000003000000
   effects:
