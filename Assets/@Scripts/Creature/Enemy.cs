@@ -67,6 +67,18 @@ public class Enemy : MonoBehaviour
             yield return _motionPlayer.PlayAttackRoutine();
     }
 
+    public IEnumerator PlayAttackMotion(int hitCount)
+    {
+        if (_motionPlayer != null)
+            yield return _motionPlayer.PlayAttackRoutine(hitCount);
+    }
+
+    public IEnumerator PlayAttackMotion(int hitCount, Action onAttackFinished)
+    {
+        if (_motionPlayer != null)
+            yield return _motionPlayer.PlayAttackRoutine(hitCount, onAttackFinished);
+    }
+
     public IEnumerator WaitForDieMotion()
     {
         if (_motionPlayer != null)

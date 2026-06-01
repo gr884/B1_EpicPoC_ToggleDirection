@@ -199,14 +199,21 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             foreach (EnemyIntentData intent in _enemy.CurrentIntentTurn.intents)
             {
                 if (intent.type != EnemyIntentType.Attack || intent.value <= 0) continue;
-                for (int i = 0; i < intent.hits; i++)
-                {
-                    if (_enemy.MotionPlayer != null)
-                        yield return _enemy.PlayAttackMotion();
 
-                    _player.TakeAttack(intent.value);
-                    if (intent.hits > 1)
-                        yield return new WaitForSeconds(0.2f);
+                if (_enemy.MotionPlayer != null)
+                {
+                    yield return _enemy.PlayAttackMotion(
+                        intent.hits,
+                        () => _player.TakeAttack(intent.value));
+                }
+                else
+                {
+                    for (int i = 0; i < intent.hits; i++)
+                    {
+                        _player.TakeAttack(intent.value);
+                        if (intent.hits > 1)
+                            yield return new WaitForSeconds(0.2f);
+                    }
                 }
             }
         }

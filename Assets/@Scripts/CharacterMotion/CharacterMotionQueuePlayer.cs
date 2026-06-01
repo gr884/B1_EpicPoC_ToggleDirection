@@ -92,7 +92,7 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
 
             if (request.MotionType == CharacterMotionType.Attack)
             {
-                yield return PlayAttackSequence(request);
+                yield return PlayAttackChain(request);
                 yield return null;
                 continue;
             }
@@ -110,7 +110,7 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
         _playRoutine = null;
     }
 
-    private IEnumerator PlayAttackSequence(CharacterMotionRequest request)
+    private IEnumerator PlayAttackChain(CharacterMotionRequest firstRequest)
     {
         Vector3 basePosition = transform.position;
 
@@ -130,6 +130,25 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
             transform.position = attackPosition;
         }
 
+        yield return PlayAttackOnce(firstRequest);
+
+        while (true)
+        {
+            yield return null;
+
+            if (_motionQueue.Count <= 0 || _motionQueue.Peek().MotionType != CharacterMotionType.Attack)
+                break;
+
+            CharacterMotionRequest nextAttackRequest = _motionQueue.Dequeue();
+            yield return PlayAttackOnce(nextAttackRequest);
+        }
+
+        yield return ReturnToBasePosition(basePosition);
+        PlayIdle();
+    }
+
+    private IEnumerator PlayAttackOnce(CharacterMotionRequest request)
+    {
         _activeAttackRequest = request;
         _hasActiveAttackRequest = true;
         _attackImpactApplied = false;
@@ -141,7 +160,10 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
             yield return new WaitForSeconds(attackDuration);
 
         ApplyAttackImpact();
+    }
 
+    private IEnumerator ReturnToBasePosition(Vector3 basePosition)
+    {
         bool disabledAnimator = false;
         if (_animator != null && _animator.enabled)
         {
@@ -167,8 +189,6 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
 
         if (disabledAnimator)
             _animator.enabled = true;
-
-        PlayIdle();
     }
 
     public void OnAttackImpact()

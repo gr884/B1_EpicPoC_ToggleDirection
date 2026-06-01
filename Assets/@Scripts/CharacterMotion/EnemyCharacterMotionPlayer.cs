@@ -1,3 +1,4 @@
+using System;
 using System.Collections;
 using UnityEngine;
 
@@ -73,10 +74,16 @@ public class EnemyCharacterMotionPlayer : MonoBehaviour
         RefreshHashes();
     }
 
-    public IEnumerator PlayAttackRoutine()
+    public IEnumerator PlayAttackRoutine(int hitCount = 1)
+    {
+        yield return PlayAttackRoutine(hitCount, null);
+    }
+
+    public IEnumerator PlayAttackRoutine(int hitCount, Action onAttackFinished)
     {
         if (_isDying) yield break;
 
+        int attackCount = Mathf.Max(1, hitCount);
         Vector3 basePosition = transform.position;
 
         if (TryGetAttackTargetPosition(out Vector3 attackPosition))
@@ -95,12 +102,29 @@ public class EnemyCharacterMotionPlayer : MonoBehaviour
             transform.position = attackPosition;
         }
 
+        for (int i = 0; i < attackCount; i++)
+        {
+            yield return PlayAttackOnce();
+            onAttackFinished?.Invoke();
+        }
+
+        yield return ReturnToBasePosition(basePosition);
+
+        if (!_isDying)
+            PlayIdle();
+    }
+
+    private IEnumerator PlayAttackOnce()
+    {
         PlayState(_attackStateHash);
 
         float attackDuration = GetMotionDuration("Mushroom_Attack", _attackDuration);
         if (attackDuration > 0f)
             yield return new WaitForSeconds(attackDuration);
+    }
 
+    private IEnumerator ReturnToBasePosition(Vector3 basePosition)
+    {
         bool disabledAnimator = false;
         if (_animator != null && _animator.enabled)
         {
@@ -126,9 +150,6 @@ public class EnemyCharacterMotionPlayer : MonoBehaviour
 
         if (disabledAnimator)
             _animator.enabled = true;
-
-        if (!_isDying)
-            PlayIdle();
     }
 
     public void PlayHit()
