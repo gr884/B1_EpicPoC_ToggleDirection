@@ -25,6 +25,7 @@ public class GameManager : SingletonBehaviour<GameManager>
     public void GameStart() => ChangeState(GameState.Playing);
     public void GameOver() => ChangeState(GameState.GameOver);
     public void GameClear() => ChangeState(GameState.GameClear);
+    public void GoToMainMenu() => ChangeState(GameState.Idle);
 
     private void ChangeState(GameState state)
     {

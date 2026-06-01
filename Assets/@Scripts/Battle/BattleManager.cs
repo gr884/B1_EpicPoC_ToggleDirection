@@ -212,7 +212,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         IsProcessing = false;
         Debug.Log($"[BattleManager] 전투 종료 — {(victory ? "승리" : "패배")}");
 
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSecondsRealtime(1f);
 
         if (!victory)
         {

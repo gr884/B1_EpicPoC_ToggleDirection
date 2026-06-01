@@ -54,7 +54,7 @@ public class UI_GameEndPanel : MonoBehaviour
     private void OnRestart()
     {
         SetVisible(false);
-        GameManager.Instance.GameStart();
+        GameManager.Instance.GoToMainMenu();
     }
 
     private void SetVisible(bool visible)
