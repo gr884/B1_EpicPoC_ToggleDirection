@@ -16,6 +16,7 @@ MonoBehaviour:
   displayName: Enemy
   maxHp: 40
   sprite: {fileID: 0}
+  motionPrefab: {fileID: 910000000000000003, guid: 8ef2777b3b9a465f9b661a63c7f348c5, type: 3}
   intentPattern:
   - intents:
     - type: 0

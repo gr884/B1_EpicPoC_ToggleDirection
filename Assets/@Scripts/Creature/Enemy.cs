@@ -6,6 +6,8 @@ using UnityEngine;
 public class Enemy : MonoBehaviour
 {
     [SerializeField] private BattleActorView _view;
+    [SerializeField] private Transform _motionRoot;
+    [SerializeField] private Vector3 _motionSpawnOffset = new(0f, -0.3f, 0f);
     [SerializeField] private BattleActorMotionTarget _motionTarget;
     [SerializeField] private SpumEnemyMotionPlayer _motionPlayer;
     [SerializeField] private GameObject _cardPrefab;
@@ -14,6 +16,9 @@ public class Enemy : MonoBehaviour
 
     private EnemyDataSO _data;
     private int _intentIndex;
+    private BattleActorMotionTarget _fallbackMotionTarget;
+    private SpumEnemyMotionPlayer _fallbackMotionPlayer;
+    private SpumEnemyMotionPlayer _spawnedMotionPlayer;
 
     public bool IsDead => _view != null && _view.IsDead;
     public int CurrentDefense { get; private set; }
@@ -28,11 +33,18 @@ public class Enemy : MonoBehaviour
 
     // ── 초기화 ─────────────────────────────────────────────
 
+    private void Awake()
+    {
+        _fallbackMotionTarget = _motionTarget;
+        _fallbackMotionPlayer = _motionPlayer;
+    }
+
     public void Setup(EnemyDataSO data)
     {
         _data = data;
         _intentIndex = 0;
         CurrentDefense = 0;
+        ApplyMotionPrefab(data != null ? data.motionPrefab : null);
 
         _view.OnDied -= HandleDied;
         _view.OnDied += HandleDied;
@@ -163,6 +175,42 @@ public class Enemy : MonoBehaviour
     }
 
     // ── 내부 ───────────────────────────────────────────────
+
+    private void ApplyMotionPrefab(SpumEnemyMotionPlayer motionPrefab)
+    {
+        if (_spawnedMotionPlayer != null)
+        {
+            Destroy(_spawnedMotionPlayer.gameObject);
+            _spawnedMotionPlayer = null;
+        }
+
+        if (motionPrefab == null)
+        {
+            SetFallbackMotionActive(true);
+            _motionTarget = _fallbackMotionTarget;
+            _motionPlayer = _fallbackMotionPlayer;
+            return;
+        }
+
+        SetFallbackMotionActive(false);
+
+        Transform parent = _motionRoot != null ? _motionRoot : transform;
+        _spawnedMotionPlayer = Instantiate(motionPrefab, parent, false);
+        _spawnedMotionPlayer.transform.localPosition = _motionSpawnOffset;
+        _spawnedMotionPlayer.transform.localRotation = Quaternion.identity;
+        _spawnedMotionPlayer.transform.localScale = motionPrefab.transform.localScale;
+
+        _motionPlayer = _spawnedMotionPlayer;
+        _motionTarget = _spawnedMotionPlayer.GetComponent<BattleActorMotionTarget>();
+        if (_motionTarget == null)
+            _motionTarget = _spawnedMotionPlayer.GetComponentInChildren<BattleActorMotionTarget>(true);
+    }
+
+    private void SetFallbackMotionActive(bool active)
+    {
+        if (_fallbackMotionPlayer == null || _fallbackMotionPlayer.gameObject == gameObject) return;
+        _fallbackMotionPlayer.gameObject.SetActive(active);
+    }
 
     private void RefreshIntent()
     {

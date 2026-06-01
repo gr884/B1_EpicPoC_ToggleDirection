@@ -34,6 +34,9 @@ public class EnemyDataSO : ScriptableObject
     [Min(1)] public int maxHp = 20;
     public Sprite sprite;
 
+    [Header("Motion")]
+    public SpumEnemyMotionPlayer motionPrefab;
+
     [Header("Intent Pattern")]
     [Tooltip("턴마다 순환. 한 턴에 여러 Intent 동시 실행 가능")]
     public List<EnemyIntentTurn> intentPattern = new();
