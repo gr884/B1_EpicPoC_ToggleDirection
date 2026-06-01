@@ -286,6 +286,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   _view: {fileID: 6733755931891447344}
+  _motionTarget: {fileID: 0}
+  _motionPlayer: {fileID: 0}
   _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
   _contaminateCardData: {fileID: 11400000, guid: 244fb21ae56f8854f8acfd40b07bc956, type: 2}
   _curseCardData: {fileID: 11400000, guid: bd1f9590466dc5e4d8c3ac112b7a9bc0, type: 2}
@@ -413,6 +415,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
   _view: {fileID: 1428243873926886614}
+  _motionTarget: {fileID: 0}
   _maxHp: 50
   _handSize: 7
   _maxHandSize: 12
@@ -864,6 +867,7 @@ MonoBehaviour:
   _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
   _handRoot: {fileID: 4116963259513212459}
   _player: {fileID: 1113997785}
+  _flightEffectPlayer: {fileID: 0}
   _startingDeck:
   - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
   - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
@@ -10552,24 +10556,21 @@ MonoBehaviour:
   _confirmButton: {fileID: 2629270296229714535}
   _skipButton: {fileID: 2027146247888774969}
   _cardPool:
-  - {fileID: 11400000, guid: b66bd7e489371284e8060056f9a58fc7, type: 2}
-  - {fileID: 11400000, guid: a286367849ae423418c31f9bc7575e4a, type: 2}
-  - {fileID: 11400000, guid: 0b2fdbda79d89f74aae2ffd7297ba5f6, type: 2}
-  - {fileID: 11400000, guid: ab8c7bc579002124db91756564ea9828, type: 2}
-  - {fileID: 11400000, guid: 3b9a8c1fe4221704fb1996892edff6f3, type: 2}
-  - {fileID: 11400000, guid: 4b67b8f8eaa938d49b3634b96a4c4f6e, type: 2}
-  - {fileID: 11400000, guid: 7612a279eb042d94bbaccb4ce7e15d73, type: 2}
-  - {fileID: 11400000, guid: 1cdfbab3056d8dc47b9e14dd917b9f5a, type: 2}
-  - {fileID: 11400000, guid: fec8ddeaa7e34274892d5463ca5dc248, type: 2}
-  - {fileID: 11400000, guid: 1bea63653281f2448a7d89db33c492c1, type: 2}
-  - {fileID: 11400000, guid: 6391fb41abf729748ae297d1e257271d, type: 2}
-  - {fileID: 11400000, guid: 081eee1644bc1e14d9e8193680d7eea6, type: 2}
-  - {fileID: 11400000, guid: fa50791456888c040ac1fa0bed834d63, type: 2}
-  - {fileID: 11400000, guid: 43f6030869e03114d8fc3d2154b21241, type: 2}
-  - {fileID: 11400000, guid: 32440bd218c724d4c8d04720f8e15521, type: 2}
-  - {fileID: 11400000, guid: 987430afc4f7cfb4fa72ac043a52c20d, type: 2}
-  - {fileID: 11400000, guid: 6e628087db2bf7b49ad2e79c8a1f67e0, type: 2}
-  - {fileID: 11400000, guid: 49e83773fdf55d84ca3645fb33ba4659, type: 2}
+  - {fileID: 11400000, guid: 6d2728db53d80e440ba1f28e779ef182, type: 2}
+  - {fileID: 11400000, guid: e4e5e00550d88ce48bb824e779defe88, type: 2}
+  - {fileID: 11400000, guid: 0ce2d9f694da2134d93c5d2c8378dd2b, type: 2}
+  - {fileID: 11400000, guid: 5283a550a20821740a3b8d03db485478, type: 2}
+  - {fileID: 11400000, guid: 32ff670289706444095025f1da620183, type: 2}
+  - {fileID: 11400000, guid: 61bf5e724b1bd3047a0bd11d4836296f, type: 2}
+  - {fileID: 11400000, guid: 94fc21356a7d0d14597708bc243f4f71, type: 2}
+  - {fileID: 11400000, guid: f14b3f2bd2af9da41bae8dbb7497f73e, type: 2}
+  - {fileID: 11400000, guid: 62b352ea5ecc9e34f9d31c2d4352597a, type: 2}
+  - {fileID: 11400000, guid: 4df20a61b1f6a7f4cab34fc6def7be8b, type: 2}
+  - {fileID: 11400000, guid: 5e4aff8df456ccc4cb45772ae3604432, type: 2}
+  - {fileID: 11400000, guid: 5b5c9ae1ccb80d54abd26655c6830e70, type: 2}
+  - {fileID: 11400000, guid: c7ba9aa0f2d8cac4dbcfc41db8fcc8d1, type: 2}
+  - {fileID: 11400000, guid: cea4efeedd092984dbf8a80f820199d8, type: 2}
+  - {fileID: 11400000, guid: a93d12610fec95647b9e189388e7df5e, type: 2}
   _rewardCount: 3
 --- !u!114 &8371080392564640586
 MonoBehaviour:
