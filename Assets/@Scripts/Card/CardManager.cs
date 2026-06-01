@@ -127,6 +127,7 @@ public class CardManager : SingletonBehaviour<CardManager>
             return;
         }
 
+        _flightEffectPlayer?.PlayRefillDiscardToDeck(_discardPile.Count);
         Shuffle(_discardPile);
         _drawPile.AddRange(_discardPile);
         _discardPile.Clear();

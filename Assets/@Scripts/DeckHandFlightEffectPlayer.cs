@@ -16,13 +16,17 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
     [Header("Sprites")]
     [SerializeField] private Sprite drawSprite;
     [SerializeField] private Sprite returnSprite;
+    [SerializeField] private Sprite refillSprite;
 
     [Header("Motion")]
     [SerializeField] private Vector2 effectSize = new(56f, 72f);
     [SerializeField, Min(0f)] private float drawDuration = 0.28f;
     [SerializeField, Min(0f)] private float returnDuration = 0.24f;
+    [SerializeField, Min(0f)] private float refillDuration = 0.32f;
     [SerializeField, Min(0f)] private float drawStaggerDelay = 0.05f;
+    [SerializeField, Min(0f)] private float refillStaggerDelay = 0.04f;
     [SerializeField] private float arcHeight = 80f;
+    [SerializeField, Min(0f)] private float refillArcHeight = 80f;
     [SerializeField] private Ease ease = Ease.OutQuad;
     [SerializeField] private Color color = Color.white;
 
@@ -31,6 +35,7 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
 
     public bool CanPlayDraw => drawSprite != null && ResolveSceneRefs(null) && handTarget != null;
     public bool CanPlayReturn => returnSprite != null && ResolveSceneRefs(null) && discardTarget != null;
+    public bool CanPlayRefill => GetRefillSprite() != null && ResolveSceneRefs(null) && discardTarget != null;
     public float DrawStaggerDelay => drawStaggerDelay;
 
     private void Reset()
@@ -45,7 +50,7 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
 
     public IEnumerator PlayDrawTo(Transform target)
     {
-        if (drawSprite == null || target == null )
+        if (drawSprite == null || target == null || !ResolveSceneRefs(target))
         {
             yield break;
         }
@@ -61,7 +66,7 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
 
     public void PlayDrawToHand(int count)
     {
-        if (count <= 0 || drawSprite == null || handTarget == null)
+        if (count <= 0 || drawSprite == null || !ResolveSceneRefs(handTarget) || handTarget == null)
         {
             return;
         }
@@ -89,7 +94,7 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
 
     public void PlayDiscardFrom(Transform source)
     {
-        if (returnSprite == null || source == null )
+        if (returnSprite == null || source == null || !ResolveSceneRefs(source))
         {
             return;
         }
@@ -103,7 +108,45 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
         StartCoroutine(PlayFlightRoutine(returnSprite, startPosition, targetPosition, returnDuration));
     }
 
+    public void PlayRefillDiscardToDeck(int count)
+    {
+        if (count <= 0 || GetRefillSprite() == null || !ResolveSceneRefs(discardTarget) || discardTarget == null)
+        {
+            return;
+        }
+
+        StartCoroutine(PlayRefillDiscardToDeckRoutine(count));
+    }
+
+    private IEnumerator PlayRefillDiscardToDeckRoutine(int count)
+    {
+        Sprite sprite = GetRefillSprite();
+        if (sprite == null ||
+            !TryGetLocalPoint(discardTarget, out Vector2 startPosition) ||
+            !TryGetLocalPoint(deckSource, out Vector2 targetPosition))
+        {
+            yield break;
+        }
+
+        float downwardArcHeight = -Mathf.Abs(refillArcHeight);
+
+        for (int i = 0; i < count; i++)
+        {
+            StartCoroutine(PlayFlightRoutine(sprite, startPosition, targetPosition, refillDuration, downwardArcHeight));
+
+            if (refillStaggerDelay > 0f && i < count - 1)
+            {
+                yield return new WaitForSeconds(refillStaggerDelay);
+            }
+        }
+    }
+
     private IEnumerator PlayFlightRoutine(Sprite sprite, Vector2 startPosition, Vector2 targetPosition, float duration)
+    {
+        return PlayFlightRoutine(sprite, startPosition, targetPosition, duration, arcHeight);
+    }
+
+    private IEnumerator PlayFlightRoutine(Sprite sprite, Vector2 startPosition, Vector2 targetPosition, float duration, float arcOffset)
     {
         GameObject effectObject = CreateEffectObject(sprite, startPosition);
         RectTransform effectRect = effectObject.GetComponent<RectTransform>();
@@ -120,7 +163,7 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
             yield break;
         }
 
-        Vector2 controlPosition = (startPosition + targetPosition) * 0.5f + Vector2.up * arcHeight;
+        Vector2 controlPosition = (startPosition + targetPosition) * 0.5f + Vector2.up * arcOffset;
         float progress = 0f;
         Tween tween = DOTween.To(() => progress, value =>
         {
@@ -133,6 +176,11 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
         activeTweens.Remove(tween);
 
         DestroyEffectObject(effectObject);
+    }
+
+    private Sprite GetRefillSprite()
+    {
+        return refillSprite != null ? refillSprite : returnSprite;
     }
 
     private GameObject CreateEffectObject(Sprite sprite, Vector2 anchoredPosition)
