@@ -865,11 +865,19 @@ MonoBehaviour:
   _handRoot: {fileID: 4116963259513212459}
   _player: {fileID: 1113997785}
   _startingDeck:
-  - {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
   - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
   - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
-  - {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
+  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
   - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
+  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
+  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
+  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
+  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
+  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
+  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &326354992021075493
 MonoBehaviour:
