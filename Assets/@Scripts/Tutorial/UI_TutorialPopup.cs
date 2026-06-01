@@ -53,7 +53,7 @@ public class UI_TutorialPopup : MonoBehaviour
                 Show("튜토리얼에 오신 걸 환영합니다!\n\n적의 의도를 확인하세요.\n적은 이번 턴에 공격 10, 방어 5를 할 예정입니다.\n\n당신의 HP는 5입니다. 공격을 막지 못하면 죽습니다!", "다음");
                 break;
             case TutorialStep.Turn1_Place:
-                Show("방어5 카드를 그리드에 배치하세요.\n\nON될 때 화살표 방향으로 체인이 전파되고 효과가 발동됩니다.", null);
+                Show("방어5 카드를 그리드에 드래그 해서 배치하세요.\n\n카드가 배치되면 ON 상태가 됩니다.\n<b>OFF → ON이 될 때만</b> 화살표 방향으로 체인이 전파되고 효과가 발동됩니다.", null);
                 break;
             case TutorialStep.Turn1_Cost:
                 Show("카드를 배치하면 Cost가 소모됩니다.\n왼쪽 하단에서 남은 Cost를 확인할 수 있어요.\n\nCost가 부족하면 카드를 배치할 수 없습니다.", "다음");
