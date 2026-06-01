@@ -3047,6 +3047,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   _view: {fileID: 1334230416}
   _motionRoot: {fileID: 743872838}
+  _motionSpawnOffset: {x: 0, y: -0.3, z: 0}
   _motionTarget: {fileID: 0}
   _motionPlayer: {fileID: 0}
   _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
@@ -7442,10 +7443,6 @@ PrefabInstance:
     - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 100000004, guid: 20391276273849449704fa53f2a0edd2, type: 3}
-      propertyPath: _runSpeed
-      value: 24
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

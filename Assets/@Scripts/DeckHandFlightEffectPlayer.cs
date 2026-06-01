@@ -20,15 +20,15 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
     [SerializeField] private Sprite recallSprite;
 
     [Header("Motion")]
-    [SerializeField] private Vector2 effectSize = new(56f, 72f);
+    [SerializeField] private Vector2 effectSize = new(112f, 144f);
     [SerializeField, Min(0f)] private float drawDuration = 0.28f;
     [SerializeField, Min(0f)] private float returnDuration = 0.24f;
     [SerializeField, Min(0f)] private float refillDuration = 0.32f;
     [SerializeField, Min(0f)] private float recallDuration = 0.24f;
     [SerializeField, Min(0f)] private float drawStaggerDelay = 0.05f;
     [SerializeField, Min(0f)] private float refillStaggerDelay = 0.04f;
-    [SerializeField] private float arcHeight = 80f;
-    [SerializeField, Min(0f)] private float refillArcHeight = 80f;
+    [SerializeField] private float arcHeight = 160f;
+    [SerializeField, Min(0f)] private float refillArcHeight = 20f;
     [SerializeField] private Ease ease = Ease.OutQuad;
     [SerializeField] private Color color = Color.white;
 

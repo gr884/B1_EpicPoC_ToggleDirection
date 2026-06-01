@@ -134,7 +134,7 @@ MonoBehaviour:
   _attackStateName: Attack
   _defendStateName: Defend
   _hurtStateName: Hurt
-  _runSpeed: 8
+  _runSpeed: 24
   _attackStopOffsetX: 0.8
   _attackTargetYOffset: 0
   _returnDuration: 0.12
