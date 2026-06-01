@@ -7,7 +7,7 @@ public class Enemy : MonoBehaviour
 {
     [SerializeField] private BattleActorView _view;
     [SerializeField] private BattleActorMotionTarget _motionTarget;
-    [SerializeField] private EnemyCharacterMotionPlayer _motionPlayer;
+    [SerializeField] private SpumEnemyMotionPlayer _motionPlayer;
     [SerializeField] private GameObject _cardPrefab;
     [SerializeField] private CardData _contaminateCardData;
     [SerializeField] private CardData _curseCardData;
@@ -21,7 +21,7 @@ public class Enemy : MonoBehaviour
     public CardData CurseCardData => _curseCardData;
     public BattleActorMotionTarget MotionTarget => _motionTarget;
     public Transform ViewTransform => _motionTarget != null ? _motionTarget.AttackPoint : transform;
-    public EnemyCharacterMotionPlayer MotionPlayer => _motionPlayer;
+    public SpumEnemyMotionPlayer MotionPlayer => _motionPlayer;
 
     public event Action OnDied;
     public event Action<EnemyIntentTurn> OnIntentChanged;
