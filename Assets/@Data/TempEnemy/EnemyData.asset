@@ -25,7 +25,7 @@ MonoBehaviour:
       spawnCount: 3
       cursePerCard: 2
     - type: 1
-      value: 10
+      value: 5
       hits: 1
       spawnCount: 3
       cursePerCard: 2
@@ -37,7 +37,7 @@ MonoBehaviour:
       cursePerCard: 2
   - intents:
     - type: 1
-      value: 20
+      value: 15
       hits: 1
       spawnCount: 3
       cursePerCard: 2
