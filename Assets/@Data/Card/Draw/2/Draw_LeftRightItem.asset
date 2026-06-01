@@ -16,13 +16,18 @@ MonoBehaviour:
   displayName: "\uB4DC\uB85C\uC6B02"
   description: "\uB4DC\uB85C\uC6B0 + 1\n\uAC19\uC740 \uD589 \uC804\uBD80 \uD65C\uC131\uD654
     \uC2DC,\n\uCD94\uAC00 \uB4DC\uB85C\uC6B0 + 1"
+  cost: 1
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  range: 1
   recallDestination: 0
   directions: 0700000003000000
   effects:
   - scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 3
+    effectType: 4
     value: 1
   - scope: 1
     thresholdType: 1

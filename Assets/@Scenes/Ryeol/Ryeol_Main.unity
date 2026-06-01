@@ -3049,6 +3049,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Enemy
   _view: {fileID: 1334230416}
+  _motionTarget: {fileID: 0}
+  _motionPlayer: {fileID: 0}
   _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
   _contaminateCardData: {fileID: 11400000, guid: 244fb21ae56f8854f8acfd40b07bc956, type: 2}
   _curseCardData: {fileID: 11400000, guid: bd1f9590466dc5e4d8c3ac112b7a9bc0, type: 2}
@@ -5034,6 +5036,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Player
   _view: {fileID: 673428015}
+  _motionTarget: {fileID: 0}
   _maxHp: 50
   _handSize: 7
   _maxHandSize: 12
@@ -7011,7 +7014,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ChainExecutor
   _maxActivationSteps: 100
   _cardFeedbackDuration: 0.22
-  _maxLoopCount: 3
+  _maxLoopCount: 15
 --- !u!1 &1370327665
 GameObject:
   m_ObjectHideFlags: 0
@@ -10213,6 +10216,7 @@ MonoBehaviour:
   _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
   _handRoot: {fileID: 529960746}
   _player: {fileID: 1113997785}
+  _flightEffectPlayer: {fileID: 0}
   _startingDeck:
   - {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
   - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}

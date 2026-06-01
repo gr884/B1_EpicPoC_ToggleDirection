@@ -16,12 +16,16 @@ MonoBehaviour:
   displayName: "\uBCF4\uC874"
   description: "\uBCF4\uC874 + 1"
   cost: 1
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  range: 1
   recallDestination: 0
   directions: 070000000300000005000000
   effects:
   - scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 5
+    effectType: 6
     value: 1
   icon: {fileID: 2676158786987829394, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

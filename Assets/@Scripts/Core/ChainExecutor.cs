@@ -33,9 +33,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnChainStarted?.Invoke();
         _activatedCards.Clear();
 
+        // 그리드 카드 드래그 차단
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
+
+        // 손패 카드 드래그 차단
+        foreach (CardView card in CardManager.Instance.Hand)
+            if (card != null) card.SetDraggable(false);
 
         yield return ActivateChainFrom(rootCard, _activatedCards);
 
@@ -107,7 +112,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 break;
             case EffectType.DirectionalDamageBonus:
                 int totalDamage = 0;
-                // 이 카드가 가진 화살표 방향의 카드들의 공격력들을 합산
                 foreach (var dir in card.Data.GetAllDirections())
                 {
                     GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
@@ -115,7 +119,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     var targetCard = neighbor.OccupiedCard;
                     if (targetCard == null || targetCard.Data == null) continue;
 
-                    foreach(var e in targetCard.Data.effects)
+                    foreach (var e in targetCard.Data.effects)
                     {
                         if (e.effectType == EffectType.Damage)
                             totalDamage += (int)e.value;
@@ -220,7 +224,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         List<CardView> currentWave = new() { root };
         int step = 0;
 
-        // 무한 루프 감지용 — 이전 웨이브 셋 기록
         List<HashSet<CardView>> waveHistory = new();
         int loopCount = 0;
 
@@ -264,7 +267,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         }
                     }
 
-                    // 적이 죽었으면 체인 중단
                     if (BattleManager.Instance.Enemy.IsDead)
                     {
                         Debug.Log("[ChainExecutor] 적 사망 — 체인 중단");
@@ -304,7 +306,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 }
             }
 
-            // 무한 루프 감지 — 이전에 동일한 웨이브 조합이 있었으면 루프
             if (nextWaveSet.Count > 0)
             {
                 foreach (HashSet<CardView> pastWave in waveHistory)
@@ -321,7 +322,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                             yield break;
                         }
 
-                        // 루프 허용 — 히스토리 초기화 후 계속 진행
                         waveHistory.Clear();
                         break;
                     }
