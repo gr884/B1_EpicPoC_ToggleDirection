@@ -247,6 +247,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     private IEnumerator EndBattleRoutine(bool victory)
     {
+        _player.ResetDefense();
+
         if (_isEndingBattle) yield break;
         _isEndingBattle = true;
         _isBattleActive = false;
