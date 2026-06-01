@@ -76,7 +76,29 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     public void ConfirmPlayerTurn()
     {
         if (CurrentPhase != BattlePhase.PlayerTurn || IsProcessing) return;
+        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
+            && !TutorialManager.Instance.CanConfirm()) return;
+
+        TutorialManager.Instance?.OnTurnConfirmed();
         StartCoroutine(PlayerTurnRoutine());
+    }
+
+    public void StartTutorialBattle(EnemyDataSO enemyData)
+    {
+        _player.OnDied -= HandlePlayerDied;
+        _enemy.OnDied -= HandleEnemyDied;
+        _player.OnDied += HandlePlayerDied;
+        _enemy.OnDied += HandleEnemyDied;
+
+        _isBattleActive = true;
+        _enemy.Setup(enemyData);
+
+        EnterPhase(BattlePhase.PlayerTurn);
+    }
+
+    public void SetTutorialEnemy(EnemyDataSO enemyData)
+    {
+        _enemy.Setup(enemyData);
     }
 
     // ── 전투 액션 ──────────────────────────────────────────
@@ -204,7 +226,11 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     // ── 전투 종료 ──────────────────────────────────────────
 
     private void HandlePlayerDied() => StartCoroutine(EndBattleRoutine(false));
-    private void HandleEnemyDied() => StartCoroutine(EndBattleRoutine(true));
+    private void HandleEnemyDied()
+    {
+        TutorialManager.Instance?.OnEnemyDefeated();
+        StartCoroutine(EndBattleRoutine(true));
+    }
 
     private IEnumerator EndBattleRoutine(bool victory)
     {

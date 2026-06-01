@@ -12,6 +12,7 @@ public class BootManager : MonoBehaviour
         BattleManager.Instance.Init();
         GameManager.Instance.Init();
         GameFlowManager.Instance.Init();
+        TutorialManager.Instance.Init();
 
         Debug.Log("[BootManager] 초기화 완료");
     }

@@ -166,6 +166,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         DiscardHand();
         DrawToHand(_player.HandSize);
+        TutorialManager.Instance?.OnHandDrawn();
     }
 
     public void DiscardHand()
@@ -250,6 +251,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
         if (!_hand.Contains(card)) return false;
         if (card.Data != null && card.Data.isUnplayable) return false;
+        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
+            && !TutorialManager.Instance.CanPlaceCard(card, targetSlot)) return false;
         if (!_player.SpendCost(card.Data.cost)) return false;
 
         targetSlot.AssignCard(card);
@@ -257,8 +260,19 @@ public class CardManager : SingletonBehaviour<CardManager>
         _hand.Remove(card);
         OnHandChanged?.Invoke();
 
+        TutorialManager.Instance?.OnCardPlaced(card);
         ChainExecutor.Instance.ExecuteFrom(card);
         return true;
+    }
+
+    /// <summary>튜토리얼 전용 고정 덱을 세팅합니다.</summary>
+    public void SetTutorialDeck(System.Collections.Generic.List<CardData> cards)
+    {
+        _drawPile.Clear();
+        _discardPile.Clear();
+        // DrawCards는 마지막 인덱스부터 뽑으므로 역순으로 추가
+        for (int i = cards.Count - 1; i >= 0; i--)
+            _drawPile.Add(cards[i]);
     }
 
     // ── 유저 회수 액션 ─────────────────────────────────────

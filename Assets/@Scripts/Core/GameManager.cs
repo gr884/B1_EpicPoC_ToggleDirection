@@ -3,13 +3,13 @@ using UnityEngine;
 
 public class GameManager : SingletonBehaviour<GameManager>
 {
-    public enum GameState { Idle, Playing, GameOver, GameClear }
+    public enum GameState { Idle, Playing, Tutorial, GameOver, GameClear }
 
     // ── 상태 ──────────────────────────────────────
     public GameState CurrentState { get; private set; } = GameState.Idle;
     private bool _isPaused;
     public bool IsPaused => _isPaused;
-    public bool IsPlaying => CurrentState == GameState.Playing && !_isPaused;
+    public bool IsPlaying => (CurrentState == GameState.Playing || CurrentState == GameState.Tutorial) && !_isPaused;
 
     // ── 이벤트 ────────────────────────────────────
     public event Action<GameState> OnStateChanged;
@@ -23,6 +23,7 @@ public class GameManager : SingletonBehaviour<GameManager>
 
     // ── 상태 전환 ─────────────────────────────────
     public void GameStart() => ChangeState(GameState.Playing);
+    public void StartTutorial() => ChangeState(GameState.Tutorial);
     public void GameOver() => ChangeState(GameState.GameOver);
     public void GameClear() => ChangeState(GameState.GameClear);
     public void GoToMainMenu() => ChangeState(GameState.Idle);
@@ -43,6 +44,7 @@ public class GameManager : SingletonBehaviour<GameManager>
         switch (state)
         {
             case GameState.Playing:
+            case GameState.Tutorial:
                 Time.timeScale = 1f;
                 break;
             case GameState.GameOver:
