@@ -99,6 +99,24 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 int heal = Mathf.Max(1, Mathf.RoundToInt(value));
                 BattleManager.Instance.Player.Heal(heal);
                 break;
+            case EffectType.DirectionalDamageBonus:
+                int totalDamage = 0;
+                // 이 카드가 가진 화살표 방향의 카드들의 공격력들을 합산
+                foreach (var dir in card.Data.GetAllDirections())
+                {
+                    GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
+                    if (neighbor == null) continue;
+                    var targetCard = neighbor.OccupiedCard;
+                    if (targetCard == null || targetCard.Data == null) continue;
+
+                    foreach(var e in targetCard.Data.effects)
+                    {
+                        if (e.effectType == EffectType.Damage)
+                            totalDamage += (int)e.value;
+                    }
+                }
+                BattleManager.Instance.DealDamageToEnemy(totalDamage);
+                break;
             case EffectType.Draw:
                 int drawCount = Mathf.Max(1, Mathf.RoundToInt(value));
                 CardManager.Instance.DrawToHand(drawCount);
