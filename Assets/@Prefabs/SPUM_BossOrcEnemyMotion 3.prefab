@@ -78,7 +78,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2bcccb6b2fac4217821a153014e51aa7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BattleActorMotionTarget
-  _visualRoot: {fileID: 0}
+  _visualRoot: {fileID: 2088666539140257971}
   _attackPoint: {fileID: 910000000000000001}
 --- !u!114 &910000000000000003
 MonoBehaviour:
@@ -205,7 +205,8 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
-    m_RemovedGameObjects: []
+    m_RemovedGameObjects:
+    - {fileID: 7135823480773641089, guid: 57ca4a46cfda043d5b30e7ff2a838a24, type: 3}
     m_AddedGameObjects: []
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 6362383781342496639, guid: 57ca4a46cfda043d5b30e7ff2a838a24, type: 3}
@@ -215,6 +216,11 @@ PrefabInstance:
 --- !u!224 &1960625566437977601 stripped
 RectTransform:
   m_CorrespondingSourceObject: {fileID: 4390709075969330846, guid: 57ca4a46cfda043d5b30e7ff2a838a24, type: 3}
+  m_PrefabInstance: {fileID: 2871999365506523295}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &2088666539140257971 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4262387746273425452, guid: 57ca4a46cfda043d5b30e7ff2a838a24, type: 3}
   m_PrefabInstance: {fileID: 2871999365506523295}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &3441839537805494478 stripped
