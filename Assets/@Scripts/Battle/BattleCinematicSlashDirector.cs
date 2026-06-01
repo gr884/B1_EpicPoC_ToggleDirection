@@ -71,6 +71,17 @@ public class BattleCinematicSlashDirector : MonoBehaviour
         _routine = StartCoroutine(PlayRoutine());
     }
 
+    public IEnumerator PlayAndWait()
+    {
+        StopAndRestore();
+
+        if (!ResolveReferences())
+            yield break;
+
+        CaptureSnapshot();
+        yield return PlayRoutine();
+    }
+
     public void StopAndRestore()
     {
         if (_routine != null)
