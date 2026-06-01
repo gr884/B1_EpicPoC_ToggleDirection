@@ -15,17 +15,19 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
             case GameManager.GameState.Playing:
                 CardManager.Instance.DiscardHand();
                 CardManager.Instance.DiscardGrid();
+                CardManager.Instance.ResetDeck();
                 GridManager.Instance.BuildGrid();
                 CardManager.Instance.StartBattleDraw();
                 BattleManager.Instance.StartBattle();
                 break;
 
-            case GameManager.GameState.GameOver:
-                // TODO: 게임 오버 처리
+            case GameManager.GameState.Tutorial:
+                // TutorialManager가 OnStateChanged 구독해서 직접 처리
                 break;
 
+            case GameManager.GameState.GameOver:
             case GameManager.GameState.GameClear:
-                // TODO: 게임 클리어 처리
+                // TODO
                 break;
         }
     }

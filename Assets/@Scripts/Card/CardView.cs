@@ -14,6 +14,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private GameObject _preserveRoot;
     [SerializeField] private TMP_Text _preserveText;
     [SerializeField] private GameObject _selectionOverlay;
+    [SerializeField] private GameObject _highlightOverlay;
 
     [Header("Direction Icons")]
     [SerializeField] private Image _upLeft;
@@ -90,6 +91,8 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         if (_selectionOverlay != null)
             _selectionOverlay.SetActive(false);
+        if (_highlightOverlay != null)
+            _highlightOverlay.SetActive(false);
 
         if (_iconImage != null)
         {
@@ -131,6 +134,12 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         if (_selectionOverlay != null)
             _selectionOverlay.SetActive(selected);
+    }
+
+    public void SetHighlight(bool highlight)
+    {
+        if (_highlightOverlay != null)
+            _highlightOverlay.SetActive(highlight);
     }
 
     public void SetAffordable(bool affordable)

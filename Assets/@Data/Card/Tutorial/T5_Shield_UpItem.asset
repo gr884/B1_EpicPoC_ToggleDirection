@@ -10,27 +10,17 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: Preserve_UpDownLeftRightItem
+  m_Name: T5_Shield_UpItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uBCF4\uC8744"
-  description: "\uBC29\uC5B4 3, \uBCF4\uC874 + 1"
-  cost: 3
-  isUnplayable: 0
-  isCurseCard: 0
-  curseDamage: 3
-  range: 1
+  displayName: "\uBC29\uD328"
+  description: "\uBC29\uD328 + 5"
   recallDestination: 0
-  directions: 01000000050000000700000003000000
+  directions: 01000000
   effects:
   - scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 5
-    value: 1
-  - scope: 0
-    thresholdType: 0
-    threshold: 0
     effectType: 1
-    value: 3
-  icon: {fileID: 3975344044363933493, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+    value: 5
+  icon: {fileID: 7544613302241952520, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
