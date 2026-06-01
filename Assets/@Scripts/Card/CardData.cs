@@ -21,6 +21,7 @@ public enum EffectType
     Damage,
     Defense,
     Heal,
+    DirectionalDamageBonus, // 각 방향의 데미지 추가
 
     // 행동 효과 (즉시 실행)
     Draw,     // value = 드로우 장 수
