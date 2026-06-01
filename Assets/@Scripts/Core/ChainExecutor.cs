@@ -8,6 +8,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     [Header("Chain Settings")]
     [SerializeField] private int _maxActivationSteps = 2048;
     [SerializeField] private float _cardFeedbackDuration = 0.22f;
+    [SerializeField] private int _maxLoopCount = 3;
 
     public event Action OnChainStarted;
     public event Action OnChainFinished;
@@ -197,6 +198,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         // 무한 루프 감지용 — 이전 웨이브 셋 기록
         List<HashSet<CardView>> waveHistory = new();
+        int loopCount = 0;
 
         while (currentWave.Count > 0)
         {
@@ -265,17 +267,31 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             }
 
             // 무한 루프 감지 — 이전에 동일한 웨이브 조합이 있었으면 루프
-            foreach (HashSet<CardView> pastWave in waveHistory)
+            if (nextWaveSet.Count > 0)
             {
-                if (pastWave.SetEquals(nextWaveSet))
+                foreach (HashSet<CardView> pastWave in waveHistory)
                 {
-                    Debug.Log("[ChainExecutor] 무한 루프 감지");
-                    OnInfiniteLoopDetected();
-                    yield break;
+                    if (pastWave.SetEquals(nextWaveSet))
+                    {
+                        loopCount++;
+                        Debug.Log($"[ChainExecutor] 루프 감지 — {loopCount}/{_maxLoopCount}");
+
+                        if (loopCount >= _maxLoopCount)
+                        {
+                            Debug.Log("[ChainExecutor] 최대 루프 횟수 도달 — 체인 중단");
+                            OnInfiniteLoopDetected();
+                            yield break;
+                        }
+
+                        // 루프 허용 — 히스토리 초기화 후 계속 진행
+                        waveHistory.Clear();
+                        break;
+                    }
                 }
+
+                waveHistory.Add(nextWaveSet);
             }
 
-            waveHistory.Add(nextWaveSet);
             currentWave = new List<CardView>(nextWaveSet);
         }
     }
