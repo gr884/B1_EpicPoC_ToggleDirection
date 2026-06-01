@@ -10,12 +10,15 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: GainCost_DownItem
+  m_Name: ShieldPreserve_DownItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uC5D0\uB108\uC9C0 \uACF5\uAE09"
-  description: "\uC5D0\uB108\uC9C0\uB97C \uCD94\uAC00\uB85C 1 \uD68D\uB4DD\uD569\uB2C8\uB2E4."
-  cost: 2
+  displayName: "\uBC29\uBCBD \uC138\uC6B0\uAE30"
+  description: "5\uC758 \uBC29\uC5B4\uB3C4\uB97C \uC5BB\uC2B5\uB2C8\uB2E4.\n\uC544\uB798
+    \uD0C0\uC77C\uC744 \uD55C \uBC88 \uBCF4\uC874\uD569\uB2C8\uB2E4.\n\n\uBCF4\uC874
+    : \uD134 \uC885\uB8CC \uC2DC \n\uD69F\uC218\uB97C \uC18C\uBAA8\uD558\uACE0 \n\uC0AC\uB77C\uC9C0\uC9C0
+    \uC54A\uC2B5\uB2C8\uB2E4.\n"
+  cost: 1
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3
@@ -26,6 +29,11 @@ MonoBehaviour:
   - scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 5
+    effectType: 6
     value: 1
-  icon: {fileID: -3824217783865341878, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  - scope: 0
+    thresholdType: 0
+    threshold: 0
+    effectType: 1
+    value: 5
+  icon: {fileID: 2283088269339079388, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

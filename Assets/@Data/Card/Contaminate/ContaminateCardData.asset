@@ -14,11 +14,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardId: 
   displayName: "\uC624\uC5FC"
-  description: "\uD574\uB2F9 \uD134\uC5D0 \uBE44\uD65C\uC131\uD654 \uC2DC\uD0A4\uC9C0
-    \uC54A\uC73C\uBA74 \uB301\uC5D0 \uC800\uC8FC \uCE74\uB4DC\uAC00 2\uC7A5 \uB4E4\uC5B4\uAC11\uB2C8\uB2E4."
+  description: "\uD574\uB2F9 \uD134\uC5D0 \uBE44\uD65C\uC131\uD654\n\uC2DC\uD0A4\uC9C0
+    \uC54A\uC73C\uBA74 \uB301\uC5D0\n\uC800\uC8FC \uCE74\uB4DC\uAC00\n2\uC7A5 \uB4E4\uC5B4\uAC11\uB2C8\uB2E4."
   cost: 0
   isUnplayable: 0
   isCurseCard: 0
+  curseDamage: 3
   range: 1
   recallDestination: 0
   directions: 
