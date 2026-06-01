@@ -8,6 +8,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     [SerializeField] private GameObject _cardPrefab;
     [SerializeField] private RectTransform _handRoot;
     [SerializeField] private Player _player;
+    [SerializeField] private DeckHandFlightEffectPlayer _flightEffectPlayer;
 
     [Header("Deck")]
     [SerializeField] private List<CardData> _startingDeck = new();
@@ -150,6 +151,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         foreach (CardData data in drawn)
             SpawnToHand(data);
 
+        _flightEffectPlayer?.PlayDrawToHand(drawn.Count);
+
         // 손패 상한 초과분은 무덤으로
         if (overflow > 0)
         {
@@ -174,6 +177,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         {
             if (card == null) continue;
             _discardPile.Add(card.Data);
+            _flightEffectPlayer?.PlayDiscardFrom(card.transform);
             PoolManager.Instance.Return(card.gameObject);
         }
 
@@ -234,6 +238,7 @@ public class CardManager : SingletonBehaviour<CardManager>
             }
 
             _discardPile.Add(card.Data);
+            _flightEffectPlayer?.PlayDiscardFrom(card.transform);
             slot.ClearCard();
             PoolManager.Instance.Return(card.gameObject);
         }
