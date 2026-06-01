@@ -33,9 +33,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnChainStarted?.Invoke();
         _activatedCards.Clear();
 
+        // 그리드 카드 드래그 차단
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
+
+        // 손패 카드 드래그 차단
+        foreach (CardView card in CardManager.Instance.Hand)
+            if (card != null) card.SetDraggable(false);
 
         yield return ActivateChainFrom(rootCard, _activatedCards);
 
@@ -48,9 +53,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 효과 처리 ──────────────────────────────────────────
 
-    private void ApplyEffects(CardView card)
+    private int ApplyEffects(CardView card, bool deferDamage = false)
     {
-        if (card?.Data?.effects == null) return;
+        int deferredDamage = 0;
+        if (card?.Data?.effects == null) return deferredDamage;
 
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
@@ -59,13 +65,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
-                    ApplyEffect(effect.effectType, effect.value, card);
+                    ApplyEffect(effect.effectType, effect.value, card, deferDamage, ref deferredDamage);
                 continue;
             }
 
             if (effect.scope == CountScope.None)
             {
-                ApplyEffect(effect.effectType, effect.value, card);
+                ApplyEffect(effect.effectType, effect.value, card, deferDamage, ref deferredDamage);
                 continue;
             }
 
@@ -80,16 +86,21 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         foreach (var kv in atLeastBest)
-            ApplyEffect(kv.Key, kv.Value.value, card);
+            ApplyEffect(kv.Key, kv.Value.value, card, deferDamage, ref deferredDamage);
+
+        return deferredDamage;
     }
 
-    private void ApplyEffect(EffectType type, float value, CardView card = null)
+    private void ApplyEffect(EffectType type, float value, CardView card, bool deferDamage, ref int deferredDamage)
     {
         switch (type)
         {
             case EffectType.Damage:
                 int damage = Mathf.Max(1, Mathf.RoundToInt(value));
-                BattleManager.Instance.DealDamageToEnemy(damage);
+                if (deferDamage)
+                    deferredDamage += damage;
+                else
+                    BattleManager.Instance.DealDamageToEnemy(damage);
                 break;
             case EffectType.Defense:
                 int defense = Mathf.Max(1, Mathf.RoundToInt(value));
@@ -101,7 +112,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 break;
             case EffectType.DirectionalDamageBonus:
                 int totalDamage = 0;
-                // 이 카드가 가진 화살표 방향의 카드들의 공격력들을 합산
                 foreach (var dir in card.Data.GetAllDirections())
                 {
                     GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
@@ -109,7 +119,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     var targetCard = neighbor.OccupiedCard;
                     if (targetCard == null || targetCard.Data == null) continue;
 
-                    foreach(var e in targetCard.Data.effects)
+                    foreach (var e in targetCard.Data.effects)
                     {
                         if (e.effectType == EffectType.Damage)
                             totalDamage += (int)e.value;
@@ -214,7 +224,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         List<CardView> currentWave = new() { root };
         int step = 0;
 
-        // 무한 루프 감지용 — 이전 웨이브 셋 기록
         List<HashSet<CardView>> waveHistory = new();
         int loopCount = 0;
 
@@ -242,9 +251,22 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     activatedCards.Add(current);
 
                     if (!current.IsEnemy)
-                        ApplyEffects(current);
+                    {
+                        bool hasMotionRequest = TryCreateMotionRequest(current, out CharacterMotionRequest motionRequest);
+                        bool deferDamage = hasMotionRequest
+                            && motionRequest.MotionType == CharacterMotionType.Attack
+                            && CharacterMotionEvents.HasCardMotionListeners;
+                        int deferredDamage = ApplyEffects(current, deferDamage);
 
-                    // 적이 죽었으면 체인 중단
+                        if (hasMotionRequest)
+                        {
+                            if (deferDamage)
+                                motionRequest = motionRequest.WithDamageAmount(deferredDamage);
+
+                            CharacterMotionEvents.RequestCardMotion(motionRequest);
+                        }
+                    }
+
                     if (BattleManager.Instance.Enemy.IsDead)
                     {
                         Debug.Log("[ChainExecutor] 적 사망 — 체인 중단");
@@ -284,7 +306,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 }
             }
 
-            // 무한 루프 감지 — 이전에 동일한 웨이브 조합이 있었으면 루프
             if (nextWaveSet.Count > 0)
             {
                 foreach (HashSet<CardView> pastWave in waveHistory)
@@ -301,7 +322,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                             yield break;
                         }
 
-                        // 루프 허용 — 히스토리 초기화 후 계속 진행
                         waveHistory.Clear();
                         break;
                     }
@@ -312,6 +332,58 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
             currentWave = new List<CardView>(nextWaveSet);
         }
+    }
+
+    private bool TryCreateMotionRequest(CardView card, out CharacterMotionRequest request)
+    {
+        request = default;
+        if (card?.Data?.effects == null || card.CurrentSlot == null) return false;
+
+        if (ContainsEffect(card.Data, EffectType.Damage))
+        {
+            request = new CharacterMotionRequest(
+                CharacterMotionType.Attack,
+                card,
+                card.Data,
+                EffectType.Damage,
+                card.CurrentSlot.Position);
+            return true;
+        }
+
+        if (ContainsEffect(card.Data, EffectType.Defense))
+        {
+            request = new CharacterMotionRequest(
+                CharacterMotionType.Defend,
+                card,
+                card.Data,
+                EffectType.Defense,
+                card.CurrentSlot.Position);
+            return true;
+        }
+
+        if (ContainsEffect(card.Data, EffectType.Preserve))
+        {
+            request = new CharacterMotionRequest(
+                CharacterMotionType.Defend,
+                card,
+                card.Data,
+                EffectType.Preserve,
+                card.CurrentSlot.Position);
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool ContainsEffect(CardData data, EffectType effectType)
+    {
+        if (data?.effects == null) return false;
+
+        foreach (CardEffect effect in data.effects)
+            if (effect.effectType == effectType)
+                return true;
+
+        return false;
     }
 
     /// <summary>무한 루프가 감지됐을 때 호출됩니다. 처리 방식은 추후 결정.</summary>

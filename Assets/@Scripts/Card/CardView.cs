@@ -127,7 +127,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public void SetDraggable(bool draggable)
     {
         CardDragHandler drag = GetComponent<CardDragHandler>();
-        if (drag != null) drag.enabled = draggable;
+        if (drag != null) drag.SetDraggable(draggable);
     }
 
     public void SetSelected(bool selected)

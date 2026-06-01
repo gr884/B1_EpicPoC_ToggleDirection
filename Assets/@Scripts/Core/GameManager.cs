@@ -1,5 +1,6 @@
 using System;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : SingletonBehaviour<GameManager>
 {
@@ -26,7 +27,7 @@ public class GameManager : SingletonBehaviour<GameManager>
     public void StartTutorial() => ChangeState(GameState.Tutorial);
     public void GameOver() => ChangeState(GameState.GameOver);
     public void GameClear() => ChangeState(GameState.GameClear);
-    public void GoToMainMenu() => ChangeState(GameState.Idle);
+    public void GoToMainMenu() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); // 꼼수
 
     private void ChangeState(GameState state)
     {

@@ -26,7 +26,7 @@ MonoBehaviour:
   - scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 5
+    effectType: 6
     value: 1
   - scope: 0
     thresholdType: 0

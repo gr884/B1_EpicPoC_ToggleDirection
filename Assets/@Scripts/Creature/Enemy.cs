@@ -1,10 +1,13 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Enemy : MonoBehaviour
 {
     [SerializeField] private BattleActorView _view;
+    [SerializeField] private BattleActorMotionTarget _motionTarget;
+    [SerializeField] private SpumEnemyMotionPlayer _motionPlayer;
     [SerializeField] private GameObject _cardPrefab;
     [SerializeField] private CardData _contaminateCardData;
     [SerializeField] private CardData _curseCardData;
@@ -16,6 +19,9 @@ public class Enemy : MonoBehaviour
     public int CurrentDefense { get; private set; }
     public EnemyIntentTurn CurrentIntentTurn { get; private set; }
     public CardData CurseCardData => _curseCardData;
+    public BattleActorMotionTarget MotionTarget => _motionTarget;
+    public Transform ViewTransform => _motionTarget != null ? _motionTarget.AttackPoint : transform;
+    public SpumEnemyMotionPlayer MotionPlayer => _motionPlayer;
 
     public event Action OnDied;
     public event Action<EnemyIntentTurn> OnIntentChanged;
@@ -43,8 +49,40 @@ public class Enemy : MonoBehaviour
         int blocked = Mathf.Min(CurrentDefense, damage);
         CurrentDefense -= blocked;
         int remaining = damage - blocked;
+        int finalDamage = Mathf.Max(0, remaining);
+        bool willDie = finalDamage > 0 && _view != null && _view.CurrentHp - finalDamage <= 0;
+
+        if (willDie)
+            _motionPlayer?.PlayDie();
+        else if (finalDamage > 0)
+            _motionPlayer?.PlayHit();
+
         _view.SetDefense(CurrentDefense);
-        _view.TakeDamage(Mathf.Max(0, remaining));
+        _view.TakeDamage(finalDamage);
+    }
+
+    public IEnumerator PlayAttackMotion()
+    {
+        if (_motionPlayer != null)
+            yield return _motionPlayer.PlayAttackRoutine();
+    }
+
+    public IEnumerator PlayAttackMotion(int hitCount)
+    {
+        if (_motionPlayer != null)
+            yield return _motionPlayer.PlayAttackRoutine(hitCount);
+    }
+
+    public IEnumerator PlayAttackMotion(int hitCount, Action onAttackFinished)
+    {
+        if (_motionPlayer != null)
+            yield return _motionPlayer.PlayAttackRoutine(hitCount, onAttackFinished);
+    }
+
+    public IEnumerator WaitForDieMotion()
+    {
+        if (_motionPlayer != null)
+            yield return _motionPlayer.WaitForDieMotion();
     }
 
     public int GetIntentValue(EnemyIntentType type)

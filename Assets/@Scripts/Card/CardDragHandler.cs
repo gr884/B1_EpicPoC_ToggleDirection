@@ -13,6 +13,12 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private int _startSiblingIndex;
     private bool _dropAccepted;
     private bool _dragBlocked;
+    private bool _isDraggable = true;
+
+    public void SetDraggable(bool draggable)
+    {
+        _isDraggable = draggable;
+    }
 
     public CardView Card { get; private set; }
 
@@ -27,7 +33,9 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     {
         _dragBlocked = false;
         if (!enabled || Card == null) return;
+        if (!_isDraggable) return;
         if (Card.CurrentSlot != null) return;
+        if (BattleManager.Instance != null && BattleManager.Instance.IsProcessing) return;
 
         // 튜토리얼에서 막힌 카드면 드래그 차단
         if (TutorialManager.Instance != null && !TutorialManager.Instance.CanDragCard(Card))

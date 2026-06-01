@@ -199,11 +199,21 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             foreach (EnemyIntentData intent in _enemy.CurrentIntentTurn.intents)
             {
                 if (intent.type != EnemyIntentType.Attack || intent.value <= 0) continue;
-                for (int i = 0; i < intent.hits; i++)
+
+                if (_enemy.MotionPlayer != null)
                 {
-                    _player.TakeAttack(intent.value);
-                    if (intent.hits > 1)
-                        yield return new WaitForSeconds(0.2f);
+                    yield return _enemy.PlayAttackMotion(
+                        intent.hits,
+                        () => _player.TakeAttack(intent.value));
+                }
+                else
+                {
+                    for (int i = 0; i < intent.hits; i++)
+                    {
+                        _player.TakeAttack(intent.value);
+                        if (intent.hits > 1)
+                            yield return new WaitForSeconds(0.2f);
+                    }
                 }
             }
         }
@@ -237,6 +247,9 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _isBattleActive = false;
         IsProcessing = false;
         Debug.Log($"[BattleManager] 전투 종료 — {(victory ? "승리" : "패배")}");
+
+        if (victory && _enemy != null && _enemy.MotionPlayer != null)
+            yield return _enemy.WaitForDieMotion();
 
         yield return new WaitForSecondsRealtime(1f);
 
