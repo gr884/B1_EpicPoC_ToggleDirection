@@ -1,8 +1,12 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.UI;
 
 public class GridSlot : MonoBehaviour, IDropHandler
 {
+    [Header("Highlight")]
+    [SerializeField] private GameObject _highlightOverlay;
+
     public Vector2Int Position { get; private set; }
     public CardView OccupiedCard { get; private set; }
     public bool IsEmpty => OccupiedCard == null;
@@ -11,6 +15,7 @@ public class GridSlot : MonoBehaviour, IDropHandler
     {
         Position = position;
         OccupiedCard = null;
+        SetHighlight(false);
     }
 
     public void AssignCard(CardView card)
@@ -18,6 +23,7 @@ public class GridSlot : MonoBehaviour, IDropHandler
         OccupiedCard = card;
         if (card != null)
             card.SetPlaced(this);
+        SetHighlight(false);
     }
 
     public void ClearCard()
@@ -25,6 +31,12 @@ public class GridSlot : MonoBehaviour, IDropHandler
         if (OccupiedCard != null)
             OccupiedCard.SetPlaced(null);
         OccupiedCard = null;
+    }
+
+    public void SetHighlight(bool highlight)
+    {
+        if (_highlightOverlay != null)
+            _highlightOverlay.SetActive(highlight);
     }
 
     // ── UI 이벤트 ──────────────────────────────────────────

@@ -14,6 +14,12 @@ public class Player : MonoBehaviour
     public int HandSize => _handSize;
     public int MaxHandSize => _maxHandSize;
     public int MaxHp => _maxHp;
+    public int DefaultHandSize { get; private set; }
+
+    public void SetHandSize(int size)
+    {
+        _handSize = Mathf.Max(1, size);
+    }
     public int CurrentHp => _view != null ? _view.CurrentHp : 0;
     public bool IsDead => _view != null && _view.IsDead;
     public BattleActorMotionTarget MotionTarget => _motionTarget;
@@ -25,6 +31,11 @@ public class Player : MonoBehaviour
     public event Action OnDied;
     public event Action OnCostChanged;
     public event Action OnDefenseChanged;
+
+    private void Awake()
+    {
+        DefaultHandSize = _handSize;
+    }
 
     // ── 초기화 ─────────────────────────────────────────────
 

@@ -34,7 +34,7 @@ public class UI_MainMenu : MonoBehaviour
 
     private void OnTutorialClicked()
     {
-        // TODO: 튜토리얼 구현
+        GameManager.Instance.StartTutorial();
     }
 
     private void SetVisible(bool visible)

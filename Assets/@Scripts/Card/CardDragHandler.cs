@@ -10,7 +10,9 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private Canvas _rootCanvas;
     private Transform _startParent;
     private Vector3 _startWorldPosition;
+    private int _startSiblingIndex;
     private bool _dropAccepted;
+    private bool _dragBlocked;
 
     public CardView Card { get; private set; }
 
@@ -23,8 +25,16 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnBeginDrag(PointerEventData eventData)
     {
+        _dragBlocked = false;
         if (!enabled || Card == null) return;
-        if (Card.CurrentSlot != null) return; // 그리드에 배치된 카드는 드래그 불가
+        if (Card.CurrentSlot != null) return;
+
+        // 튜토리얼에서 막힌 카드면 드래그 차단
+        if (TutorialManager.Instance != null && !TutorialManager.Instance.CanDragCard(Card))
+        {
+            _dragBlocked = true;
+            return;
+        }
 
         _rootCanvas = FindFirstObjectByType<Canvas>();
         if (_rootCanvas == null) return;
@@ -32,30 +42,34 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         _dropAccepted = false;
         _startWorldPosition = _rectTransform.position;
         _startParent = transform.parent;
+        _startSiblingIndex = transform.GetSiblingIndex();
 
         _rectTransform.SetParent(_rootCanvas.transform, true);
         _canvasGroup.blocksRaycasts = false;
         _canvasGroup.alpha = 0.75f;
+
+        TutorialManager.Instance?.OnCardDragBegin(Card);
     }
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (!enabled || _rootCanvas == null || Card.CurrentSlot != null) return;
+        if (!enabled || _dragBlocked || _rootCanvas == null || Card.CurrentSlot != null) return;
         _rectTransform.anchoredPosition += eventData.delta / _rootCanvas.scaleFactor;
     }
 
     public void OnEndDrag(PointerEventData eventData)
     {
-        if (!enabled) return;
+        if (!enabled || _dragBlocked) return;
 
         _canvasGroup.blocksRaycasts = true;
         _canvasGroup.alpha = 1f;
 
-        // 드롭 실패 시 원래 위치로 복귀
         if (!_dropAccepted)
         {
             _rectTransform.SetParent(_startParent, true);
+            _rectTransform.SetSiblingIndex(_startSiblingIndex);
             _rectTransform.position = _startWorldPosition;
+            TutorialManager.Instance?.OnCardDragCancelled(Card);
         }
     }
 
