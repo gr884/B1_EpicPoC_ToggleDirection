@@ -6057,6 +6057,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ChainExecutor
   _maxActivationSteps: 100
   _cardFeedbackDuration: 0.22
+  _maxLoopCount: 3
 --- !u!1 &1370327665
 GameObject:
   m_ObjectHideFlags: 0
@@ -9090,22 +9091,17 @@ MonoBehaviour:
   _handRoot: {fileID: 529960746}
   _player: {fileID: 1113997785}
   _startingDeck:
-  - {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
-  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
-  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
-  - {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
-  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
-  - {fileID: 11400000, guid: 7d6039914d21bb943877c525d80b4fed, type: 2}
-  - {fileID: 11400000, guid: 2a57aeae75e33f14d994c512de18b1e0, type: 2}
-  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
   - {fileID: 11400000, guid: ae60efd8aefbe6b419bab5234d12684e, type: 2}
   - {fileID: 11400000, guid: 11428c1aab0a94145b27670d83509e4b, type: 2}
   - {fileID: 11400000, guid: 63f90e3b9b2ae0047af773bf5e785433, type: 2}
-  - {fileID: 11400000, guid: 61a85492deb3cee40bf4a4d3e3d28bb7, type: 2}
-  - {fileID: 11400000, guid: f42fba7989e55c443996df68129a82c0, type: 2}
-  - {fileID: 11400000, guid: 9b1997debaf27eb4e9caa002d837530a, type: 2}
-  - {fileID: 11400000, guid: 1a8a1723fda46c1498ab247f1f877a8d, type: 2}
-  - {fileID: 11400000, guid: daf72772009d0dc4e81618a8acdf1844, type: 2}
+  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
+  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
+  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
+  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
   _shuffleOnReset: 1
 --- !u!1 &2058230710
 GameObject:
