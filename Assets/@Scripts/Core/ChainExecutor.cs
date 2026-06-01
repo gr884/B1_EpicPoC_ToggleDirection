@@ -195,6 +195,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         List<CardView> currentWave = new() { root };
         int step = 0;
 
+        // 무한 루프 감지용 — 이전 웨이브 셋 기록
+        List<HashSet<CardView>> waveHistory = new();
+
         while (currentWave.Count > 0)
         {
             List<CardView> emitters = new();
@@ -261,8 +264,26 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 }
             }
 
+            // 무한 루프 감지 — 이전에 동일한 웨이브 조합이 있었으면 루프
+            foreach (HashSet<CardView> pastWave in waveHistory)
+            {
+                if (pastWave.SetEquals(nextWaveSet))
+                {
+                    Debug.Log("[ChainExecutor] 무한 루프 감지");
+                    OnInfiniteLoopDetected();
+                    yield break;
+                }
+            }
+
+            waveHistory.Add(nextWaveSet);
             currentWave = new List<CardView>(nextWaveSet);
         }
+    }
+
+    /// <summary>무한 루프가 감지됐을 때 호출됩니다. 처리 방식은 추후 결정.</summary>
+    private void OnInfiniteLoopDetected()
+    {
+        // TODO: 무한 루프 처리 구현
     }
 
     protected override void Dispose()
