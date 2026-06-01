@@ -15,6 +15,7 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
             case GameManager.GameState.Playing:
                 CardManager.Instance.DiscardHand();
                 CardManager.Instance.DiscardGrid();
+                CardManager.Instance.ResetDeck();
                 GridManager.Instance.BuildGrid();
                 CardManager.Instance.StartBattleDraw();
                 BattleManager.Instance.StartBattle();

@@ -31,6 +31,12 @@ public class Player : MonoBehaviour
         _view.OnDied -= HandleDied;
         _view.OnDied += HandleDied;
         _view.Setup("Player", _maxHp, currentHp);
+
+        CurrentDefense = 0;
+        _view.SetDefense(0);
+        CurrentCost = _maxCost;
+        OnDefenseChanged?.Invoke();
+        OnCostChanged?.Invoke();
     }
 
     public void RestoreCost()
