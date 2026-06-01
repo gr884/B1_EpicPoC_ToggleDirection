@@ -17,12 +17,14 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
     [SerializeField] private Sprite drawSprite;
     [SerializeField] private Sprite returnSprite;
     [SerializeField] private Sprite refillSprite;
+    [SerializeField] private Sprite recallSprite;
 
     [Header("Motion")]
     [SerializeField] private Vector2 effectSize = new(56f, 72f);
     [SerializeField, Min(0f)] private float drawDuration = 0.28f;
     [SerializeField, Min(0f)] private float returnDuration = 0.24f;
     [SerializeField, Min(0f)] private float refillDuration = 0.32f;
+    [SerializeField, Min(0f)] private float recallDuration = 0.24f;
     [SerializeField, Min(0f)] private float drawStaggerDelay = 0.05f;
     [SerializeField, Min(0f)] private float refillStaggerDelay = 0.04f;
     [SerializeField] private float arcHeight = 80f;
@@ -36,6 +38,7 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
     public bool CanPlayDraw => drawSprite != null && ResolveSceneRefs(null) && handTarget != null;
     public bool CanPlayReturn => returnSprite != null && ResolveSceneRefs(null) && discardTarget != null;
     public bool CanPlayRefill => GetRefillSprite() != null && ResolveSceneRefs(null) && discardTarget != null;
+    public bool CanPlayRecall => GetRecallSprite() != null && ResolveSceneRefs(null) && handTarget != null;
     public float DrawStaggerDelay => drawStaggerDelay;
 
     private void Reset()
@@ -141,6 +144,23 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
         }
     }
 
+    public void PlayRecallToHandFrom(Transform source)
+    {
+        Sprite sprite = GetRecallSprite();
+        if (sprite == null || source == null || !ResolveSceneRefs(source) || handTarget == null)
+        {
+            return;
+        }
+
+        if (!TryGetLocalPoint(source, out Vector2 startPosition) ||
+            !TryGetLocalPoint(handTarget, out Vector2 targetPosition))
+        {
+            return;
+        }
+
+        StartCoroutine(PlayFlightRoutine(sprite, startPosition, targetPosition, recallDuration));
+    }
+
     private IEnumerator PlayFlightRoutine(Sprite sprite, Vector2 startPosition, Vector2 targetPosition, float duration)
     {
         return PlayFlightRoutine(sprite, startPosition, targetPosition, duration, arcHeight);
@@ -181,6 +201,16 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
     private Sprite GetRefillSprite()
     {
         return refillSprite != null ? refillSprite : returnSprite;
+    }
+
+    private Sprite GetRecallSprite()
+    {
+        if (recallSprite != null)
+        {
+            return recallSprite;
+        }
+
+        return drawSprite != null ? drawSprite : returnSprite;
     }
 
     private GameObject CreateEffectObject(Sprite sprite, Vector2 anchoredPosition)

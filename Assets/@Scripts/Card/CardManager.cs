@@ -201,6 +201,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         {
             case RecallDestination.Hand:
                 CardData recallData = card.Data;
+                _flightEffectPlayer?.PlayRecallToHandFrom(card.transform);
                 PoolManager.Instance.Return(card.gameObject);
                 SpawnToHand(recallData);
                 OnHandChanged?.Invoke();
@@ -281,6 +282,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         slot.ClearCard();
 
         CardData recallData = card.Data;
+        _flightEffectPlayer?.PlayRecallToHandFrom(card.transform);
         PoolManager.Instance.Return(card.gameObject);
         SpawnToHand(recallData);
         OnHandChanged?.Invoke();
