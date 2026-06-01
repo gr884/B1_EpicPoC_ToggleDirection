@@ -4,6 +4,7 @@ using UnityEngine;
 public class Player : MonoBehaviour
 {
     [SerializeField] private BattleActorView _view;
+    [SerializeField] private BattleActorMotionTarget _motionTarget;
 
     [SerializeField] private int _maxHp = 30;
     [SerializeField] private int _handSize = 5;
@@ -15,6 +16,7 @@ public class Player : MonoBehaviour
     public int MaxHp => _maxHp;
     public int CurrentHp => _view != null ? _view.CurrentHp : 0;
     public bool IsDead => _view != null && _view.IsDead;
+    public BattleActorMotionTarget MotionTarget => _motionTarget;
 
     public int MaxCost => _maxCost;
     public int CurrentCost { get; private set; }

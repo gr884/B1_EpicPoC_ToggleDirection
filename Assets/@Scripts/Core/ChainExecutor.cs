@@ -48,9 +48,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 효과 처리 ──────────────────────────────────────────
 
-    private void ApplyEffects(CardView card)
+    private int ApplyEffects(CardView card, bool deferDamage = false)
     {
-        if (card?.Data?.effects == null) return;
+        int deferredDamage = 0;
+        if (card?.Data?.effects == null) return deferredDamage;
 
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
@@ -59,13 +60,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
-                    ApplyEffect(effect.effectType, effect.value, card);
+                    ApplyEffect(effect.effectType, effect.value, card, deferDamage, ref deferredDamage);
                 continue;
             }
 
             if (effect.scope == CountScope.None)
             {
-                ApplyEffect(effect.effectType, effect.value, card);
+                ApplyEffect(effect.effectType, effect.value, card, deferDamage, ref deferredDamage);
                 continue;
             }
 
@@ -80,16 +81,21 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         foreach (var kv in atLeastBest)
-            ApplyEffect(kv.Key, kv.Value.value, card);
+            ApplyEffect(kv.Key, kv.Value.value, card, deferDamage, ref deferredDamage);
+
+        return deferredDamage;
     }
 
-    private void ApplyEffect(EffectType type, float value, CardView card = null)
+    private void ApplyEffect(EffectType type, float value, CardView card, bool deferDamage, ref int deferredDamage)
     {
         switch (type)
         {
             case EffectType.Damage:
                 int damage = Mathf.Max(1, Mathf.RoundToInt(value));
-                BattleManager.Instance.DealDamageToEnemy(damage);
+                if (deferDamage)
+                    deferredDamage += damage;
+                else
+                    BattleManager.Instance.DealDamageToEnemy(damage);
                 break;
             case EffectType.Defense:
                 int defense = Mathf.Max(1, Mathf.RoundToInt(value));
@@ -224,7 +230,21 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     activatedCards.Add(current);
 
                     if (!current.IsEnemy)
-                        ApplyEffects(current);
+                    {
+                        bool hasMotionRequest = TryCreateMotionRequest(current, out CharacterMotionRequest motionRequest);
+                        bool deferDamage = hasMotionRequest
+                            && motionRequest.MotionType == CharacterMotionType.Attack
+                            && CharacterMotionEvents.HasCardMotionListeners;
+                        int deferredDamage = ApplyEffects(current, deferDamage);
+
+                        if (hasMotionRequest)
+                        {
+                            if (deferDamage)
+                                motionRequest = motionRequest.WithDamageAmount(deferredDamage);
+
+                            CharacterMotionEvents.RequestCardMotion(motionRequest);
+                        }
+                    }
 
                     // 적이 죽었으면 체인 중단
                     if (BattleManager.Instance.Enemy.IsDead)
@@ -294,6 +314,58 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
             currentWave = new List<CardView>(nextWaveSet);
         }
+    }
+
+    private bool TryCreateMotionRequest(CardView card, out CharacterMotionRequest request)
+    {
+        request = default;
+        if (card?.Data?.effects == null || card.CurrentSlot == null) return false;
+
+        if (ContainsEffect(card.Data, EffectType.Damage))
+        {
+            request = new CharacterMotionRequest(
+                CharacterMotionType.Attack,
+                card,
+                card.Data,
+                EffectType.Damage,
+                card.CurrentSlot.Position);
+            return true;
+        }
+
+        if (ContainsEffect(card.Data, EffectType.Defense))
+        {
+            request = new CharacterMotionRequest(
+                CharacterMotionType.Defend,
+                card,
+                card.Data,
+                EffectType.Defense,
+                card.CurrentSlot.Position);
+            return true;
+        }
+
+        if (ContainsEffect(card.Data, EffectType.Preserve))
+        {
+            request = new CharacterMotionRequest(
+                CharacterMotionType.Defend,
+                card,
+                card.Data,
+                EffectType.Preserve,
+                card.CurrentSlot.Position);
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool ContainsEffect(CardData data, EffectType effectType)
+    {
+        if (data?.effects == null) return false;
+
+        foreach (CardEffect effect in data.effects)
+            if (effect.effectType == effectType)
+                return true;
+
+        return false;
     }
 
     /// <summary>무한 루프가 감지됐을 때 호출됩니다. 처리 방식은 추후 결정.</summary>
