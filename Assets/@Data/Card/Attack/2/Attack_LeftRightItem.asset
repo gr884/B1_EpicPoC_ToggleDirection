@@ -16,11 +16,6 @@ MonoBehaviour:
   displayName: "\uACF5\uACA92"
   description: "\uACF5\uACA9 + 5\n\uAC19\uC740 \uD589 \uC804\uBD80 \uD65C\uC131\uD654
     \uC2DC,\n\uCD94\uAC00 \uACF5\uACA9 + 5"
-  cost: 1
-  isUnplayable: 0
-  isCurseCard: 0
-  curseDamage: 3
-  range: 1
   recallDestination: 0
   directions: 0700000003000000
   effects:
