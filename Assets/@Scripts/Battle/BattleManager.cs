@@ -16,6 +16,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     private int _currentEnemyIndex = 0;
     private bool _isBattleActive;
+    private bool _isEndingBattle;
 
     public BattlePhase CurrentPhase { get; private set; }
     public bool IsProcessing { get; private set; }
@@ -64,6 +65,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _enemy.OnDied += HandleEnemyDied;
 
         _isBattleActive = true;
+        _isEndingBattle = false;
         _enemy.Setup(enemyData);
 
         EnterPhase(BattlePhase.PlayerTurn);
@@ -91,6 +93,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _enemy.OnDied += HandleEnemyDied;
 
         _isBattleActive = true;
+        _isEndingBattle = false;
         _enemy.Setup(enemyData);
 
         EnterPhase(BattlePhase.PlayerTurn);
@@ -244,6 +247,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     private IEnumerator EndBattleRoutine(bool victory)
     {
+        if (_isEndingBattle) yield break;
+        _isEndingBattle = true;
         _isBattleActive = false;
         IsProcessing = false;
         Debug.Log($"[BattleManager] 전투 종료 — {(victory ? "승리" : "패배")}");

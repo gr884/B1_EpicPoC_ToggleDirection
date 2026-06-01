@@ -18,6 +18,7 @@ public class BattleActorView : MonoBehaviour
     private int _maxHp;
     private int _currentHp;
     private string _label;
+    private bool _hasDied;
 
     public string Label => _label;
     private RectTransform _rectTransform;
@@ -40,6 +41,7 @@ public class BattleActorView : MonoBehaviour
         _label = label;
         _maxHp = Mathf.Max(1, maxHp);
         _currentHp = _maxHp;
+        _hasDied = false;
         SetDefense(0);
         Refresh();
     }
@@ -49,6 +51,7 @@ public class BattleActorView : MonoBehaviour
         _label = label;
         _maxHp = Mathf.Max(1, maxHp);
         _currentHp = Mathf.Clamp(currentHp, 0, _maxHp);
+        _hasDied = _currentHp <= 0;
         SetDefense(0);
         Refresh();
     }
@@ -67,8 +70,11 @@ public class BattleActorView : MonoBehaviour
 
         Debug.Log($"[BattleActorView] {_label} 데미지 {damage} → HP {_currentHp}/{_maxHp}");
 
-        if (_currentHp <= 0)
+        if (!_hasDied && _currentHp <= 0)
+        {
+            _hasDied = true;
             OnDied?.Invoke();
+        }
     }
 
     public void Heal(int amount)
