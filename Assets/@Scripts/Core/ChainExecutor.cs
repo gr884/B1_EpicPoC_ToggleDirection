@@ -44,8 +44,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         bool willCreateInfiniteLoop = WouldCreateInfiniteLoop(rootCard);
 
-        bool willCreateInfiniteLoop = WouldCreateInfiniteLoop(rootCard);
-
         IsExecuting = true;
         OnChainStarted?.Invoke();
         _activatedCards.Clear();
