@@ -9,7 +9,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private CanvasGroup _canvasGroup;
     private Canvas _rootCanvas;
     private Transform _startParent;
-    private Vector3 _startWorldPosition;
+    private Vector2 _startAnchoredPosition;
     private int _startSiblingIndex;
     private bool _dropAccepted;
     private bool _dragBlocked;
@@ -31,24 +31,23 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     public void OnBeginDrag(PointerEventData eventData)
     {
-        _dragBlocked = false;
+        _dragBlocked = true; // 기본값 차단, 정상 진행 시에만 false로
         if (!enabled || Card == null) return;
         if (!_isDraggable) return;
         if (Card.CurrentSlot != null) return;
         if (BattleManager.Instance != null && BattleManager.Instance.IsProcessing) return;
+        if (ChainExecutor.Instance != null && ChainExecutor.Instance.IsExecuting) return;
 
         // 튜토리얼에서 막힌 카드면 드래그 차단
         if (TutorialManager.Instance != null && !TutorialManager.Instance.CanDragCard(Card))
-        {
-            _dragBlocked = true;
             return;
-        }
 
         _rootCanvas = FindFirstObjectByType<Canvas>();
         if (_rootCanvas == null) return;
 
+        _dragBlocked = false; // 여기까지 왔으면 정상 드래그
         _dropAccepted = false;
-        _startWorldPosition = _rectTransform.position;
+        _startAnchoredPosition = _rectTransform.anchoredPosition;
         _startParent = transform.parent;
         _startSiblingIndex = transform.GetSiblingIndex();
 
@@ -74,9 +73,9 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         if (!_dropAccepted)
         {
-            _rectTransform.SetParent(_startParent, true);
+            _rectTransform.SetParent(_startParent, false);
             _rectTransform.SetSiblingIndex(_startSiblingIndex);
-            _rectTransform.position = _startWorldPosition;
+            _rectTransform.anchoredPosition = _startAnchoredPosition;
             TutorialManager.Instance?.OnCardDragCancelled(Card);
         }
     }

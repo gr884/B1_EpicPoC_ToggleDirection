@@ -1,6 +1,9 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Text;
+using DG.Tweening;
+using TMPro;
 using UnityEngine;
 
 public class ChainExecutor : SingletonBehaviour<ChainExecutor>
@@ -10,11 +13,20 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     [SerializeField] private float _cardFeedbackDuration = 0.22f;
     [SerializeField] private int _maxLoopCount = 3;
 
+    [Header("Infinite Loop Finish")]
+    [SerializeField] private TMP_Text _infiniteLoopText;
+    [SerializeField] private BattleCinematicSlashDirector _loopSlashDirector;
+    [SerializeField] private float _infiniteLoopGraceDuration = 2f;
+    [SerializeField] private float _infiniteLoopTextDuration = 1.2f;
+    [SerializeField] private int _infiniteLoopFinishDamage = 999;
+
     public event Action OnChainStarted;
     public event Action OnChainFinished;
 
     private readonly HashSet<CardView> _activatedCards = new();
     public IReadOnlyCollection<CardView> ActivatedCards => _activatedCards;
+
+    public bool IsExecuting { get; private set; }
 
     public void Init()
     {
@@ -30,24 +42,24 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (rootCard == null) yield break;
 
+        bool willCreateInfiniteLoop = WouldCreateInfiniteLoop(rootCard);
+
+        IsExecuting = true;
         OnChainStarted?.Invoke();
         _activatedCards.Clear();
 
-        // 그리드 카드 드래그 차단
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-            if (slot.OccupiedCard != null)
-                slot.OccupiedCard.SetDraggable(false);
+        SetAllCardsDraggable(false);
 
-        // 손패 카드 드래그 차단
-        foreach (CardView card in CardManager.Instance.Hand)
-            if (card != null) card.SetDraggable(false);
-
-        yield return ActivateChainFrom(rootCard, _activatedCards);
+        if (willCreateInfiniteLoop)
+            yield return ExecutePredictedInfiniteLoopRoutine(rootCard, _activatedCards);
+        else
+            yield return ActivateChainFrom(rootCard, _activatedCards);
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
 
+        IsExecuting = false;
         OnChainFinished?.Invoke();
     }
 
@@ -384,6 +396,246 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 return true;
 
         return false;
+    }
+
+    private bool WouldCreateInfiniteLoop(CardView root)
+    {
+        if (root == null || root.CurrentSlot == null || GridManager.Instance == null)
+            return false;
+
+        List<CardView> placedCards = GetPlacedCards();
+        if (!placedCards.Contains(root))
+            placedCards.Add(root);
+        SortCardsByGridPosition(placedCards);
+
+        Dictionary<CardView, bool> simulatedStates = new();
+        foreach (CardView card in placedCards)
+            if (card != null)
+                simulatedStates[card] = card.IsActivated;
+
+        List<CardView> currentWave = new() { root };
+        HashSet<string> visitedStates = new();
+        int step = 0;
+
+        while (currentWave.Count > 0)
+        {
+            string stateKey = BuildLoopStateKey(currentWave, placedCards, simulatedStates);
+            if (!visitedStates.Add(stateKey))
+            {
+                Debug.Log("[ChainExecutor] 사전 시뮬레이션에서 무한 루프 감지.");
+                return true;
+            }
+
+            List<CardView> emitters = new();
+            foreach (CardView current in currentWave)
+            {
+                if (current == null || current.CurrentSlot == null) continue;
+                if (!simulatedStates.TryGetValue(current, out bool currentState)) continue;
+
+                bool nextState = !currentState;
+                simulatedStates[current] = nextState;
+
+                step++;
+                if (step > _maxActivationSteps)
+                {
+                    Debug.LogWarning("[ChainExecutor] 사전 시뮬레이션 안전 한도 초과 — 무한 루프로 처리.");
+                    return true;
+                }
+
+                if (nextState)
+                    emitters.Add(current);
+            }
+
+            HashSet<CardView> nextWaveSet = new();
+            foreach (CardView emitter in emitters)
+            {
+                if (emitter == null || emitter.Data == null) continue;
+
+                foreach (CardDirection dir in emitter.Data.GetAllDirections())
+                {
+                    GridSlot current = emitter.CurrentSlot;
+                    for (int i = 0; i < emitter.Data.range; i++)
+                    {
+                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                        if (neighbor == null) break;
+
+                        CardView target = neighbor.OccupiedCard;
+                        if (target != null && simulatedStates.ContainsKey(target))
+                            nextWaveSet.Add(target);
+
+                        current = neighbor;
+                    }
+                }
+            }
+
+            currentWave = new List<CardView>(nextWaveSet);
+        }
+
+        return false;
+    }
+
+    private IEnumerator ExecutePredictedInfiniteLoopRoutine(CardView root, HashSet<CardView> activatedCards)
+    {
+        bool chainFinished = false;
+        Coroutine chainRoutine = StartCoroutine(ActivateChainAndMarkFinished(root, activatedCards, () => chainFinished = true));
+
+        float elapsed = 0f;
+        float graceDuration = Mathf.Max(0f, _infiniteLoopGraceDuration);
+        while (elapsed < graceDuration && !IsEnemyDead())
+        {
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        if (!chainFinished && chainRoutine != null)
+            StopCoroutine(chainRoutine);
+
+        if (IsEnemyDead())
+            yield break;
+
+        ClearPlayerMotionQueues();
+        yield return ExecuteInfiniteLoopFinishRoutine();
+    }
+
+    private IEnumerator ActivateChainAndMarkFinished(
+        CardView root,
+        HashSet<CardView> activatedCards,
+        Action onFinished)
+    {
+        yield return ActivateChainFrom(root, activatedCards);
+        onFinished?.Invoke();
+    }
+
+    private IEnumerator ExecuteInfiniteLoopFinishRoutine()
+    {
+        yield return PlayInfiniteLoopTextRoutine();
+
+        if (_loopSlashDirector != null)
+            yield return _loopSlashDirector.PlayAndWait();
+        else
+            Debug.LogWarning("[ChainExecutor] 무한 루프 연출용 BattleCinematicSlashDirector가 연결되지 않았습니다.");
+
+        if (BattleManager.Instance != null && BattleManager.Instance.Enemy != null && !BattleManager.Instance.Enemy.IsDead)
+            BattleManager.Instance.DealDamageToEnemy(_infiniteLoopFinishDamage);
+    }
+
+    private IEnumerator PlayInfiniteLoopTextRoutine()
+    {
+        if (_infiniteLoopText == null)
+        {
+            Debug.LogWarning("[ChainExecutor] 무한 루프 TMP 텍스트가 연결되지 않았습니다.");
+            yield break;
+        }
+
+        GameObject textObject = _infiniteLoopText.gameObject;
+        Transform textTransform = _infiniteLoopText.transform;
+        Color originalColor = _infiniteLoopText.color;
+        Vector3 originalScale = textTransform.localScale;
+
+        textObject.SetActive(true);
+
+        Sequence colorSequence = DOTween.Sequence();
+        Color[] rainbowColors =
+        {
+            Color.red,
+            Color.yellow,
+            Color.green,
+            Color.cyan,
+            Color.blue,
+            new(0.65f, 0f, 1f, 1f)
+        };
+
+        float colorStepDuration = Mathf.Max(0.05f, _infiniteLoopTextDuration / rainbowColors.Length);
+        foreach (Color color in rainbowColors)
+            colorSequence.Append(_infiniteLoopText.DOColor(color, colorStepDuration).SetEase(Ease.Linear));
+        colorSequence.SetLoops(-1, LoopType.Restart);
+
+        Tween scaleTween = textTransform
+            .DOScale(originalScale * 1.15f, 0.24f)
+            .SetEase(Ease.InOutSine)
+            .SetLoops(-1, LoopType.Yoyo);
+
+        yield return new WaitForSeconds(_infiniteLoopTextDuration);
+
+        colorSequence.Kill();
+        scaleTween.Kill();
+        _infiniteLoopText.color = originalColor;
+        textTransform.localScale = originalScale;
+        textObject.SetActive(false);
+    }
+
+    private void SetAllCardsDraggable(bool draggable)
+    {
+        if (GridManager.Instance != null)
+        {
+            foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+                if (slot.OccupiedCard != null)
+                    slot.OccupiedCard.SetDraggable(draggable);
+        }
+
+        if (CardManager.Instance != null)
+        {
+            foreach (CardView card in CardManager.Instance.Hand)
+                if (card != null)
+                    card.SetDraggable(draggable);
+        }
+    }
+
+    private static void ClearPlayerMotionQueues()
+    {
+        CharacterMotionQueuePlayer[] queuePlayers = FindObjectsByType<CharacterMotionQueuePlayer>(
+            FindObjectsInactive.Include,
+            FindObjectsSortMode.None);
+
+        foreach (CharacterMotionQueuePlayer queuePlayer in queuePlayers)
+            if (queuePlayer != null)
+                queuePlayer.CancelQueuedMotions();
+    }
+
+    private static bool IsEnemyDead()
+    {
+        return BattleManager.Instance != null
+            && BattleManager.Instance.Enemy != null
+            && BattleManager.Instance.Enemy.IsDead;
+    }
+
+    private List<CardView> GetPlacedCards()
+    {
+        List<CardView> result = new();
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+            if (slot.OccupiedCard != null)
+                result.Add(slot.OccupiedCard);
+        return result;
+    }
+
+    private static void SortCardsByGridPosition(List<CardView> cards)
+    {
+        cards.Sort((a, b) =>
+        {
+            Vector2Int aPosition = a != null && a.CurrentSlot != null ? a.CurrentSlot.Position : Vector2Int.zero;
+            Vector2Int bPosition = b != null && b.CurrentSlot != null ? b.CurrentSlot.Position : Vector2Int.zero;
+            int yCompare = aPosition.y.CompareTo(bPosition.y);
+            return yCompare != 0 ? yCompare : aPosition.x.CompareTo(bPosition.x);
+        });
+    }
+
+    private static string BuildLoopStateKey(
+        List<CardView> currentWave,
+        List<CardView> placedCards,
+        Dictionary<CardView, bool> simulatedStates)
+    {
+        HashSet<CardView> waveSet = new(currentWave);
+        StringBuilder builder = new();
+
+        foreach (CardView card in placedCards)
+            builder.Append(waveSet.Contains(card) ? '1' : '0');
+
+        builder.Append('|');
+
+        foreach (CardView card in placedCards)
+            builder.Append(simulatedStates.TryGetValue(card, out bool active) && active ? '1' : '0');
+
+        return builder.ToString();
     }
 
     /// <summary>무한 루프가 감지됐을 때 호출됩니다. 처리 방식은 추후 결정.</summary>

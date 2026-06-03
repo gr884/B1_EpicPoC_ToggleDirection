@@ -188,8 +188,14 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        // 플레이어 카드 먼저 정리
-        CardManager.Instance.DiscardGrid();
+        // 플레이어 카드 먼저 정리 (Turn3 중에는 TutorialManager가 직접 관리)
+        bool isTurn3 = GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
+            && TutorialManager.Instance != null
+            && (TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Guided
+                || TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free);
+
+        if (!isTurn3)
+            CardManager.Instance.DiscardGrid();
 
         yield return new WaitForSeconds(0.3f);
 
@@ -233,6 +239,17 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         IsProcessing = false;
         EnterPhase(BattlePhase.PlayerTurn);
+
+        // Turn3_Free: 적이 살아있으면 도르마무 (DiscardAndDraw는 RestartTurn3Free에서 처리)
+        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
+            && TutorialManager.Instance != null
+            && TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free
+            && !_enemy.IsDead)
+        {
+            TutorialManager.Instance.OnTurn3FreeFailed();
+            yield break;
+        }
+
         CardManager.Instance.DiscardAndDraw();
     }
 
@@ -242,6 +259,14 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private void HandleEnemyDied()
     {
         TutorialManager.Instance?.OnEnemyDefeated();
+
+        // 튜토리얼 Turn3 중에는 BattleRoutine 종료 처리 없이 TutorialManager가 직접 제어
+        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
+            && TutorialManager.Instance != null
+            && (TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Guided
+                || TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free))
+            return;
+
         StartCoroutine(EndBattleRoutine(true));
     }
 
@@ -278,6 +303,23 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     }
 
     // ── 유틸 ───────────────────────────────────────────────
+
+    /// <summary>Turn3 재시작 등 외부에서 PlayerTurn 상태로 강제 복귀할 때 사용</summary>
+    public void ResetToPlayerTurn()
+    {
+        StopAllCoroutines();
+
+        _isBattleActive = true;
+        _isEndingBattle = false;
+        IsProcessing = false;
+
+        _enemy.OnDied -= HandleEnemyDied;
+        _player.OnDied -= HandlePlayerDied;
+        _enemy.OnDied += HandleEnemyDied;
+        _player.OnDied += HandlePlayerDied;
+
+        EnterPhase(BattlePhase.PlayerTurn);
+    }
 
     private void EnterPhase(BattlePhase phase)
     {

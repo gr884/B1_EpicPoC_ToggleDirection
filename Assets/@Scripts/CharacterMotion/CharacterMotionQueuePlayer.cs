@@ -32,6 +32,7 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
     private CharacterMotionRequest _activeAttackRequest;
     private bool _hasActiveAttackRequest;
     private bool _attackImpactApplied;
+    private Vector3 _restPosition;
 
     private int _idleStateHash;
     private int _runStateHash;
@@ -44,6 +45,7 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
         if (_animator == null)
             _animator = GetComponent<Animator>();
 
+        _restPosition = transform.position;
         RefreshHashes();
     }
 
@@ -66,6 +68,28 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
 
         if (_animator != null)
             _animator.enabled = true;
+    }
+
+    public void CancelQueuedMotions()
+    {
+        _motionQueue.Clear();
+
+        if (_playRoutine != null)
+        {
+            StopCoroutine(_playRoutine);
+            _playRoutine = null;
+        }
+
+        _activeAttackRequest = default;
+        _hasActiveAttackRequest = false;
+        _attackImpactApplied = false;
+
+        transform.position = _restPosition;
+
+        if (_animator != null)
+            _animator.enabled = true;
+
+        PlayIdle();
     }
 
     private void OnValidate()
@@ -113,6 +137,7 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
     private IEnumerator PlayAttackChain(CharacterMotionRequest firstRequest)
     {
         Vector3 basePosition = transform.position;
+        _restPosition = basePosition;
 
         if (TryGetAttackTargetPosition(out Vector3 attackPosition))
         {
