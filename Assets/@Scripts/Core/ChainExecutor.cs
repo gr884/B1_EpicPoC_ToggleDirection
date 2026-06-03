@@ -16,6 +16,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     private readonly HashSet<CardView> _activatedCards = new();
     public IReadOnlyCollection<CardView> ActivatedCards => _activatedCards;
 
+    public bool IsExecuting { get; private set; }
+
     public void Init()
     {
         Debug.Log("[ChainExecutor] Init");
@@ -30,6 +32,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (rootCard == null) yield break;
 
+        IsExecuting = true;
         OnChainStarted?.Invoke();
         _activatedCards.Clear();
 
@@ -48,6 +51,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
 
+        IsExecuting = false;
         OnChainFinished?.Invoke();
     }
 

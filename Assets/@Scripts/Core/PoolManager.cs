@@ -50,6 +50,7 @@ public class PoolManager : SingletonBehaviour<PoolManager>
 
     public void Return(GameObject instance)
     {
+        Debug.Log($"[PoolManager] Return: {instance.name}\n{System.Environment.StackTrace}");
         if (!_instanceToPrefab.TryGetValue(instance, out GameObject prefab))
         {
             Destroy(instance);

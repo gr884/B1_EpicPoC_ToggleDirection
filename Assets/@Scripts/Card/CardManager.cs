@@ -255,6 +255,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         if (card == null || targetSlot == null || !targetSlot.IsEmpty) return false;
         if (BattleManager.Instance.IsProcessing) return false;
+        if (ChainExecutor.Instance.IsExecuting) return false;
         if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
         if (!_hand.Contains(card)) return false;
         if (card.Data != null && card.Data.isUnplayable) return false;
@@ -306,6 +307,33 @@ public class CardManager : SingletonBehaviour<CardManager>
     }
 
     // ── 내부 ───────────────────────────────────────────────
+
+    /// <summary>손패 카드를 버린파일/풀 없이 바로 제거. 덱 상태를 오염시키지 않을 때 사용.</summary>
+    public void DestroyHand()
+    {
+        foreach (CardView card in _hand)
+            if (card != null) UnityEngine.Object.Destroy(card.gameObject);
+        _hand.Clear();
+        OnHandChanged?.Invoke();
+    }
+
+    /// <summary>풀링 없이 카드를 새로 생성해서 손패에 추가. anchor 오염을 피해야 할 때 사용.</summary>
+    public void DrawToHandFresh(List<CardData> cards)
+    {
+        foreach (CardData data in cards)
+            SpawnToHandFresh(data);
+        OnHandChanged?.Invoke();
+    }
+
+    private void SpawnToHandFresh(CardData data)
+    {
+        GameObject obj = UnityEngine.Object.Instantiate(_cardPrefab, _handRoot);
+        CardView card = obj.GetComponent<CardView>();
+        card.Initialize(data);
+        card.SetDraggable(true);
+        card.SetAffordable(_player.CanSpend(data.cost));
+        _hand.Add(card);
+    }
 
     private void SpawnToHand(CardData data)
     {
