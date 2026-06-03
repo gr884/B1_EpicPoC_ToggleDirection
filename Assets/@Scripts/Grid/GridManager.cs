@@ -24,6 +24,13 @@ public class GridManager : SingletonBehaviour<GridManager>
         Debug.Log("[GridManager] Init");
     }
 
+    public void SetGridSize(int rows, int columns)
+    {
+        _rows = Mathf.Max(1, rows);
+        _columns = Mathf.Max(1, columns);
+        BuildGrid();
+    }
+
     public void BuildGrid()
     {
         ClearGrid();

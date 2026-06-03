@@ -70,6 +70,12 @@ public class UI_TutorialPopup : MonoBehaviour
             case TutorialStep.Turn2_Place:
                 Show("배운 것을 활용해서 공격을 최대한 높이세요.\n카드를 끄고 다시 켜서 효과를 여러 번 발동시킬 수 있습니다!", null);
                 break;
+            case TutorialStep.Turn3_Guided:
+                Show("이제 핵심 기술을 배울 차례입니다!\n\n← 카드 2장, → 카드 2장이 있어요.\n잘 배치하면 30의 피해를 한 번에 넣을 수 있습니다.\n안내에 따라 배치해보세요.", null);
+                break;
+            case TutorialStep.Turn3_Free:
+                Show("이제 직접 해보세요!\n\n← ← → → 4장으로 적에게 30딜을 넣어보세요.\n실패하면 다시 도전할 수 있어요.", null);
+                break;
             case TutorialStep.Complete:
                 Show("튜토리얼 완료!\n\n이제 게임의 핵심을 이해했습니다.\n즐거운 플레이 되세요!", "메인 메뉴로");
                 break;
