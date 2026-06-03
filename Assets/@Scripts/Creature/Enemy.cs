@@ -15,7 +15,7 @@ public class Enemy : MonoBehaviour
     [SerializeField] private CardData _curseCardData;
 
     private EnemyDataSO _data;
-    private int _intentIndex;
+    private int _intentIndex = -1;
     private BattleActorMotionTarget _fallbackMotionTarget;
     private SpumEnemyMotionPlayer _fallbackMotionPlayer;
     private SpumEnemyMotionPlayer _spawnedMotionPlayer;
@@ -42,7 +42,6 @@ public class Enemy : MonoBehaviour
     public void Setup(EnemyDataSO data)
     {
         _data = data;
-        _intentIndex = 0;
         CurrentDefense = 0;
         ApplyMotionPrefab(data != null ? data.motionPrefab : null);
 
@@ -170,7 +169,6 @@ public class Enemy : MonoBehaviour
     public void AdvanceIntent()
     {
         if (_data?.intentPattern == null || _data.intentPattern.Count == 0) return;
-        _intentIndex = (_intentIndex + 1) % _data.intentPattern.Count;
         RefreshIntent();
     }
 
@@ -220,6 +218,8 @@ public class Enemy : MonoBehaviour
             OnIntentChanged?.Invoke(null);
             return;
         }
+
+        _intentIndex = UnityEngine.Random.Range(0, _data.intentPattern.Count);
 
         CurrentIntentTurn = _data.intentPattern[_intentIndex];
         OnIntentChanged?.Invoke(CurrentIntentTurn);
