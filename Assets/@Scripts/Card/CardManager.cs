@@ -15,12 +15,28 @@ public class CardManager : SingletonBehaviour<CardManager>
     [SerializeField] private bool _shuffleOnReset = true;
 
     // ── 덱 상태 ────────────────────────────────────────────
-    private readonly List<CardData> _drawPile = new();
-    private readonly List<CardData> _discardPile = new();
+    private readonly List<CardInstance> _drawPile = new();
+    private readonly List<CardInstance> _discardPile = new();
+    private readonly List<CardData> _drawPileView = new();
+    private readonly List<CardData> _discardPileView = new();
     public int DrawPileCount => _drawPile.Count;
     public int DiscardPileCount => _discardPile.Count;
-    public IReadOnlyList<CardData> DrawPile => _drawPile;
-    public IReadOnlyList<CardData> DiscardPile => _discardPile;
+    public IReadOnlyList<CardData> DrawPile
+    {
+        get
+        {
+            RebuildPileViews();
+            return _drawPileView;
+        }
+    }
+    public IReadOnlyList<CardData> DiscardPile
+    {
+        get
+        {
+            RebuildPileViews();
+            return _discardPileView;
+        }
+    }
 
     // ── 손패 상태 ──────────────────────────────────────────
     private readonly List<CardView> _hand = new();
@@ -49,7 +65,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         foreach (CardView card in _hand)
             if (card != null)
-                card.SetAffordable(_player.CanSpend(card.Data.cost));
+                card.SetAffordable(card.Data != null && _player.CanSpend(card.Data.cost));
     }
 
     // ── 덱 관리 ────────────────────────────────────────────
@@ -59,7 +75,11 @@ public class CardManager : SingletonBehaviour<CardManager>
         _drawPile.Clear();
         _discardPile.Clear();
         if (_startingDeck != null)
-            _drawPile.AddRange(_startingDeck);
+        {
+            foreach (CardData data in _startingDeck)
+                if (data != null)
+                    _drawPile.Add(new CardInstance(data));
+        }
         if (_shuffleOnReset)
             Shuffle(_drawPile);
         Debug.Log($"[CardManager] 덱 리셋 — {_drawPile.Count}장");
@@ -78,7 +98,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         if (curseCard == null) return;
         int index = UnityEngine.Random.Range(0, _drawPile.Count + 1);
-        _drawPile.Insert(index, curseCard);
+        _drawPile.Insert(index, new CardInstance(curseCard));
         Debug.Log($"[CardManager] 저주 카드 삽입 — {curseCard.displayName} (드로우 파일 {index}번째)");
     }
 
@@ -102,9 +122,9 @@ public class CardManager : SingletonBehaviour<CardManager>
         return removed;
     }
 
-    private List<CardData> DrawCards(int count)
+    private List<CardInstance> DrawCards(int count)
     {
-        List<CardData> drawn = new();
+        List<CardInstance> drawn = new();
         for (int i = 0; i < Mathf.Max(0, count); i++)
         {
             if (_drawPile.Count == 0)
@@ -148,18 +168,18 @@ public class CardManager : SingletonBehaviour<CardManager>
         int drawCount = Mathf.Min(count, available);
         int overflow = count - drawCount;
 
-        List<CardData> drawn = DrawCards(drawCount);
-        foreach (CardData data in drawn)
-            SpawnToHand(data);
+        List<CardInstance> drawn = DrawCards(drawCount);
+        foreach (CardInstance instance in drawn)
+            SpawnToHand(instance);
 
         _flightEffectPlayer?.PlayDrawToHand(drawn.Count);
 
         // 손패 상한 초과분은 무덤으로
         if (overflow > 0)
         {
-            List<CardData> discarded = DrawCards(overflow);
-            foreach (CardData data in discarded)
-                _discardPile.Add(data);
+            List<CardInstance> discarded = DrawCards(overflow);
+            foreach (CardInstance instance in discarded)
+                _discardPile.Add(instance);
             Debug.Log($"[CardManager] 손패 상한 초과 — {overflow}장 무덤으로");
         }
 
@@ -178,7 +198,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         foreach (CardView card in _hand)
         {
             if (card == null) continue;
-            _discardPile.Add(card.Data);
+            if (card.Instance != null)
+                _discardPile.Add(card.Instance);
             _flightEffectPlayer?.PlayDiscardFrom(card.transform);
             PoolManager.Instance.Return(card.gameObject);
         }
@@ -198,29 +219,32 @@ public class CardManager : SingletonBehaviour<CardManager>
 
         slot.ClearCard();
 
-        switch (card.Data.recallDestination)
+        CardInstance instance = card.Instance;
+        CardData sourceData = card.Data;
+        if (instance == null || sourceData == null) return;
+
+        switch (sourceData.recallDestination)
         {
             case RecallDestination.Hand:
-                CardData recallData = card.Data;
                 _flightEffectPlayer?.PlayRecallToHandFrom(card.transform);
                 PoolManager.Instance.Return(card.gameObject);
-                SpawnToHand(recallData);
+                SpawnToHand(instance);
                 OnHandChanged?.Invoke();
                 break;
 
             case RecallDestination.DrawPileTop:
-                _drawPile.Add(card.Data);
+                _drawPile.Add(instance);
                 PoolManager.Instance.Return(card.gameObject);
                 break;
 
             case RecallDestination.DrawPile:
                 int index = UnityEngine.Random.Range(0, _drawPile.Count + 1);
-                _drawPile.Insert(index, card.Data);
+                _drawPile.Insert(index, instance);
                 PoolManager.Instance.Return(card.gameObject);
                 break;
         }
 
-        Debug.Log($"[CardManager] 카드 회수 — {card.Data.displayName} → {card.Data.recallDestination}");
+        Debug.Log($"[CardManager] 카드 회수 — {sourceData.displayName} → {sourceData.recallDestination}");
     }
 
     // ── 그리드 초기화 ─────────────────────────────────────
@@ -236,11 +260,13 @@ public class CardManager : SingletonBehaviour<CardManager>
             // 보존 스택이 있으면 1 차감 후 유지
             if (card.ConsumePreserve())
             {
-                Debug.Log($"[CardManager] 보존 — {card.Data.displayName} 그리드 유지 (남은 스택: {card.PreserveStack})");
+                string displayName = card.Data != null ? card.Data.displayName : "(Unknown)";
+                Debug.Log($"[CardManager] 보존 — {displayName} 그리드 유지 (남은 스택: {card.PreserveStack})");
                 continue;
             }
 
-            _discardPile.Add(card.Data);
+            if (card.Instance != null)
+                _discardPile.Add(card.Instance);
             _flightEffectPlayer?.PlayDiscardFrom(card.transform);
             slot.ClearCard();
             PoolManager.Instance.Return(card.gameObject);
@@ -258,7 +284,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (ChainExecutor.Instance.IsExecuting) return false;
         if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
         if (!_hand.Contains(card)) return false;
-        if (card.Data != null && card.Data.isUnplayable) return false;
+        if (card.Instance == null || card.Data == null) return false;
+        if (card.Data.isUnplayable) return false;
         if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
             && !TutorialManager.Instance.CanPlaceCard(card, targetSlot)) return false;
         if (!_player.SpendCost(card.Data.cost)) return false;
@@ -280,7 +307,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         _discardPile.Clear();
         // DrawCards는 마지막 인덱스부터 뽑으므로 역순으로 추가
         for (int i = cards.Count - 1; i >= 0; i--)
-            _drawPile.Add(cards[i]);
+            if (cards[i] != null)
+                _drawPile.Add(new CardInstance(cards[i]));
     }
 
     // ── 유저 회수 액션 ─────────────────────────────────────
@@ -291,15 +319,17 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (card.CurrentSlot == null) return false;
         if (BattleManager.Instance.IsProcessing) return false;
         if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
+        CardInstance recallInstance = card.Instance;
+        CardData recallData = card.Data;
+        if (recallInstance == null || recallData == null) return false;
         if (!_player.SpendCost(1)) return false;
 
         GridSlot slot = card.CurrentSlot;
         slot.ClearCard();
 
-        CardData recallData = card.Data;
         _flightEffectPlayer?.PlayRecallToHandFrom(card.transform);
         PoolManager.Instance.Return(card.gameObject);
-        SpawnToHand(recallData);
+        SpawnToHand(recallInstance);
         OnHandChanged?.Invoke();
 
         Debug.Log($"[CardManager] 유저 회수 — {recallData.displayName} → 손패");
@@ -321,40 +351,73 @@ public class CardManager : SingletonBehaviour<CardManager>
     public void DrawToHandFresh(List<CardData> cards)
     {
         foreach (CardData data in cards)
-            SpawnToHandFresh(data);
+            if (data != null)
+                SpawnToHandFresh(new CardInstance(data));
         OnHandChanged?.Invoke();
     }
 
-    private void SpawnToHandFresh(CardData data)
+    public void ClearCombatPersistentStates()
+    {
+        foreach (CardInstance instance in _drawPile)
+            instance?.PersistentState.ClearCombatState();
+        foreach (CardInstance instance in _discardPile)
+            instance?.PersistentState.ClearCombatState();
+        foreach (CardView card in _hand)
+        {
+            if (card == null || card.Instance == null) continue;
+            card.Instance.PersistentState.ClearCombatState();
+            card.GetComponent<CardRuntimeState>()?.Refresh();
+        }
+
+        if (GridManager.Instance != null)
+        {
+            foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+            {
+                CardView card = slot.OccupiedCard;
+                if (card == null || card.Instance == null) continue;
+                card.Instance.PersistentState.ClearCombatState();
+                card.GetComponent<CardRuntimeState>()?.Refresh();
+            }
+        }
+    }
+
+    private void SpawnToHandFresh(CardInstance instance)
     {
         GameObject obj = UnityEngine.Object.Instantiate(_cardPrefab, _handRoot);
         CardView card = obj.GetComponent<CardView>();
-        card.Initialize(data);
+        card.Initialize(instance);
+        card.ApplyHandLayout();
         card.SetDraggable(true);
-        card.SetAffordable(_player.CanSpend(data.cost));
+        card.SetAffordable(card.Data != null && _player.CanSpend(card.Data.cost));
         _hand.Add(card);
     }
 
-    private void SpawnToHand(CardData data)
+    private void SpawnToHand(CardInstance instance)
     {
         GameObject obj = PoolManager.Instance.Get(_cardPrefab, _handRoot);
         CardView card = obj.GetComponent<CardView>();
-        card.Initialize(data);
+        card.Initialize(instance);
+        card.ApplyHandLayout();
         card.SetDraggable(true);
-        card.SetAffordable(_player.CanSpend(data.cost));
-
-        RectTransform rect = obj.GetComponent<RectTransform>();
-        if (rect != null)
-        {
-            rect.localPosition = Vector3.zero;
-            rect.localRotation = Quaternion.identity;
-            rect.localScale = Vector3.one;
-        }
+        card.SetAffordable(card.Data != null && _player.CanSpend(card.Data.cost));
 
         _hand.Add(card);
     }
 
-    private static void Shuffle(List<CardData> list)
+    private void RebuildPileViews()
+    {
+        _drawPileView.Clear();
+        foreach (CardInstance instance in _drawPile)
+            if (instance?.SourceData != null)
+                _drawPileView.Add(instance.SourceData);
+
+        _discardPileView.Clear();
+        foreach (CardInstance instance in _discardPile)
+            if (instance?.SourceData != null)
+                _discardPileView.Add(instance.SourceData);
+    }
+
+    private static void Shuffle<T>(List<T> list)
     {
         for (int i = list.Count - 1; i > 0; i--)
         {

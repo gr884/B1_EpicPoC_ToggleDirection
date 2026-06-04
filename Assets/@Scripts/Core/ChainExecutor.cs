@@ -106,7 +106,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         switch (type)
         {
             case EffectType.Damage:
-                int damage = Mathf.Max(1, Mathf.RoundToInt(value));
+                int baseDamage = Mathf.Max(1, Mathf.RoundToInt(value));
+                int damage = runtime != null ? runtime.GetModifiedDamage(baseDamage) : baseDamage;
                 BattleManager.Instance.Player.AddPendingAttack(damage);
                 break;
             case EffectType.Defense:
@@ -126,15 +127,15 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     var targetCard = neighbor.OccupiedCard;
                     if (targetCard == null || targetCard.Data == null) continue;
                     var targetRuntime = targetCard.GetComponent<CardRuntimeState>();
-                    int finalDamage = 0;
 
                     foreach (var e in targetCard.Data.effects)
                     {
                         if (e.effectType != EffectType.Damage) continue;
-                        int baseDamage = Mathf.RoundToInt(e.value);
+                        int targetBaseDamage = Mathf.Max(1, Mathf.RoundToInt(e.value));
                         // 누적 카드의 경우 기존 데미지에 여태까지 추가된 데미지 합산
-                        finalDamage = targetRuntime != null?
-                            targetRuntime.GetModifiedDamage(baseDamage) : baseDamage;
+                        int finalDamage = targetRuntime != null
+                            ? targetRuntime.GetModifiedDamage(targetBaseDamage)
+                            : targetBaseDamage;
                         totalDamage += finalDamage;
                     }
                 }

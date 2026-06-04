@@ -94,12 +94,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
     private void FitToParent()
     {
-        _rectTransform.anchorMin = Vector2.zero;
-        _rectTransform.anchorMax = Vector2.one;
-        _rectTransform.pivot = new Vector2(0.5f, 0.5f);
-        _rectTransform.anchoredPosition = Vector2.zero;
-        _rectTransform.offsetMin = Vector2.zero;
-        _rectTransform.offsetMax = Vector2.zero;
-        _rectTransform.localScale = Vector3.one;
+        if (Card != null)
+            Card.ApplyGridLayout();
     }
 }

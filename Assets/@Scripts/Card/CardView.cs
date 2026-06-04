@@ -35,6 +35,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private Color _enemyInactiveColor = new Color(0.55f, 0.55f, 1f, 1f);
 
     public CardData Data { get; private set; }
+    public CardInstance Instance { get; private set; }
     public bool IsActivated { get; private set; }
     public bool IsEnemy { get; private set; }
     public GridSlot CurrentSlot { get; private set; }
@@ -77,6 +78,13 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private RectTransform _rectTransform;
     private CanvasGroup _canvasGroup;
+    private Vector2 _handAnchorMin;
+    private Vector2 _handAnchorMax;
+    private Vector2 _handPivot;
+    private Vector2 _handSizeDelta;
+    private Vector2 _handOffsetMin;
+    private Vector2 _handOffsetMax;
+    private bool _hasHandLayout;
 
     [Header("Cost Feedback")]
     [SerializeField] private float _unaffordableAlpha = 0.4f;
@@ -88,6 +96,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         _runtimeState = GetComponent<CardRuntimeState>();
         if (_runtimeState != null) _runtimeState.OnChanged += RefreshRuntimeText;
+        CaptureHandLayout();
     }
 
     void OnDestroy()
@@ -97,7 +106,13 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     public void Initialize(CardData data, bool isEnemy = false, bool startsActivated = false)
     {
-        Data = data;
+        Initialize(data != null ? new CardInstance(data) : null, isEnemy, startsActivated);
+    }
+
+    public void Initialize(CardInstance instance, bool isEnemy = false, bool startsActivated = false)
+    {
+        Instance = instance;
+        Data = instance != null ? instance.SourceData : null;
         IsActivated = startsActivated;
         IsEnemy = isEnemy;
         CurrentSlot = null;
@@ -106,7 +121,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         RefreshPreserveUI();
 
         if (_runtimeState != null)
-            _runtimeState.Initialize(this, data, isEnemy);
+            _runtimeState.Initialize(this, instance, isEnemy);
 
         if (_selectionOverlay != null)
             _selectionOverlay.SetActive(false);
@@ -115,22 +130,78 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
         if (_iconImage != null)
         {
-            _iconImage.sprite = data != null ? data.icon : null;
+            _iconImage.sprite = Data != null ? Data.icon : null;
             _iconImage.enabled = _iconImage.sprite != null;
         }
 
         if (_titleText != null)
-            _titleText.text = data != null ? data.displayName : "";
+            _titleText.text = Data != null ? Data.displayName : "";
 
         if (_costText != null)
         {
             _costText.gameObject.SetActive(!isEnemy);
-            _costText.text = data != null ? data.cost.ToString() : "";
+            _costText.text = Data != null ? Data.cost.ToString() : "";
         }
 
         RefreshRuntimeText();
         RefreshDirectionIcons();
         RefreshVisual();
+    }
+
+    public void ApplyHandLayout()
+    {
+        if (_rectTransform == null)
+            _rectTransform = GetComponent<RectTransform>();
+        if (_canvasGroup == null)
+            _canvasGroup = GetComponent<CanvasGroup>();
+        if (!_hasHandLayout)
+            CaptureHandLayout();
+
+        if (_rectTransform != null)
+        {
+            _rectTransform.anchorMin = _handAnchorMin;
+            _rectTransform.anchorMax = _handAnchorMax;
+            _rectTransform.pivot = _handPivot;
+            _rectTransform.anchoredPosition = Vector2.zero;
+            _rectTransform.sizeDelta = _handSizeDelta;
+            _rectTransform.offsetMin = _handOffsetMin;
+            _rectTransform.offsetMax = _handOffsetMax;
+            _rectTransform.localPosition = Vector3.zero;
+            _rectTransform.localRotation = Quaternion.identity;
+            _rectTransform.localScale = Vector3.one;
+        }
+
+        if (_canvasGroup != null)
+        {
+            _canvasGroup.blocksRaycasts = true;
+            _canvasGroup.alpha = 1f;
+        }
+    }
+
+    public void ApplyGridLayout()
+    {
+        if (_rectTransform == null)
+            _rectTransform = GetComponent<RectTransform>();
+        if (_canvasGroup == null)
+            _canvasGroup = GetComponent<CanvasGroup>();
+
+        if (_rectTransform != null)
+        {
+            _rectTransform.anchorMin = Vector2.zero;
+            _rectTransform.anchorMax = Vector2.one;
+            _rectTransform.pivot = new Vector2(0.5f, 0.5f);
+            _rectTransform.anchoredPosition = Vector2.zero;
+            _rectTransform.offsetMin = Vector2.zero;
+            _rectTransform.offsetMax = Vector2.zero;
+            _rectTransform.localRotation = Quaternion.identity;
+            _rectTransform.localScale = Vector3.one;
+        }
+
+        if (_canvasGroup != null)
+        {
+            _canvasGroup.blocksRaycasts = true;
+            _canvasGroup.alpha = 1f;
+        }
     }
 
     public void SetPlaced(GridSlot slot)
@@ -217,6 +288,19 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     }
 
     // ── 내부 ───────────────────────────────────────────────
+
+    private void CaptureHandLayout()
+    {
+        if (_rectTransform == null) return;
+
+        _handAnchorMin = _rectTransform.anchorMin;
+        _handAnchorMax = _rectTransform.anchorMax;
+        _handPivot = _rectTransform.pivot;
+        _handSizeDelta = _rectTransform.sizeDelta;
+        _handOffsetMin = _rectTransform.offsetMin;
+        _handOffsetMax = _rectTransform.offsetMax;
+        _hasHandLayout = true;
+    }
 
     private void RefreshDirectionIcons()
     {

@@ -13,6 +13,7 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
         switch (state)
         {
             case GameManager.GameState.Playing:
+                CardManager.Instance.ClearCombatPersistentStates();
                 CardManager.Instance.DiscardHand();
                 CardManager.Instance.DiscardGrid();
                 CardManager.Instance.ResetDeck();
@@ -35,6 +36,7 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
     // UI_RewardPopup이 OnBattleEnded 구독 후 선택 완료 시 호출
     public void OnRewardClosed()
     {
+        CardManager.Instance.ClearCombatPersistentStates();
         CardManager.Instance.DiscardHand();
         CardManager.Instance.DiscardGrid();
         GridManager.Instance.BuildGrid();
