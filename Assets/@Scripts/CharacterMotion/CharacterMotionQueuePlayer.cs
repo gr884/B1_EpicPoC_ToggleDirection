@@ -97,6 +97,25 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
         RefreshHashes();
     }
 
+    public IEnumerator PlayAttackRoutine(int damageAmount)
+    {
+        if (damageAmount <= 0)
+            yield break;
+
+        while (_playRoutine != null)
+            yield return null;
+
+        CharacterMotionRequest request = new CharacterMotionRequest(
+            CharacterMotionType.Attack,
+            null,
+            null,
+            EffectType.Damage,
+            Vector2Int.zero,
+            damageAmount);
+
+        yield return PlayAttackChain(request);
+    }
+
     private void EnqueueMotion(CharacterMotionRequest request)
     {
         if (request.MotionType == CharacterMotionType.Idle)
