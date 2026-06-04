@@ -36,6 +36,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         if (!_isDraggable) return;
         if (Card.CurrentSlot != null) return;
         if (BattleManager.Instance != null && BattleManager.Instance.IsProcessing) return;
+        if (BattleManager.Instance != null && BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return;
         if (ChainExecutor.Instance != null && ChainExecutor.Instance.IsExecuting) return;
 
         // 튜토리얼에서 막힌 카드면 드래그 차단

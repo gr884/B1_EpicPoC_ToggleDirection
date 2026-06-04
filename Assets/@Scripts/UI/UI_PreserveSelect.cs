@@ -14,11 +14,21 @@ public class UI_PreserveSelect : MonoBehaviour
     [SerializeField] private CanvasGroup _canvasGroup;
     [SerializeField] private TMP_Text _countText;
     [SerializeField] private Button _confirmButton;
+    [SerializeField] private RectTransform _hitAreaRoot;
 
     [Header("Settings")]
     [SerializeField] private int _maxPreserveCount = 2;
 
     private readonly List<CardView> _selectedCards = new();
+    private readonly List<GameObject> _hitAreas = new();
+    private RectTransform _rootRect;
+    private Canvas _canvas;
+
+    private void Awake()
+    {
+        _rootRect = (_hitAreaRoot != null ? _hitAreaRoot : transform) as RectTransform;
+        _canvas = GetComponentInParent<Canvas>();
+    }
 
     private void Start()
     {
@@ -52,8 +62,11 @@ public class UI_PreserveSelect : MonoBehaviour
             if (card.IsEnemy) continue;
 
             card.SetSelected(false);
-            RegisterCardClick(card);
+            CreateHitArea(card);
         }
+
+        if (_confirmButton != null)
+            _confirmButton.transform.SetAsLastSibling();
 
         RefreshCount();
         SetVisible(true);
@@ -67,26 +80,70 @@ public class UI_PreserveSelect : MonoBehaviour
             CardView card = slot.OccupiedCard;
             if (card.IsEnemy) continue;
             card.SetSelected(false);
-            UnregisterCardClick(card);
         }
 
         _selectedCards.Clear();
+        ClearHitAreas();
         SetVisible(false);
     }
 
-    private void RegisterCardClick(CardView card)
+    private void CreateHitArea(CardView card)
     {
-        Button btn = card.GetComponent<Button>();
-        if (btn == null) btn = card.gameObject.AddComponent<Button>();
+        if (card == null || _rootRect == null) return;
 
-        btn.onClick.RemoveAllListeners();
+        RectTransform cardRect = card.GetComponent<RectTransform>();
+        if (cardRect == null) return;
+
+        GameObject hitArea = new("PreserveSelectHitArea", typeof(RectTransform), typeof(CanvasRenderer), typeof(Image), typeof(Button));
+        hitArea.transform.SetParent(_rootRect, false);
+
+        RectTransform hitRect = hitArea.GetComponent<RectTransform>();
+        MatchRectToCard(hitRect, cardRect);
+
+        Image image = hitArea.GetComponent<Image>();
+        image.color = Color.clear;
+        image.raycastTarget = true;
+
+        Button btn = hitArea.GetComponent<Button>();
         btn.onClick.AddListener(() => OnCardClicked(card));
+        _hitAreas.Add(hitArea);
     }
 
-    private void UnregisterCardClick(CardView card)
+    private void MatchRectToCard(RectTransform hitRect, RectTransform cardRect)
     {
-        Button btn = card.GetComponent<Button>();
-        if (btn != null) btn.onClick.RemoveAllListeners();
+        Vector3[] corners = new Vector3[4];
+        cardRect.GetWorldCorners(corners);
+
+        Camera uiCamera = _canvas != null && _canvas.renderMode != RenderMode.ScreenSpaceOverlay
+            ? _canvas.worldCamera
+            : null;
+
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            _rootRect,
+            RectTransformUtility.WorldToScreenPoint(uiCamera, corners[0]),
+            uiCamera,
+            out Vector2 min);
+
+        RectTransformUtility.ScreenPointToLocalPointInRectangle(
+            _rootRect,
+            RectTransformUtility.WorldToScreenPoint(uiCamera, corners[2]),
+            uiCamera,
+            out Vector2 max);
+
+        hitRect.anchorMin = new Vector2(0.5f, 0.5f);
+        hitRect.anchorMax = new Vector2(0.5f, 0.5f);
+        hitRect.pivot = new Vector2(0.5f, 0.5f);
+        hitRect.anchoredPosition = (min + max) * 0.5f;
+        hitRect.sizeDelta = new Vector2(Mathf.Abs(max.x - min.x), Mathf.Abs(max.y - min.y));
+    }
+
+    private void ClearHitAreas()
+    {
+        foreach (GameObject hitArea in _hitAreas)
+            if (hitArea != null)
+                Destroy(hitArea);
+
+        _hitAreas.Clear();
     }
 
     private void OnCardClicked(CardView card)
