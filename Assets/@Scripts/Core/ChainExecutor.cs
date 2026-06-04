@@ -151,6 +151,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 int preserveAmount = Mathf.Max(1, Mathf.RoundToInt(value));
                 ApplyPreserveToNeighbors(card, preserveAmount);
                 break;
+            case EffectType.GainDamage:
+                // int preserveAmount = Mathf.Max(1, Mathf.RoundToInt(value));
+                // ApplyPreserveToNeighbors(card, preserveAmount);
+                break;
         }
     }
 

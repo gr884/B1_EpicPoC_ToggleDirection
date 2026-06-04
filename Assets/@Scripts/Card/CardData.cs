@@ -27,6 +27,9 @@ public enum EffectType
     Draw,     // value = 드로우 장 수
     GainCost, // value = 획득 cost 수
     Preserve, // value = 방향으로 연결된 카드에 쌓을 보존 스택 수
+
+    // 현재 수치에 효과 추가
+    GainDamage,
 }
 
 public enum CountScope
