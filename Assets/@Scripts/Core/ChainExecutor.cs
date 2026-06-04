@@ -65,10 +65,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 효과 처리 ──────────────────────────────────────────
 
-    private int ApplyEffects(CardView card, bool deferDamage = false)
+    private void ApplyEffects(CardView card)
     {
-        int deferredDamage = 0;
-        if (card?.Data?.effects == null) return deferredDamage;
+        if (card?.Data?.effects == null) return;
 
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
@@ -77,13 +76,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
-                    ApplyEffect(effect.effectType, effect.value, card, deferDamage, ref deferredDamage);
+                    ApplyEffect(effect.effectType, effect.value, card);
                 continue;
             }
 
             if (effect.scope == CountScope.None)
             {
-                ApplyEffect(effect.effectType, effect.value, card, deferDamage, ref deferredDamage);
+                ApplyEffect(effect.effectType, effect.value, card);
                 continue;
             }
 
@@ -98,23 +97,17 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         foreach (var kv in atLeastBest)
-            ApplyEffect(kv.Key, kv.Value.value, card, deferDamage, ref deferredDamage);
-
-        return deferredDamage;
+            ApplyEffect(kv.Key, kv.Value.value, card);
     }
 
-    private void ApplyEffect(EffectType type, float value, CardView card, bool deferDamage, ref int deferredDamage)
+    private void ApplyEffect(EffectType type, float value, CardView card)
     {
         var runtime = card != null ? card.GetComponent<CardRuntimeState>() : null;
         switch (type)
         {
             case EffectType.Damage:
                 int damage = Mathf.Max(1, Mathf.RoundToInt(value));
-                if (runtime != null) damage = runtime.GetModifiedDamage(Mathf.RoundToInt(value));
-                if (deferDamage)
-                    deferredDamage += damage;
-                else
-                    BattleManager.Instance.DealDamageToEnemy(damage);
+                BattleManager.Instance.Player.AddPendingAttack(damage);
                 break;
             case EffectType.Defense:
                 int defense = Mathf.Max(1, Mathf.RoundToInt(value));
@@ -145,7 +138,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         totalDamage += finalDamage;
                     }
                 }
-                BattleManager.Instance.DealDamageToEnemy(totalDamage);
+                BattleManager.Instance.Player.AddPendingAttack(totalDamage);
                 break;
             case EffectType.Draw:
                 int drawCount = Mathf.Max(1, Mathf.RoundToInt(value));
@@ -277,16 +270,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     if (!current.IsEnemy)
                     {
                         bool hasMotionRequest = TryCreateMotionRequest(current, out CharacterMotionRequest motionRequest);
-                        bool deferDamage = hasMotionRequest
-                            && motionRequest.MotionType == CharacterMotionType.Attack
-                            && CharacterMotionEvents.HasCardMotionListeners;
-                        int deferredDamage = ApplyEffects(current, deferDamage);
+                        ApplyEffects(current);
 
                         if (hasMotionRequest)
                         {
-                            if (deferDamage)
-                                motionRequest = motionRequest.WithDamageAmount(deferredDamage);
-
                             CharacterMotionEvents.RequestCardMotion(motionRequest);
                         }
                     }
@@ -362,17 +349,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         request = default;
         if (card?.Data?.effects == null || card.CurrentSlot == null) return false;
-
-        if (ContainsEffect(card.Data, EffectType.Damage))
-        {
-            request = new CharacterMotionRequest(
-                CharacterMotionType.Attack,
-                card,
-                card.Data,
-                EffectType.Damage,
-                card.CurrentSlot.Position);
-            return true;
-        }
 
         if (ContainsEffect(card.Data, EffectType.Defense))
         {
