@@ -6,6 +6,8 @@ using TMPro;
 
 public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
+    private CardRuntimeState _runtimeState;
+
     [Header("Refs")]
     [SerializeField] private Image _backgroundImage;
     [SerializeField] private Image _iconImage;
@@ -83,6 +85,14 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     {
         _rectTransform = GetComponent<RectTransform>();
         _canvasGroup = GetComponent<CanvasGroup>();
+
+        _runtimeState = GetComponent<CardRuntimeState>();
+        if (_runtimeState != null) _runtimeState.OnChanged += RefreshRuntimeText;
+    }
+
+    void OnDestroy()
+    {
+        if (_runtimeState != null) _runtimeState.OnChanged -= RefreshRuntimeText;
     }
 
     public void Initialize(CardData data, bool isEnemy = false, bool startsActivated = false)
@@ -94,6 +104,9 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         PreserveStack = 0;
         ContaminateCurseCount = 0;
         RefreshPreserveUI();
+
+        if (_runtimeState != null)
+            _runtimeState.Initialize(this, data, isEnemy);
 
         if (_selectionOverlay != null)
             _selectionOverlay.SetActive(false);
@@ -115,6 +128,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             _costText.text = data != null ? data.cost.ToString() : "";
         }
 
+        RefreshRuntimeText();
         RefreshDirectionIcons();
         RefreshVisual();
     }
@@ -250,5 +264,15 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             _backgroundImage.color = IsActivated ? _enemyActiveColor : _enemyInactiveColor;
         else
             _backgroundImage.color = IsActivated ? _activeColor : _inactiveColor;
+    }
+
+    //* 실시간 텍스트 수정
+    private void RefreshRuntimeText()
+    {
+        if (_titleText == null || Data == null) return;
+        if (_runtimeState == null || _runtimeState.BonusDamage <= 0)
+            _titleText.text = Data.displayName;
+        else
+            _titleText.text = $"{Data.displayName}\n(+{_runtimeState.BonusDamage})";
     }
 }
