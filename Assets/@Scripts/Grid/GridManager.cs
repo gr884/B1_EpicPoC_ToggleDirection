@@ -134,18 +134,7 @@ public class GridManager : SingletonBehaviour<GridManager>
 
         card.Initialize(data, isEnemy: true, startsActivated: startsActivated);
         card.SetDraggable(false);
-
-        RectTransform rect = obj.GetComponent<RectTransform>();
-        if (rect != null)
-        {
-            rect.anchorMin = Vector2.zero;
-            rect.anchorMax = Vector2.one;
-            rect.pivot = new Vector2(0.5f, 0.5f);
-            rect.anchoredPosition = Vector2.zero;
-            rect.offsetMin = Vector2.zero;
-            rect.offsetMax = Vector2.zero;
-            rect.localScale = Vector3.one;
-        }
+        card.ApplyGridLayout();
 
         slot.AssignCard(card);
         return card;

@@ -69,6 +69,78 @@ public class CardEffect
     public float value;
 }
 
+public class CardRuntimeData
+{
+    public string cardId;
+    public string displayName;
+    public string description;
+    public int cost;
+    public bool isUnplayable;
+    public bool isCurseCard;
+    public int curseDamage;
+    public int range;
+    public RecallDestination recallDestination;
+    public List<CardDirection> directions = new();
+    public List<CardEffect> effects = new();
+    public Sprite icon;
+
+    public static CardRuntimeData FromSource(CardData source)
+    {
+        CardRuntimeData runtime = new();
+        if (source == null) return runtime;
+
+        runtime.cardId = source.cardId;
+        runtime.displayName = source.displayName;
+        runtime.description = source.description;
+        runtime.cost = source.cost;
+        runtime.isUnplayable = source.isUnplayable;
+        runtime.isCurseCard = source.isCurseCard;
+        runtime.curseDamage = source.curseDamage;
+        runtime.range = source.range;
+        runtime.recallDestination = source.recallDestination;
+        runtime.directions = new List<CardDirection>(source.directions ?? new List<CardDirection>());
+        runtime.effects = CloneEffects(source.effects);
+        runtime.icon = source.icon;
+
+        return runtime;
+    }
+
+    public IEnumerable<CardDirection> GetAllDirections()
+    {
+        foreach (CardDirection dir in directions)
+            if (dir != CardDirection.None)
+                yield return dir;
+    }
+
+    public void AddDamageToDamageEffects(float amount)
+    {
+        foreach (CardEffect effect in effects)
+            if (effect.effectType == EffectType.Damage)
+                effect.value += amount;
+    }
+
+    private static List<CardEffect> CloneEffects(List<CardEffect> sourceEffects)
+    {
+        List<CardEffect> result = new();
+        if (sourceEffects == null) return result;
+
+        foreach (CardEffect effect in sourceEffects)
+        {
+            if (effect == null) continue;
+            result.Add(new CardEffect
+            {
+                scope = effect.scope,
+                thresholdType = effect.thresholdType,
+                threshold = effect.threshold,
+                effectType = effect.effectType,
+                value = effect.value
+            });
+        }
+
+        return result;
+    }
+}
+
 [CreateAssetMenu(menuName = "Game/Card Data", fileName = "CardData")]
 public class CardData : ScriptableObject
 {

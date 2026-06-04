@@ -67,11 +67,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     private void ApplyEffects(CardView card)
     {
-        if (card?.Data?.effects == null) return;
+        if (card?.RuntimeData?.effects == null) return;
 
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
-        foreach (CardEffect effect in card.Data.effects)
+        foreach (CardEffect effect in card.RuntimeData.effects)
         {
             if (effect.thresholdType == ThresholdType.Full)
             {
@@ -118,14 +118,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 break;
             case EffectType.DirectionalDamageBonus:
                 int totalDamage = 0;
-                foreach (var dir in card.Data.GetAllDirections())
+                foreach (var dir in card.RuntimeData.GetAllDirections())
                 {
                     GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
                     if (neighbor == null) continue;
                     var targetCard = neighbor.OccupiedCard;
-                    if (targetCard == null || targetCard.Data == null) continue;
+                    if (targetCard == null || targetCard.RuntimeData == null) continue;
 
-                    foreach (var e in targetCard.Data.effects)
+                    foreach (var e in targetCard.RuntimeData.effects)
                     {
                         if (e.effectType == EffectType.Damage)
                             totalDamage += (int)e.value;
@@ -154,9 +154,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     private void ApplyPreserveToNeighbors(CardView card, int amount)
     {
-        if (card?.Data == null || card.CurrentSlot == null) return;
+        if (card?.RuntimeData == null || card.CurrentSlot == null) return;
 
-        foreach (CardDirection dir in card.Data.GetAllDirections())
+        foreach (CardDirection dir in card.RuntimeData.GetAllDirections())
         {
             GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
             if (neighbor != null && neighbor.OccupiedCard != null && !neighbor.OccupiedCard.IsEnemy)
@@ -292,12 +292,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             HashSet<CardView> nextWaveSet = new();
             foreach (CardView emitter in emitters)
             {
-                if (emitter.Data == null) continue;
+                if (emitter.RuntimeData == null) continue;
 
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
+                foreach (CardDirection dir in emitter.RuntimeData.GetAllDirections())
                 {
                     GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
+                    for (int i = 0; i < emitter.RuntimeData.range; i++)
                     {
                         GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
                         if (neighbor == null) break;
@@ -341,25 +341,26 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     private bool TryCreateMotionRequest(CardView card, out CharacterMotionRequest request)
     {
         request = default;
-        if (card?.Data?.effects == null || card.CurrentSlot == null) return false;
+        if (card?.RuntimeData?.effects == null || card.CurrentSlot == null) return false;
+        if (card.SourceData == null) return false;
 
-        if (ContainsEffect(card.Data, EffectType.Defense))
+        if (ContainsEffect(card.RuntimeData, EffectType.Defense))
         {
             request = new CharacterMotionRequest(
                 CharacterMotionType.Defend,
                 card,
-                card.Data,
+                card.SourceData,
                 EffectType.Defense,
                 card.CurrentSlot.Position);
             return true;
         }
 
-        if (ContainsEffect(card.Data, EffectType.Preserve))
+        if (ContainsEffect(card.RuntimeData, EffectType.Preserve))
         {
             request = new CharacterMotionRequest(
                 CharacterMotionType.Defend,
                 card,
-                card.Data,
+                card.SourceData,
                 EffectType.Preserve,
                 card.CurrentSlot.Position);
             return true;
@@ -368,7 +369,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         return false;
     }
 
-    private bool ContainsEffect(CardData data, EffectType effectType)
+    private bool ContainsEffect(CardRuntimeData data, EffectType effectType)
     {
         if (data?.effects == null) return false;
 
@@ -430,12 +431,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             HashSet<CardView> nextWaveSet = new();
             foreach (CardView emitter in emitters)
             {
-                if (emitter == null || emitter.Data == null) continue;
+                if (emitter == null || emitter.RuntimeData == null) continue;
 
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
+                foreach (CardDirection dir in emitter.RuntimeData.GetAllDirections())
                 {
                     GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
+                    for (int i = 0; i < emitter.RuntimeData.range; i++)
                     {
                         GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
                         if (neighbor == null) break;
