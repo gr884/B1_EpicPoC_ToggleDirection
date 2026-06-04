@@ -3473,7 +3473,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0.5}
   m_AnchorMax: {x: 1, y: 0.5}
-  m_AnchoredPosition: {x: -333, y: 0}
+  m_AnchoredPosition: {x: -333, y: 114}
   m_SizeDelta: {x: 655, y: 400}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!224 &70372664118484117
@@ -6117,8 +6117,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
   _gridRoot: {fileID: 6772309790853338454}
   _slotPrefab: {fileID: 6841558488037871595, guid: 25d0d4d51bd985343a2adb238c9c7db9, type: 3}
-  _rows: 7
-  _columns: 7
+  _rows: 5
+  _columns: 5
 --- !u!1 &2803243701059742374
 GameObject:
   m_ObjectHideFlags: 0
@@ -9687,7 +9687,7 @@ RectTransform:
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: -195, y: -459.21002}
-  m_SizeDelta: {x: 1369.5933, y: 876.42}
+  m_SizeDelta: {x: 1370, y: 870}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &6775105639466371865
 MonoBehaviour:
@@ -11294,7 +11294,7 @@ MonoBehaviour:
   m_ChildAlignment: 4
   m_StartCorner: 0
   m_StartAxis: 0
-  m_CellSize: {x: 80, y: 100}
+  m_CellSize: {x: 120, y: 150}
   m_Spacing: {x: 14, y: 14}
   m_Constraint: 1
   m_ConstraintCount: 5
