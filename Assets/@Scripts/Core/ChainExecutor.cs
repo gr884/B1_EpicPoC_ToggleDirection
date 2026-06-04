@@ -105,10 +105,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     private void ApplyEffect(EffectType type, float value, CardView card, bool deferDamage, ref int deferredDamage)
     {
+        var runtime = card != null ? card.GetComponent<CardRuntimeState>() : null;
         switch (type)
         {
             case EffectType.Damage:
                 int damage = Mathf.Max(1, Mathf.RoundToInt(value));
+                if (runtime != null) damage = runtime.GetModifiedDamage(Mathf.RoundToInt(value));
                 if (deferDamage)
                     deferredDamage += damage;
                 else
@@ -130,11 +132,17 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     if (neighbor == null) continue;
                     var targetCard = neighbor.OccupiedCard;
                     if (targetCard == null || targetCard.Data == null) continue;
+                    var targetRuntime = targetCard.GetComponent<CardRuntimeState>();
+                    int finalDamage = 0;
 
                     foreach (var e in targetCard.Data.effects)
                     {
-                        if (e.effectType == EffectType.Damage)
-                            totalDamage += (int)e.value;
+                        if (e.effectType != EffectType.Damage) continue;
+                        int baseDamage = Mathf.RoundToInt(e.value);
+                        // 누적 카드의 경우 기존 데미지에 여태까지 추가된 데미지 합산
+                        finalDamage = targetRuntime != null?
+                            targetRuntime.GetModifiedDamage(baseDamage) : baseDamage;
+                        totalDamage += finalDamage;
                     }
                 }
                 BattleManager.Instance.DealDamageToEnemy(totalDamage);
@@ -152,8 +160,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 ApplyPreserveToNeighbors(card, preserveAmount);
                 break;
             case EffectType.GainDamage:
-                // int preserveAmount = Mathf.Max(1, Mathf.RoundToInt(value));
-                // ApplyPreserveToNeighbors(card, preserveAmount);
+                if (runtime != null)
+                    runtime.AddBonusDamage(Mathf.RoundToInt(value));
                 break;
         }
     }
