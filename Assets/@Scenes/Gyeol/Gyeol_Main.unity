@@ -7384,6 +7384,11 @@ MonoBehaviour:
   _maxActivationSteps: 100
   _cardFeedbackDuration: 0.22
   _maxLoopCount: 3
+  _infiniteLoopText: {fileID: 0}
+  _loopSlashDirector: {fileID: 0}
+  _infiniteLoopGraceDuration: 2
+  _infiniteLoopTextDuration: 1.2
+  _infiniteLoopFinishDamage: 999
 --- !u!1 &5021724786616653723
 GameObject:
   m_ObjectHideFlags: 0
@@ -9035,6 +9040,9 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TutorialManager
   _tutorialEnemyData: {fileID: 11400000, guid: e0945575906e9ba4cb6d45a9f2ce2e1a, type: 2}
+  _turn3EnemyData: {fileID: 0}
+  _turn3RightCard: {fileID: 0}
+  _turn3LeftCard: {fileID: 0}
   _tutorialDeck:
   - {fileID: 11400000, guid: f471dbcd90b6dc146b4ecf9fca871c61, type: 2}
   - {fileID: 11400000, guid: c66e5fa00e961ee4e9b00a6707a275e5, type: 2}
@@ -9472,6 +9480,13 @@ MonoBehaviour:
   _enemyList:
   - {fileID: 11400000, guid: e97fea7291b1df1489114efc8e808f25, type: 2}
   - {fileID: 11400000, guid: a781314443e24d046bfaf7a0b8a29d45, type: 2}
+  - {fileID: 11400000, guid: f24f43ee4f24585449e2aea6eb7f3aaa, type: 2}
+  - {fileID: 11400000, guid: 543839a0e2aad944f9f3173889d681c7, type: 2}
+  - {fileID: 11400000, guid: cc2927df875dc494092842b1806b0bf9, type: 2}
+  - {fileID: 11400000, guid: 8ca7dd8ed96c73f4893749f6ca968e2a, type: 2}
+  - {fileID: 11400000, guid: ce2705c77a56d064dbc7cd24c43a4e61, type: 2}
+  - {fileID: 11400000, guid: 4555d780914933a48a23c58840ad8631, type: 2}
+  - {fileID: 11400000, guid: f87ba94ee12a3e643a280ad27bdab033, type: 2}
   - {fileID: 11400000, guid: ffe97d4c08816a147bec545cf3a5e3c3, type: 2}
 --- !u!224 &7810386567169819886
 RectTransform:

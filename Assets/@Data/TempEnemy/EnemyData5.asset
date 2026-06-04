@@ -10,56 +10,44 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 023c446197fe4444ea9e21c83ae6c55b, type: 3}
-  m_Name: EliteEnemyData
+  m_Name: EnemyData5
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDataSO
   enemyId: 
-  displayName: Elite Enemy
-  maxHp: 150
+  displayName: Enemy5
+  maxHp: 85
   sprite: {fileID: 0}
-  motionPrefab: {fileID: 910000000000000003, guid: f2132bcba655ab948abb429acc4f4adf, type: 3}
+  motionPrefab: {fileID: 910000000000000003, guid: b572e51a95e40214483f8f248e0f9e2a, type: 3}
   intentPattern:
   - intents:
-    - type: 2
-      value: 0
-      hits: 0
+    - type: 1
+      value: 15
+      hits: 1
+      spawnCount: 3
+      cursePerCard: 2
+    - type: 0
+      value: 10
+      hits: 1
       spawnCount: 3
       cursePerCard: 2
   - intents:
-    - type: 2
-      value: 0
+    - type: 1
+      value: 15
       hits: 1
-      spawnCount: 4
+      spawnCount: 3
+      cursePerCard: 2
+    - type: 0
+      value: 15
+      hits: 1
+      spawnCount: 3
       cursePerCard: 2
   - intents:
-    - type: 0
-      value: 5
-      hits: 4
-      spawnCount: 0
-      cursePerCard: 0
     - type: 1
       value: 10
       hits: 1
-      spawnCount: 0
-      cursePerCard: 0
-  - intents:
+      spawnCount: 3
+      cursePerCard: 2
     - type: 0
-      value: 15
+      value: 20
       hits: 1
-      spawnCount: 0
-      cursePerCard: 0
-    - type: 1
-      value: 7
-      hits: 1
-      spawnCount: 0
-      cursePerCard: 0
-  - intents:
-    - type: 0
-      value: 3
-      hits: 3
-      spawnCount: 0
-      cursePerCard: 0
-    - type: 1
-      value: 15
-      hits: 1
-      spawnCount: 0
-      cursePerCard: 0
+      spawnCount: 3
+      cursePerCard: 2
