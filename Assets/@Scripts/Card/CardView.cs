@@ -50,6 +50,12 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         RefreshPreserveUI();
     }
 
+    public void RemovePreserve(int amount)
+    {
+        PreserveStack = Mathf.Max(0, PreserveStack - amount);
+        RefreshPreserveUI();
+    }
+
     /// <summary>보존 스택 1 차감. 스택이 있으면 true(유지), 없으면 false(버려야 함) 반환.</summary>
     public bool ConsumePreserve()
     {

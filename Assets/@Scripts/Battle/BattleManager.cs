@@ -5,12 +5,11 @@ using UnityEngine;
 
 public class BattleManager : SingletonBehaviour<BattleManager>
 {
-    public enum BattlePhase { PlayerTurn, EnemyTurn }
+    public enum BattlePhase { PlayerTurn, PreserveSelect, EnemyTurn }
 
     [Header("Actors")]
     [SerializeField] private Player _player;
     [SerializeField] private Enemy _enemy;
-    [SerializeField] private CharacterMotionQueuePlayer _playerMotionPlayer;
 
     [Header("Battle Settings")]
     [SerializeField] private List<EnemyDataSO> _enemyList = new();
@@ -67,7 +66,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         _isBattleActive = true;
         _isEndingBattle = false;
-        _player.ResetPendingAttack();
         _enemy.Setup(enemyData);
 
         EnterPhase(BattlePhase.PlayerTurn);
@@ -84,6 +82,12 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             && !TutorialManager.Instance.CanConfirm()) return;
 
         TutorialManager.Instance?.OnTurnConfirmed();
+        EnterPhase(BattlePhase.PreserveSelect);
+    }
+
+    public void ConfirmPreserveSelect()
+    {
+        if (CurrentPhase != BattlePhase.PreserveSelect) return;
         StartCoroutine(PlayerTurnRoutine());
     }
 
@@ -96,7 +100,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         _isBattleActive = true;
         _isEndingBattle = false;
-        _player.ResetPendingAttack();
         _enemy.Setup(enemyData);
 
         EnterPhase(BattlePhase.PlayerTurn);
@@ -122,15 +125,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        int pendingDamage = _player.CurrentPendingAttack;
-        if (pendingDamage > 0)
-        {
-            yield return PlayPendingPlayerAttackRoutine(pendingDamage);
-            _player.ConsumePendingAttack();
-
-            if (!_isBattleActive || _enemy.IsDead) { IsProcessing = false; yield break; }
-        }
-
         yield return new WaitForSeconds(0.5f);
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
@@ -152,28 +146,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         IsProcessing = false;
         EnterPhase(BattlePhase.EnemyTurn);
         StartCoroutine(EnemyTurnRoutine());
-    }
-
-    private IEnumerator PlayPendingPlayerAttackRoutine(int damage)
-    {
-        CharacterMotionQueuePlayer motionPlayer = GetPlayerMotionPlayer();
-        if (motionPlayer != null && motionPlayer.isActiveAndEnabled)
-        {
-            yield return motionPlayer.PlayAttackRoutine(damage);
-            yield break;
-        }
-
-        Debug.LogWarning("[BattleManager] 플레이어 공격 모션 플레이어가 연결되지 않아 누적 공격을 즉시 적용합니다.");
-        DealDamageToEnemy(damage);
-    }
-
-    private CharacterMotionQueuePlayer GetPlayerMotionPlayer()
-    {
-        if (_playerMotionPlayer != null)
-            return _playerMotionPlayer;
-
-        _playerMotionPlayer = FindFirstObjectByType<CharacterMotionQueuePlayer>();
-        return _playerMotionPlayer;
     }
 
     private void ProcessContaminateCards()
@@ -222,14 +194,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        // 플레이어 카드 먼저 정리 (Turn3 중에는 TutorialManager가 직접 관리)
-        bool isTurn3 = GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && TutorialManager.Instance != null
-            && (TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Guided
-                || TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free);
-
-        if (!isTurn3)
-            CardManager.Instance.DiscardGrid();
+        // 플레이어 카드 먼저 정리
+        CardManager.Instance.DiscardGrid();
 
         yield return new WaitForSeconds(0.3f);
 
@@ -274,7 +240,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         IsProcessing = false;
         EnterPhase(BattlePhase.PlayerTurn);
 
-        // Turn3_Free: 적이 살아있으면 도르마무 (DiscardAndDraw는 RestartTurn3Free에서 처리)
+        // Turn3_Free: 적이 살아있으면 도르마무
         if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
             && TutorialManager.Instance != null
             && TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free
@@ -294,7 +260,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     {
         TutorialManager.Instance?.OnEnemyDefeated();
 
-        // 튜토리얼 Turn3 중에는 BattleRoutine 종료 처리 없이 TutorialManager가 직접 제어
         if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
             && TutorialManager.Instance != null
             && (TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Guided
@@ -307,7 +272,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private IEnumerator EndBattleRoutine(bool victory)
     {
         _player.ResetDefense();
-        _player.ResetPendingAttack();
 
         if (_isEndingBattle) yield break;
         _isEndingBattle = true;
@@ -347,7 +311,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _isBattleActive = true;
         _isEndingBattle = false;
         IsProcessing = false;
-        _player.ResetPendingAttack();
 
         _enemy.OnDied -= HandleEnemyDied;
         _player.OnDied -= HandlePlayerDied;
