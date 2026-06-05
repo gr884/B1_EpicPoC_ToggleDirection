@@ -14,9 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardId: 
   displayName: "\uC790\uB3D9 \uD2B8\uB9AC\uAC70"
-  description: "\uADF8\uB9AC\uB4DC\uC5D0 \uC5F0\uC1C4 \uBC18\uC751 \uD6C4 On \uCE74\uB4DC
-    \uC218\uAC00 3\uAC1C \uC774\uC0C1\uC774\uBA74 \uC790\uB3D9 On,\nOn\uB420 \uC2DC
-    \uB4DC\uB85C\uC6B0 \uD55C\uC7A5"
+  description: "\uC5F0\uC1C4 \uBC18\uC751 \uD6C4 \uADF8\uB9AC\uB4DC \uC704\uC758
+    On \uCE74\uB4DC \uC218\uAC00 5\uAC1C \uC774\uC0C1\uC774\uBA74 \uC774 \uCE74\uB4DC\uB97C
+    \uD1A0\uAE00\uD569\uB2C8\uB2E4.\nOn\uB420 \uC2DC \uCE74\uB4DC\uB97C \uD55C \uC7A5
+    \uB4DC\uB85C\uC6B0\uD569\uB2C8\uB2E4."
   cost: 1
   isUnplayable: 0
   isCurseCard: 0
@@ -31,7 +32,7 @@ MonoBehaviour:
   - trigger: 0
     scope: 0
     thresholdType: 0
-    threshold: 3
+    threshold: 5
     effectType: 4
     value: 1
     secondaryValue: 0

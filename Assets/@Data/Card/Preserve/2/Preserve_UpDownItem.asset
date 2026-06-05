@@ -14,24 +14,34 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
   displayName: "\uBCF4\uC8742"
-  description: "\uBCF4\uC874 + 1\n\uAC19\uC740 \uC5F4 \uC804\uBD80 \uD65C\uC131\uD654
-    \uC2DC,\n\uCD94\uAC00 \uBCF4\uC874 + 1"
+  description: "\uD654\uC0B4\uD45C \uBC29\uD5A5 \uD0C0\uC77C\uC5D0 \uBCF4\uC874\uC744
+    \uBD80\uC5EC\uD569\uB2C8\uB2E4.\n\uAC19\uC740 \uD589 \uC804\uBD80 \uD65C\uC131\uD654
+    \uC2DC,\n\uCD94\uAC00 \uBCF4\uC874\uC744 1\uD68C \uB354 \uBD80\uC5EC\uD569\uB2C8\uB2E4.\n\n\uBCF4\uC874
+    : \uD134 \uC885\uB8CC \uC2DC \n\uD69F\uC218\uB97C \uC18C\uBAA8\uD558\uACE0 \n\uC0AC\uB77C\uC9C0\uC9C0
+    \uC54A\uC2B5\uB2C8\uB2E4."
   cost: 1
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3
+  isRecaller: 0
+  hasAutoTrigger: 0
+  autoTriggerThreshold: 1
   range: 1
   recallDestination: 0
   directions: 0100000005000000
   effects:
-  - scope: 0
+  - trigger: 0
+    scope: 0
     thresholdType: 0
     threshold: 0
     effectType: 6
     value: 1
-  - scope: 2
+    secondaryValue: 0
+  - trigger: 0
+    scope: 2
     thresholdType: 1
     threshold: 0
     effectType: 5
     value: 1
+    secondaryValue: 0
   icon: {fileID: -4184318454985540292, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

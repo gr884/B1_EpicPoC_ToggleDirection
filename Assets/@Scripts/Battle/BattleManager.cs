@@ -287,7 +287,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         // 다음 플레이어 턴에 보여줄 Intent로 갱신 (실행 아님)
         _enemy.AdvanceIntent();
 
-        IsProcessing = false;
         EnterPhase(BattlePhase.PlayerTurn);
 
         // Turn3_Free: 적이 살아있으면 도르마무
@@ -309,7 +308,8 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             }
         }
 
-        CardManager.Instance.DiscardAndDraw();
+        yield return CardManager.Instance.DiscardAndDrawRoutine();
+        IsProcessing = false;
     }
 
     // ── 전투 종료 ──────────────────────────────────────────
