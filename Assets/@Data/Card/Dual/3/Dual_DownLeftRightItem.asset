@@ -14,9 +14,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
   displayName: "\uC30D\uBC29"
-  description: "On\uB420 \uB54C \uACF5\uACA9 + 10\nOff \uB420 \uB54C \uBC29\uC5B4\uB3C4
-    +5"
-  cost: 1
+  description: "\uCF1C\uC9C8 \uB54C 10\uC758 \uB370\uBBF8\uC9C0\uB97C \uC90D\uB2C8\uB2E4.\n\uAEBC\uC9C8
+    \uB54C 5\uC758 \uBC29\uC5B4\uB3C4\uB97C \uC5BB\uC2B5\uB2C8\uB2E4."
+  cost: 2
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3

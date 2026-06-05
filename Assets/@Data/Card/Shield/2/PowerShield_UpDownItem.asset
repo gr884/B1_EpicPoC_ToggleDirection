@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: PowerShield_UpDownItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uBC29\uD3282"
+  displayName: "\uAC15\uD654 \uBC29\uD328"
   description: "\uBC29\uC5B4\uB3C4 + 8"
   cost: 1
   isUnplayable: 0
