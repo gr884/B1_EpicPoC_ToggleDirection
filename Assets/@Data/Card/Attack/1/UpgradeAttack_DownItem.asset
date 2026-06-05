@@ -26,7 +26,7 @@ MonoBehaviour:
   autoTriggerThreshold: 1
   range: 1
   recallDestination: 0
-  directions: 01000000
+  directions: 05000000
   effects:
   - trigger: 0
     scope: 0

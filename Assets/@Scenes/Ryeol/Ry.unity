@@ -1096,10 +1096,6 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 06f9f3b9cfca9a7498cd07412cdae102, type: 2}
   - {fileID: 11400000, guid: b2fca9c2789773e44a85c022ce1a80d8, type: 2}
   - {fileID: 11400000, guid: aad20a09c3a52824fbb1d33535980938, type: 2}
-  - {fileID: 11400000, guid: 5328ca674a2c92c40944c0a2c17319d0, type: 2}
-  - {fileID: 11400000, guid: c3064d7d5fd4394429760711455d6bea, type: 2}
-  - {fileID: 11400000, guid: fba5a0272ff155a438832ffe9e872d2a, type: 2}
-  - {fileID: 11400000, guid: 2f29724f8fa5ee74390de4ea184a797d, type: 2}
   - {fileID: 11400000, guid: 1b7368e09ce50d24ea2957eba966e9de, type: 2}
   - {fileID: 11400000, guid: 495b63df4569bab448d2863ae7dada46, type: 2}
   - {fileID: 11400000, guid: 4a4fd388ca887b8409402b4300c01ba0, type: 2}
@@ -3407,30 +3403,20 @@ MonoBehaviour:
   _player: {fileID: 1113997785}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
-  - {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
-  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
   - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
-  - {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
-  - {fileID: 11400000, guid: 1e37b1e80927faf4384db5fdd2039786, type: 2}
-  - {fileID: 11400000, guid: 32ff670289706444095025f1da620183, type: 2}
-  - {fileID: 11400000, guid: 61bf5e724b1bd3047a0bd11d4836296f, type: 2}
-  - {fileID: 11400000, guid: d6eed42e7d709e541970170fe7586aa6, type: 2}
-  - {fileID: 11400000, guid: 718c8650df884e04a97ea9ef91a43014, type: 2}
+  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
   - {fileID: 11400000, guid: 612445577a5007943ae9638866b316ec, type: 2}
   - {fileID: 11400000, guid: 7651bbda5845f9344b096e73d3da8979, type: 2}
-  - {fileID: 11400000, guid: 2ca7c65eb4a6d884fae950473b47caa4, type: 2}
-  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
-  - {fileID: 11400000, guid: 7d6039914d21bb943877c525d80b4fed, type: 2}
-  - {fileID: 11400000, guid: 2a57aeae75e33f14d994c512de18b1e0, type: 2}
   - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
+  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
+  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
+  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
   - {fileID: 11400000, guid: 94fc21356a7d0d14597708bc243f4f71, type: 2}
   - {fileID: 11400000, guid: 94fc21356a7d0d14597708bc243f4f71, type: 2}
-  - {fileID: 11400000, guid: 2df8441dbf2fab847ba1895fc8fdab54, type: 2}
-  - {fileID: 11400000, guid: 95179d26520f2614bb7c9384a59f02bd, type: 2}
-  - {fileID: 11400000, guid: 63f90e3b9b2ae0047af773bf5e785433, type: 2}
-  - {fileID: 11400000, guid: 61a85492deb3cee40bf4a4d3e3d28bb7, type: 2}
-  - {fileID: 11400000, guid: b513eb9bde4265e4e9ff502698b04fe2, type: 2}
-  - {fileID: 11400000, guid: 2280057d4977a7544a7d550b50822333, type: 2}
+  - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
+  - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &1926050208
 MonoBehaviour:
@@ -10708,6 +10694,13 @@ MonoBehaviour:
   _enemyList:
   - {fileID: 11400000, guid: e97fea7291b1df1489114efc8e808f25, type: 2}
   - {fileID: 11400000, guid: a781314443e24d046bfaf7a0b8a29d45, type: 2}
+  - {fileID: 11400000, guid: f24f43ee4f24585449e2aea6eb7f3aaa, type: 2}
+  - {fileID: 11400000, guid: 543839a0e2aad944f9f3173889d681c7, type: 2}
+  - {fileID: 11400000, guid: cc2927df875dc494092842b1806b0bf9, type: 2}
+  - {fileID: 11400000, guid: 8ca7dd8ed96c73f4893749f6ca968e2a, type: 2}
+  - {fileID: 11400000, guid: ce2705c77a56d064dbc7cd24c43a4e61, type: 2}
+  - {fileID: 11400000, guid: 4555d780914933a48a23c58840ad8631, type: 2}
+  - {fileID: 11400000, guid: f87ba94ee12a3e643a280ad27bdab033, type: 2}
   - {fileID: 11400000, guid: ffe97d4c08816a147bec545cf3a5e3c3, type: 2}
   _playerDamageNumberPrefab: {fileID: 4996161422809100937, guid: d357b174cb55db842ad5c77a9c0c41de, type: 3}
   _playerDamageNumberOffset: {x: 0, y: 0.5, z: 0}
