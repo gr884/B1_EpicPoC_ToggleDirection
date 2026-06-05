@@ -37,6 +37,18 @@ public class CardRuntimeState : MonoBehaviour
         OnChanged?.Invoke();
     }
 
+    //* amount만큼 누적 데미지 차감 (0 아래로 안 내려감)
+    public void DeductBonusDamage(int amount)
+    {
+        if (_isEnemy || _instance == null) return;
+
+        int deduct = Mathf.Max(0, amount);
+        if (deduct == 0) return;
+
+        _instance.PersistentState.DeductBonusDamage(deduct);
+        OnChanged?.Invoke();
+    }
+
     public void Refresh()
     {
         OnChanged?.Invoke();

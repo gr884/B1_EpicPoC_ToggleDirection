@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
+  m_Name: 6CardData
+  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  cardId: 
+  displayName: "On\uACF5Off\uBC29"
+  description: "On\uB420 \uB54C 10 \uB300\uBBF8\uC9C0, Off \uB420\uB54C 5 \uBC29\uC5B4"
+  cost: 1
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  range: 1
+  recallDestination: 0
+  directions: 0300000007000000
+  effects:
+  - scope: 0
+    thresholdType: 0
+    threshold: 1
+    effectType: 11
+    value: 10
+    secondaryValue: 5
+  icon: {fileID: 780833898759304822, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

@@ -46,6 +46,7 @@ public class UI_RewardPopup : MonoBehaviour
         {
             CardView card = PoolManager.Instance.Get<CardView>(_cardPrefab, _cardContainer);
             card.Initialize(data);
+            card.ApplyHandLayout();
             card.SetDraggable(false);
 
             Button btn = card.GetComponent<Button>();

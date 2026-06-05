@@ -17,6 +17,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     // ── 덱 상태 ────────────────────────────────────────────
     private readonly List<CardInstance> _drawPile = new();
     private readonly List<CardInstance> _discardPile = new();
+    private readonly List<CardInstance> _exiledPile = new(); // 폭발형: 이번 전투 소멸 카드
     private readonly List<CardData> _drawPileView = new();
     private readonly List<CardData> _discardPileView = new();
     public int DrawPileCount => _drawPile.Count;
@@ -72,6 +73,11 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void ResetDeck()
     {
+        // 소멸 카드 복귀 후 초기화
+        foreach (CardInstance exiled in _exiledPile)
+            exiled.ResetExile();
+        _exiledPile.Clear();
+
         _drawPile.Clear();
         _discardPile.Clear();
         if (_startingDeck != null)
@@ -83,6 +89,21 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (_shuffleOnReset)
             Shuffle(_drawPile);
         Debug.Log($"[CardManager] 덱 리셋 — {_drawPile.Count}장");
+    }
+
+    /// <summary>카드를 이번 전투에서 소멸시킵니다. 다음 전투 시작 시 복귀합니다.</summary>
+    public void ExileCard(CardView card)
+    {
+        if (card == null || card.Instance == null) return;
+
+        card.Instance.Exile();
+        _exiledPile.Add(card.Instance);
+
+        GridSlot slot = card.CurrentSlot;
+        slot?.ClearCard();
+        PoolManager.Instance.Return(card.gameObject);
+
+        Debug.Log($"[CardManager] 카드 소멸 — {card.Data?.displayName}");
     }
 
     /// <summary>덱에 카드를 영구 추가합니다.</summary>
@@ -188,6 +209,7 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void DiscardAndDraw()
     {
+        ResetTurnOnCounts();
         DiscardHand();
         DrawToHand(_player.HandSize);
         TutorialManager.Instance?.OnHandDrawn();
@@ -279,16 +301,44 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public bool TryPlaceCard(CardView card, GridSlot targetSlot)
     {
-        if (card == null || targetSlot == null || !targetSlot.IsEmpty) return false;
+        if (card == null || targetSlot == null) return false;
         if (BattleManager.Instance.IsProcessing) return false;
         if (ChainExecutor.Instance.IsExecuting) return false;
         if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
         if (!_hand.Contains(card)) return false;
         if (card.Instance == null || card.Data == null) return false;
         if (card.Data.isUnplayable) return false;
+
+        bool isRecaller = card.Data.isRecaller;
+
+        // 일반 카드는 빈 슬롯만, 조작형은 점유 슬롯만 허용
+        if (!isRecaller && !targetSlot.IsEmpty) return false;
+        if (isRecaller && targetSlot.IsEmpty) return false;
+        // 조작형은 적 카드 회수 불가
+        if (isRecaller && targetSlot.OccupiedCard != null && targetSlot.OccupiedCard.IsEnemy) return false;
         if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
             && !TutorialManager.Instance.CanPlaceCard(card, targetSlot)) return false;
         if (!_player.SpendCost(card.Data.cost)) return false;
+
+        // 조작형: 대상 카드 손패로 회수 후 자신 소멸
+        if (isRecaller)
+        {
+            CardView target = targetSlot.OccupiedCard;
+            if (target != null)
+            {
+                targetSlot.ClearCard();
+                SpawnToHand(target.Instance);
+                PoolManager.Instance.Return(target.gameObject);
+                OnHandChanged?.Invoke();
+            }
+            // 자신도 소멸 (그리드에 배치하지 않고 바로 exile)
+            _hand.Remove(card);
+            OnHandChanged?.Invoke();
+            card.Instance.Exile();
+            _exiledPile.Add(card.Instance);
+            PoolManager.Instance.Return(card.gameObject);
+            return true;
+        }
 
         targetSlot.AssignCard(card);
         card.SetDraggable(false);
@@ -296,6 +346,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         OnHandChanged?.Invoke();
 
         TutorialManager.Instance?.OnCardPlaced(card);
+        ChainExecutor.Instance.ApplyOnPlacedEffects(card);
         ChainExecutor.Instance.ExecuteFrom(card);
         return true;
     }
@@ -356,8 +407,28 @@ public class CardManager : SingletonBehaviour<CardManager>
         OnHandChanged?.Invoke();
     }
 
+    /// <summary>턴 시작 시 모든 카드의 TurnOnCount를 초기화합니다.</summary>
+    private void ResetTurnOnCounts()
+    {
+        ChainExecutor.Instance.ResetTurnToggleCount();
+
+        foreach (CardInstance instance in _drawPile)
+            instance?.PersistentState.ResetTurnOnCount();
+        foreach (CardInstance instance in _discardPile)
+            instance?.PersistentState.ResetTurnOnCount();
+        foreach (CardView card in _hand)
+            card?.Instance?.PersistentState.ResetTurnOnCount();
+
+        if (GridManager.Instance != null)
+        {
+            foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+                slot.OccupiedCard?.Instance?.PersistentState.ResetTurnOnCount();
+        }
+    }
+
     public void ClearCombatPersistentStates()
     {
+        ChainExecutor.Instance.ResetTurnToggleCount();
         foreach (CardInstance instance in _drawPile)
             instance?.PersistentState.ClearCombatState();
         foreach (CardInstance instance in _discardPile)

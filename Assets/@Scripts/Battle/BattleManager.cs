@@ -130,6 +130,9 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
+        // 마무리 카드: 턴 종료 시 ON 상태인 카드의 FinisherDamage 처리
+        ChainExecutor.Instance.ApplyFinisherEffects();
+
         int pendingDamage = _player.CurrentPendingAttack;
         if (pendingDamage > 0)
         {

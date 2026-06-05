@@ -26,6 +26,18 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     private readonly HashSet<CardView> _activatedCards = new();
     public IReadOnlyCollection<CardView> ActivatedCards => _activatedCards;
 
+    // 카운터형: 이번 턴 그리드 전체 ON 횟수
+    private int _turnToggleCount;
+    public int TurnToggleCount => _turnToggleCount;
+
+    public event Action OnToggleCountChanged;
+
+    public void ResetTurnToggleCount()
+    {
+        _turnToggleCount = 0;
+        OnToggleCountChanged?.Invoke();
+    }
+
     public bool IsExecuting { get; private set; }
 
     public void Init()
@@ -60,6 +72,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 slot.OccupiedCard.SetDraggable(false);
 
         IsExecuting = false;
+
+        // 자동 트리거: 체인 종료 후 조건 충족 카드 자동 ON
+        yield return CheckAutoTriggers();
+
         OnChainFinished?.Invoke();
     }
 
@@ -157,6 +173,209 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 if (runtime != null)
                     runtime.AddBonusDamage(Mathf.RoundToInt(value));
                 break;
+            case EffectType.DecayDamage:
+                if (runtime != null)
+                    runtime.DeductBonusDamage(Mathf.RoundToInt(value));
+                break;
+            case EffectType.DefenseOnOff:
+                // ON될 때 → Damage (value)
+                int reverseDamage = Mathf.Max(1, Mathf.RoundToInt(value));
+                BattleManager.Instance.Player.AddPendingAttack(reverseDamage);
+                break;
+            case EffectType.CounterDamage:
+                // ON될 때 → value + 이번 턴 전체 ON 횟수 데미지
+                int counterDamage = Mathf.Max(1, Mathf.RoundToInt(value) + _turnToggleCount);
+                BattleManager.Instance.Player.AddPendingAttack(counterDamage);
+                break;
+            case EffectType.Explode:
+                ApplyExplodeEffect(card);
+                break;
+            case EffectType.PopularityDamage:
+                if (card.CurrentSlot != null)
+                {
+                    int neighborCount = 0;
+                    foreach (CardDirection dir in System.Enum.GetValues(typeof(CardDirection)))
+                    {
+                        if (dir == CardDirection.None) continue;
+                        GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
+                        if (neighbor != null && !neighbor.IsEmpty)
+                            neighborCount++;
+                    }
+                    int popularityDamage = Mathf.RoundToInt(value) * neighborCount;
+                    if (popularityDamage > 0)
+                        BattleManager.Instance.Player.AddPendingAttack(popularityDamage);
+                }
+                break;
+        }
+    }
+
+    private void ApplyDefenseOnOffEffects(CardView card)
+    {
+        foreach (CardEffect effect in card.Data.effects)
+        {
+            if (effect.effectType != EffectType.DefenseOnOff) continue;
+            // OFF될 때 → Defense (secondaryValue)
+            int defense = Mathf.Max(1, Mathf.RoundToInt(effect.secondaryValue));
+            BattleManager.Instance.Player.AddDefense(defense);
+        }
+    }
+
+    // ── 턴 종료 시 이펙트 ─────────────────────────────────
+
+    public void ApplyFinisherEffects()
+    {
+        if (GridManager.Instance == null) return;
+
+        // 그리드 전체 ON 카드 수 계산
+        int onCount = 0;
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+            if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
+                onCount++;
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            CardView card = slot.OccupiedCard;
+            if (card == null || card.IsEnemy || !card.IsActivated) continue;
+            if (card.Data?.effects == null) continue;
+
+            foreach (CardEffect effect in card.Data.effects)
+            {
+                if (effect.effectType != EffectType.FinisherDamage) continue;
+                int damage = Mathf.Max(0, Mathf.RoundToInt(effect.value) * onCount);
+                if (damage > 0)
+                    BattleManager.Instance.Player.AddPendingAttack(damage);
+            }
+        }
+    }
+
+    // ── 자동 트리거 ───────────────────────────────────────
+
+    private IEnumerator CheckAutoTriggers()
+    {
+        if (GridManager.Instance == null) yield break;
+
+        // 현재 그리드 ON 카드 수 계산
+        int onCount = 0;
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+            if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
+                onCount++;
+
+        // AutoTrigger 카드 중 OFF 상태이고 조건 충족한 카드 수집
+        List<CardView> toTrigger = new();
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            CardView card = slot.OccupiedCard;
+            if (card == null || card.IsEnemy || card.IsActivated) continue;
+            if (card.Data?.effects == null) continue;
+
+            foreach (CardEffect effect in card.Data.effects)
+            {
+                if (effect.effectType != EffectType.AutoTrigger) continue;
+                if (onCount >= effect.threshold)
+                {
+                    toTrigger.Add(card);
+                    break;
+                }
+            }
+        }
+
+        // 조건 충족 카드 순차 ON
+        foreach (CardView card in toTrigger)
+        {
+            if (card == null || card.CurrentSlot == null) continue;
+            yield return ActivateChainFrom(card, _activatedCards);
+        }
+    }
+
+    // ── 폭발형 ────────────────────────────────────────────
+
+    private void ApplyExplodeEffect(CardView card)
+    {
+        if (card?.Data == null || card.CurrentSlot == null) return;
+
+        HashSet<CardView> nextWave = new();
+
+        foreach (CardDirection dir in card.Data.GetAllDirections())
+        {
+            GridSlot neighborSlot = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
+            if (neighborSlot == null) continue;
+
+            CardView neighbor = neighborSlot.OccupiedCard;
+            if (neighbor == null || neighbor.IsEnemy) continue;
+
+            bool wasOff = !neighbor.IsActivated;
+
+            if (wasOff)
+                neighbor.SetActivated(true);
+
+            // ON 여부와 관계없이 효과 발동 + 카운트 증가 + 피드백
+            _turnToggleCount++;
+            OnToggleCountChanged?.Invoke();
+            neighbor.Instance?.PersistentState.IncrementTurnOnCount();
+            ApplyEffects(neighbor);
+            StartCoroutine(neighbor.PlayActivationFeedback(_cardFeedbackDuration));
+
+            // OFF→ON이 된 카드만 이웃으로 체인 전파
+            if (wasOff)
+                nextWave.Add(neighbor);
+        }
+
+        // 소멸 처리 (효과 발동 후)
+        CardManager.Instance.ExileCard(card);
+
+        // 새로 ON된 카드들의 이웃부터 체인 시작 (카드 자체는 이미 ON 상태)
+        if (nextWave.Count > 0)
+            StartCoroutine(ActivateChainFromWave(new List<CardView>(nextWave), _activatedCards));
+    }
+
+    private IEnumerator ActivateChainFromWave(List<CardView> emitters, HashSet<CardView> activatedCards)
+    {
+        // emitters는 이미 ON 상태 — 이웃으로만 전파
+        HashSet<CardView> nextWaveSet = new();
+        foreach (CardView emitter in emitters)
+        {
+            if (emitter?.Data == null || emitter.CurrentSlot == null) continue;
+            activatedCards.Add(emitter);
+
+            foreach (CardDirection dir in emitter.Data.GetAllDirections())
+            {
+                GridSlot current = emitter.CurrentSlot;
+                for (int i = 0; i < emitter.Data.range; i++)
+                {
+                    GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                    if (neighbor == null) break;
+                    if (neighbor.OccupiedCard != null)
+                        nextWaveSet.Add(neighbor.OccupiedCard);
+                    current = neighbor;
+                }
+            }
+        }
+
+        yield return new WaitForSeconds(_cardFeedbackDuration);
+
+        if (nextWaveSet.Count > 0)
+        {
+            // 다음 웨이브 카드들을 ActivateChainFrom에 순차 처리
+            // 웨이브 내 카드가 여러 개일 때 각각 독립 체인으로 시작
+            foreach (CardView next in nextWaveSet)
+                yield return ActivateChainFrom(next, activatedCards);
+        }
+    }
+
+    // ── 배치 시 이펙트 ────────────────────────────────────
+
+    public void ApplyOnPlacedEffects(CardView card)
+    {
+        if (card?.Data?.effects == null || card.IsEnemy) return;
+
+        var runtime = card.GetComponent<CardRuntimeState>();
+        foreach (CardEffect effect in card.Data.effects)
+        {
+            if (effect.effectType != EffectType.OnPlaced) continue;
+
+            // OnPlaced의 value는 GainDamage 용도로만 사용 (초기 BonusDamage 세팅)
+            if (runtime != null)
+                runtime.AddBonusDamage(Mathf.RoundToInt(effect.value));
         }
     }
 
@@ -232,6 +451,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         total++;
                 return total;
 
+            case CountScope.Self:
+                return card.Instance?.PersistentState.TurnOnCount ?? 0;
+
+            case CountScope.GridTotal:
+                return _turnToggleCount;
+
             default:
                 return 0;
         }
@@ -270,6 +495,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                     if (!current.IsEnemy)
                     {
+                        // 임계 활성화: ON 횟수 누적
+                        current.Instance?.PersistentState.IncrementTurnOnCount();
+                        // 카운터형: 그리드 전체 ON 횟수 누적
+                        _turnToggleCount++;
+                        OnToggleCountChanged?.Invoke();
+
                         bool hasMotionRequest = TryCreateMotionRequest(current, out CharacterMotionRequest motionRequest);
                         ApplyEffects(current);
 
@@ -288,6 +519,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 else
                 {
                     activatedCards.Remove(current);
+
+                    // 반전형: OFF될 때 즉시 방어 발동
+                    if (!current.IsEnemy && current.Data?.effects != null)
+                        ApplyDefenseOnOffEffects(current);
                 }
             }
 
@@ -637,6 +872,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         OnChainStarted = null;
         OnChainFinished = null;
+        OnToggleCountChanged = null;
         base.Dispose();
     }
 }
