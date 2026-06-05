@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardId: 
   displayName: "\uC720\uB9AC\uCE7C"
-  description: "\uCC98\uC74C \uB300\uBBF8\uC9C0 = 12, On\uC774 \uB420 \uB54C\uB9C8\uB2E4
-    \uB300\uBBF8\uC9C0 2\uC529 \uAC10\uC18C"
+  description: "\uACF5\uACA9 + 12\nOn\uC774 \uB420 \uB54C\uB9C8\uB2E4 \uBD80\uC5EC\uD558\uB294
+    \uACF5\uACA9 2\uC529 \uAC10\uC18C"
   cost: 1
   isUnplayable: 0
   isCurseCard: 0

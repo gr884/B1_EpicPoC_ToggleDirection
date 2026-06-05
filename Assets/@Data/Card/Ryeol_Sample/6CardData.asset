@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardId: 
   displayName: "On\uACF5Off\uBC29"
-  description: "On\uB420 \uB54C 10 \uB300\uBBF8\uC9C0, Off \uB420\uB54C 5 \uBC29\uC5B4"
+  description: "On\uB420 \uB54C \uACF5\uACA9 + 10\nOff \uB420 \uB54C \uBC29\uC5B4\uB3C4
+    +5"
   cost: 1
   isUnplayable: 0
   isCurseCard: 0

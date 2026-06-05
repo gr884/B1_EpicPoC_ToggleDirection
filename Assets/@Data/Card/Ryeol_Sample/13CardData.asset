@@ -14,15 +14,17 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardId: 
   displayName: "\uD68C\uC218"
-  description: "\uADF8\uB9AC\uB4DC\uC5D0 \uC788\uB294 \uCE74\uB4DC \uC911 \uD558\uB098\uB97C
-    \uD68C\uC218\uD560 \uC218 \uC788\uC74C"
+  description: "\uC774 \uCE74\uB4DC\uB97C \uB2E4\uB978 \uCE74\uB4DC \uC704\uC5D0
+    \uB193\uC73C\uBA74 \uC190\uC73C\uB85C \uAC00\uC838\uC635\uB2C8\uB2E4."
   cost: 1
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3
   isRecaller: 1
+  hasAutoTrigger: 0
+  autoTriggerThreshold: 1
   range: 1
   recallDestination: 0
-  directions: 0300000007000000
+  directions: 00000000
   effects: []
   icon: {fileID: 4412429801676152130, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

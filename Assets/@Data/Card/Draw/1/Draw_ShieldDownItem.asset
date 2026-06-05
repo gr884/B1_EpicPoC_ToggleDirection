@@ -14,24 +14,30 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
   displayName: "\uBC29\uD328\uC62C\uB9AC\uAE30"
-  description: "8\uC758 \uBC29\uC5B4\uB3C4\uB97C \uC5BB\uACE0\n\uCE74\uB4DC\uB97C
-    \uD55C \uC7A5\n\uB4DC\uB85C\uC6B0\uD569\uB2C8\uB2E4."
+  description: "\uBC29\uC5B4\uB3C4 + 8\n\uCE74\uB4DC\uB97C \uD55C \uC7A5 \uB4DC\uB85C\uC6B0\uD569\uB2C8\uB2E4."
   cost: 1
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3
+  isRecaller: 0
+  hasAutoTrigger: 0
+  autoTriggerThreshold: 1
   range: 1
   recallDestination: 0
   directions: 05000000
   effects:
-  - scope: 0
+  - trigger: 0
+    scope: 0
     thresholdType: 0
     threshold: 0
     effectType: 4
     value: 1
-  - scope: 0
+    secondaryValue: 0
+  - trigger: 0
+    scope: 0
     thresholdType: 0
     threshold: 0
     effectType: 1
     value: 8
+    secondaryValue: 0
   icon: {fileID: 2011768035259908141, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
