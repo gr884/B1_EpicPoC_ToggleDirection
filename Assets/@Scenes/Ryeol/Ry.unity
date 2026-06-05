@@ -1980,7 +1980,7 @@ MonoBehaviour:
   _maxHp: 50
   _handSize: 7
   _maxHandSize: 12
-  _maxCost: 5
+  _maxCost: 50
 --- !u!4 &1113997786
 Transform:
   m_ObjectHideFlags: 0
@@ -2806,7 +2806,7 @@ MonoBehaviour:
   _countText: {fileID: 1439277522}
   _confirmButton: {fileID: 1927996216}
   _hitAreaRoot: {fileID: 0}
-  _maxPreserveCount: 2
+  _maxPreserveCount: 50
 --- !u!225 &1602625691
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -3356,16 +3356,21 @@ MonoBehaviour:
   _player: {fileID: 1113997785}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
-  - {fileID: 11400000, guid: d12b03d6da4395345acc596285496af7, type: 2}
-  - {fileID: 11400000, guid: 51d0c89019b818a44bc83a2899d52d99, type: 2}
-  - {fileID: 11400000, guid: d94f7d502b19fe34084a8d2636259f2d, type: 2}
-  - {fileID: 11400000, guid: 3d2a19745f948964ab220ecf14a2dcd9, type: 2}
-  - {fileID: 11400000, guid: 57e6e9ef20032094e9d56f257a58eed5, type: 2}
-  - {fileID: 11400000, guid: a2edcd94dec0e1a43afc8f3807605b65, type: 2}
-  - {fileID: 11400000, guid: 134f77e93d2f48c479f0c6acf4e420f2, type: 2}
-  - {fileID: 11400000, guid: 6924eede43254294aa4d60561768f828, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
+  - {fileID: 11400000, guid: 5328ca674a2c92c40944c0a2c17319d0, type: 2}
+  - {fileID: 11400000, guid: c3064d7d5fd4394429760711455d6bea, type: 2}
+  - {fileID: 11400000, guid: fba5a0272ff155a438832ffe9e872d2a, type: 2}
+  - {fileID: 11400000, guid: 2f29724f8fa5ee74390de4ea184a797d, type: 2}
+  - {fileID: 11400000, guid: c2a135b4b3c9cbe42833825443d2c52b, type: 2}
+  - {fileID: 11400000, guid: 3293f1cabf093354abbdc77e7ddd1097, type: 2}
+  - {fileID: 11400000, guid: 1035220ea785deb4e9549fda7e1e53ef, type: 2}
+  - {fileID: 11400000, guid: 57624cb01218bfa4a9e5efcac85a346d, type: 2}
+  - {fileID: 11400000, guid: 9a66bf1a1ce171f49b9996f023e1af2f, type: 2}
+  - {fileID: 11400000, guid: 355d39ca5e773d244aae89a0faa93239, type: 2}
+  - {fileID: 11400000, guid: 61235a7023f5ee542b3001d9987fe067, type: 2}
+  - {fileID: 11400000, guid: 5be0f038b104a804c8f33d9209bb005f, type: 2}
+  - {fileID: 11400000, guid: 7dd999e235a68044f88c28f098483d77, type: 2}
+  - {fileID: 11400000, guid: d1724aa5c23df19428868fcfe50c613f, type: 2}
+  - {fileID: 11400000, guid: 6c696da3e21a27e45a491706476db3cf, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &1926050208
 MonoBehaviour:
