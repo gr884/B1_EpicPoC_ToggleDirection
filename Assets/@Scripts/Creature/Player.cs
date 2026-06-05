@@ -125,14 +125,16 @@ public class Player : MonoBehaviour
 
     // ── 전투 로직 ──────────────────────────────────────────
 
-    public void TakeAttack(int damage)
+    public int TakeAttack(int damage)
     {
         int blocked = Mathf.Min(CurrentDefense, damage);
         CurrentDefense -= blocked;
         int remaining = damage - blocked;
+        int finalDamage = Mathf.Max(0, remaining);
         _view.SetDefense(CurrentDefense);
-        _view.TakeDamage(Mathf.Max(0, remaining));
+        _view.TakeDamage(finalDamage);
         OnDefenseChanged?.Invoke();
+        return finalDamage;
     }
 
     public void Heal(int amount)

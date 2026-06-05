@@ -528,7 +528,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleManager
   _player: {fileID: 0}
   _enemy: {fileID: 0}
+  _playerMotionPlayer: {fileID: 0}
   _enemyList:
   - {fileID: 11400000, guid: e97fea7291b1df1489114efc8e808f25, type: 2}
   - {fileID: 11400000, guid: a781314443e24d046bfaf7a0b8a29d45, type: 2}
   - {fileID: 11400000, guid: ffe97d4c08816a147bec545cf3a5e3c3, type: 2}
+  _playerDamageNumberPrefab: {fileID: 4996161422809100937, guid: d357b174cb55db842ad5c77a9c0c41de, type: 3}
+  _playerDamageNumberOffset: {x: 0, y: 1, z: 0}
+  _playerDamageNumberScale: 0.5

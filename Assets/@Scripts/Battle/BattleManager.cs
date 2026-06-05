@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using DamageNumbersPro;
 using UnityEngine;
 
 public class BattleManager : SingletonBehaviour<BattleManager>
@@ -14,6 +15,11 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     [Header("Battle Settings")]
     [SerializeField] private List<EnemyDataSO> _enemyList = new();
+
+    [Header("Damage Number")]
+    [SerializeField] private DamageNumber _playerDamageNumberPrefab;
+    [SerializeField] private Vector3 _playerDamageNumberOffset = new(0f, 1f, 0f);
+    [SerializeField, Min(0f)] private float _playerDamageNumberScale = 0.5f;
 
     private int _currentEnemyIndex = 0;
     private bool _isBattleActive;
@@ -128,9 +134,27 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     // ── 전투 액션 ──────────────────────────────────────────
 
-    public void DealDamageToEnemy(int damage)
+    public int DealDamageToEnemy(int damage)
     {
-        _enemy.TakeAttack(damage);
+        return _enemy != null ? _enemy.TakeAttack(damage) : 0;
+    }
+
+    private int DealDamageToPlayer(int damage)
+    {
+        int dealtDamage = _player != null ? _player.TakeAttack(damage) : 0;
+        ShowPlayerDamageNumber(dealtDamage);
+        return dealtDamage;
+    }
+
+    private void ShowPlayerDamageNumber(int damageAmount)
+    {
+        if (_playerDamageNumberPrefab == null || damageAmount <= 0)
+            return;
+
+        Vector3 position = (_player != null ? _player.transform.position : transform.position) + _playerDamageNumberOffset;
+        DamageNumber damageNumber = _playerDamageNumberPrefab.Spawn(position, damageAmount);
+        if (damageNumber != null)
+            damageNumber.transform.localScale = Vector3.one * _playerDamageNumberScale;
     }
 
     // ── 턴 루틴 ────────────────────────────────────────────
@@ -259,13 +283,13 @@ public class BattleManager : SingletonBehaviour<BattleManager>
                 {
                     yield return _enemy.PlayAttackMotion(
                         intent.hits,
-                        () => _player.TakeAttack(intent.value));
+                        () => DealDamageToPlayer(intent.value));
                 }
                 else
                 {
                     for (int i = 0; i < intent.hits; i++)
                     {
-                        _player.TakeAttack(intent.value);
+                        DealDamageToPlayer(intent.value);
                         if (intent.hits > 1)
                             yield return new WaitForSeconds(0.2f);
                     }
