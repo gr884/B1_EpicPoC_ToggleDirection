@@ -45,6 +45,7 @@ public class GridSlot : MonoBehaviour, IDropHandler
     {
         CardDragHandler drag = eventData.pointerDrag?.GetComponent<CardDragHandler>();
         if (drag == null || drag.Card == null) return;
+        if (CardManager.Instance == null || !CardManager.Instance.CanAcceptPlayerCardInput) return;
 
         bool placed = CardManager.Instance.TryPlaceCard(drag.Card, this);
         if (placed)

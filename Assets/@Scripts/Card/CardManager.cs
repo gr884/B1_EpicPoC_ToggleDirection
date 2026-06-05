@@ -50,6 +50,25 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public event Action OnHandChanged;
 
+    public bool CanAcceptPlayerCardInput
+    {
+        get
+        {
+            GameManager game = GameManager.Instance;
+            if (game == null || !game.IsPlaying) return false;
+
+            BattleManager battle = BattleManager.Instance;
+            if (battle == null) return false;
+            if (battle.IsProcessing) return false;
+            if (battle.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
+
+            ChainExecutor chain = ChainExecutor.Instance;
+            if (chain == null || chain.IsExecuting) return false;
+
+            return true;
+        }
+    }
+
     // ── 초기화 ─────────────────────────────────────────────
 
     public void Init()
@@ -320,9 +339,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     public bool TryPlaceCard(CardView card, GridSlot targetSlot)
     {
         if (card == null || targetSlot == null) return false;
-        if (BattleManager.Instance.IsProcessing) return false;
-        if (ChainExecutor.Instance.IsExecuting) return false;
-        if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
+        if (!CanAcceptPlayerCardInput) return false;
         if (!_hand.Contains(card)) return false;
         if (card.Instance == null || card.Data == null) return false;
         if (card.Data.isUnplayable) return false;
@@ -390,8 +407,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         if (card == null || card.IsEnemy) return false;
         if (card.CurrentSlot == null) return false;
-        if (BattleManager.Instance.IsProcessing) return false;
-        if (BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
+        if (!CanAcceptPlayerCardInput) return false;
         CardInstance recallInstance = card.Instance;
         CardData recallData = card.Data;
         if (recallInstance == null || recallData == null) return false;
