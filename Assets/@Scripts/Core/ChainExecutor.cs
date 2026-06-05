@@ -206,7 +206,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 }
                 break;
             case EffectType.Replay:
-                StartCoroutine(ApplyReplayEffect(card));
+                // ActivateChainFrom에서 직접 처리 — 여기선 무시
                 break;
             case EffectType.FinisherDamage:
                 if (GridManager.Instance != null)
@@ -524,6 +524,17 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         if (hasMotionRequest)
                         {
                             CharacterMotionEvents.RequestCardMotion(motionRequest);
+                        }
+
+                        // Replay 이펙트: 체인 흐름 안에서 처리
+                        if (current.Data?.effects != null)
+                        {
+                            foreach (CardEffect effect in current.Data.effects)
+                            {
+                                if (effect.trigger != EffectTrigger.OnActivated) continue;
+                                if (effect.effectType != EffectType.Replay) continue;
+                                yield return ApplyReplayEffect(current);
+                            }
                         }
                     }
 
