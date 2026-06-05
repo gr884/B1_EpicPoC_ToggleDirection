@@ -100,6 +100,9 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         if (card == null || card.Instance == null) return;
 
+        if (_firstPlacedCard == card)
+            _firstPlacedCard = null;
+
         card.Instance.Exile();
         _exiledPile.Add(card.Instance);
 
@@ -287,6 +290,7 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void DiscardGrid()
     {
+        _firstPlacedCard = null;
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             if (slot.IsEmpty) continue;
