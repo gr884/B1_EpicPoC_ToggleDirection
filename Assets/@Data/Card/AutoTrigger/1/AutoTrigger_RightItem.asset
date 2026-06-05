@@ -1,0 +1,39 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
+  m_Name: AutoTrigger_RightItem
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  cardId: 
+  displayName: "\uC790\uB3D9 \uD2B8\uB9AC\uAC70"
+  description: "\uC5F0\uC1C4 \uBC18\uC751 \uD6C4 \uADF8\uB9AC\uB4DC \uC704\uC758
+    On \uCE74\uB4DC \uC218\uAC00 5\uAC1C \uC774\uC0C1\uC774\uBA74 \uC774 \uCE74\uB4DC\uB97C
+    \uD1A0\uAE00\uD569\uB2C8\uB2E4.\nOn\uB420 \uC2DC \uCE74\uB4DC\uB97C \uD55C \uC7A5
+    \uB4DC\uB85C\uC6B0\uD569\uB2C8\uB2E4."
+  cost: 1
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  isRecaller: 0
+  hasAutoTrigger: 1
+  autoTriggerThreshold: 5
+  range: 1
+  recallDestination: 0
+  directions: 03000000
+  effects:
+  - trigger: 0
+    scope: 0
+    thresholdType: 0
+    threshold: 5
+    effectType: 4
+    value: 1
+    secondaryValue: 0
+  icon: {fileID: -2745747098976433411, guid: 4759a828c918b4ce890833789886c362, type: 3}

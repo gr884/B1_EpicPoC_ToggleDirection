@@ -1,0 +1,44 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
+  m_Name: OverHeat_RightItem
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  cardId: 
+  displayName: "\uACFC\uBD80\uD654"
+  description: "\uACF5\uACA9 + 5\n\uC138\uBC88\uC9F8 On\uC774 \uB420 \uB54C\uB9C8\uB2E4
+    \uACF5\uACA9 + 20"
+  cost: 1
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  isRecaller: 0
+  hasAutoTrigger: 0
+  autoTriggerThreshold: 1
+  range: 1
+  recallDestination: 0
+  directions: 03000000
+  effects:
+  - trigger: 0
+    scope: 0
+    thresholdType: 0
+    threshold: 0
+    effectType: 0
+    value: 5
+    secondaryValue: 0
+  - trigger: 0
+    scope: 5
+    thresholdType: 0
+    threshold: 3
+    effectType: 0
+    value: 15
+    secondaryValue: 0
+  icon: {fileID: -4484285589663816398, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

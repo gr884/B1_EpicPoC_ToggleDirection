@@ -1,0 +1,37 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
+  m_Name: CountHeat_RightItem
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  cardId: 
+  displayName: "\uCE74\uC6B4\uD2B8\uD380\uCE58"
+  description: "\uACF5\uACA9 + 3\n\uC774\uBC88 \uD134\uC5D0 \uADF8\uB9AC\uB4DC \uC704\uC5D0
+    \uCE74\uB4DC\uAC00\nOn\uB41C \uC218 \uB9CC\uD07C \uACF5\uACA9\uC5D0 \uAC00\uC0B0"
+  cost: 1
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  isRecaller: 0
+  hasAutoTrigger: 0
+  autoTriggerThreshold: 1
+  range: 1
+  recallDestination: 0
+  directions: 03000000
+  effects:
+  - trigger: 0
+    scope: 0
+    thresholdType: 0
+    threshold: 1
+    effectType: 10
+    value: 3
+    secondaryValue: 0
+  icon: {fileID: -401103313191006133, guid: 7a18280193ba94224b27d6dedc9fa979, type: 3}
