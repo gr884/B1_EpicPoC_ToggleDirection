@@ -13,6 +13,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     [SerializeField] private float _cardFeedbackDuration = 0.22f;
     [SerializeField] private int _maxLoopCount = 3;
 
+    [Header("Action Block Flight Effect")]
+    [SerializeField] private ActionBlockFlightEffectPlayer _actionBlockFlightEffectPlayer;
+
     [Header("Infinite Loop Finish")]
     [SerializeField] private TMP_Text _infiniteLoopText;
     [SerializeField] private BattleCinematicSlashDirector _loopSlashDirector;
@@ -146,9 +149,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 효과 처리 ──────────────────────────────────────────
 
-    private void ApplyEffects(CardView card, EffectTrigger trigger = EffectTrigger.OnActivated, ChainLoopContext loopContext = null)
+    private HashSet<EffectType> ApplyEffects(CardView card, EffectTrigger trigger = EffectTrigger.OnActivated, ChainLoopContext loopContext = null)
     {
-        if (card?.Data?.effects == null) return;
+        HashSet<EffectType> appliedTypes = new();
+        if (card?.Data?.effects == null) return appliedTypes;
 
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
@@ -159,13 +163,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
-                    ApplyEffect(effect.effectType, effect.value, card, loopContext);
+                    ApplyEffectAndRecord(effect.effectType, effect.value, card, loopContext, appliedTypes);
                 continue;
             }
 
             if (effect.scope == CountScope.None)
             {
-                ApplyEffect(effect.effectType, effect.value, card, loopContext);
+                ApplyEffectAndRecord(effect.effectType, effect.value, card, loopContext, appliedTypes);
                 continue;
             }
 
@@ -180,7 +184,20 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         foreach (var kv in atLeastBest)
-            ApplyEffect(kv.Key, kv.Value.value, card, loopContext);
+            ApplyEffectAndRecord(kv.Key, kv.Value.value, card, loopContext, appliedTypes);
+
+        return appliedTypes;
+    }
+
+    private void ApplyEffectAndRecord(
+        EffectType type,
+        float value,
+        CardView card,
+        ChainLoopContext loopContext,
+        HashSet<EffectType> appliedTypes)
+    {
+        ApplyEffect(type, value, card, loopContext);
+        appliedTypes?.Add(type);
     }
 
     private void ApplyEffect(EffectType type, float value, CardView card, ChainLoopContext loopContext = null)
@@ -354,7 +371,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 _turnToggleCount++;
                 OnToggleCountChanged?.Invoke();
                 card.Instance?.PersistentState.IncrementTurnOnCount();
-                ApplyEffects(card, EffectTrigger.OnActivated, loopContext);
+                HashSet<EffectType> appliedTypes = ApplyEffects(card, EffectTrigger.OnActivated, loopContext);
+                PlayActionBlockFlightEffect(card, appliedTypes);
                 if (loopContext.InfiniteLoopDetected) yield break;
             }
             else if (!nextState && !card.IsEnemy)
@@ -404,7 +422,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             _turnToggleCount++;
             OnToggleCountChanged?.Invoke();
             neighbor.Instance?.PersistentState.IncrementTurnOnCount();
-            ApplyEffects(neighbor, EffectTrigger.OnActivated, loopContext);
+            HashSet<EffectType> appliedTypes = ApplyEffects(neighbor, EffectTrigger.OnActivated, loopContext);
+            PlayActionBlockFlightEffect(neighbor, appliedTypes);
             if (loopContext != null && loopContext.InfiniteLoopDetected) return;
             StartCoroutine(neighbor.PlayActivationFeedback(_cardFeedbackDuration));
 
@@ -614,7 +633,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         OnToggleCountChanged?.Invoke();
 
                         bool hasMotionRequest = TryCreateMotionRequest(current, out CharacterMotionRequest motionRequest);
-                        ApplyEffects(current, EffectTrigger.OnActivated, loopContext);
+                        HashSet<EffectType> appliedTypes = ApplyEffects(current, EffectTrigger.OnActivated, loopContext);
+                        PlayActionBlockFlightEffect(current, appliedTypes);
                         if (loopContext.InfiniteLoopDetected) yield break;
 
                         if (hasMotionRequest)
@@ -711,6 +731,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         return false;
+    }
+
+    private void PlayActionBlockFlightEffect(CardView card, HashSet<EffectType> appliedTypes)
+    {
+        if (_actionBlockFlightEffectPlayer == null || card == null || appliedTypes == null) return;
+        if (!appliedTypes.Contains(EffectType.Damage) && !appliedTypes.Contains(EffectType.Defense)) return;
+
+        StartCoroutine(_actionBlockFlightEffectPlayer.Play(card, appliedTypes));
     }
 
     private bool ContainsEffect(CardData data, EffectType effectType)

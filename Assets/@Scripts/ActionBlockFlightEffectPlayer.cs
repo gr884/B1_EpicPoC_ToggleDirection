@@ -74,6 +74,26 @@ public class ActionBlockFlightEffectPlayer : MonoBehaviour
         }
     }
 
+    public IEnumerator Play(CardView card, IEnumerable<EffectType> effectTypes)
+    {
+        if (card == null || effectTypes == null)
+        {
+            yield break;
+        }
+
+        HashSet<EffectType> requestedTypes = effectTypes as HashSet<EffectType> ?? new HashSet<EffectType>(effectTypes);
+
+        if (requestedTypes.Contains(EffectType.Damage))
+        {
+            yield return PlayEffect(card.transform, EffectType.Damage);
+        }
+
+        if (requestedTypes.Contains(EffectType.Defense))
+        {
+            yield return PlayEffect(card.transform, EffectType.Defense);
+        }
+    }
+
     private IEnumerator PlayEffect(Transform source, EffectType effectType)
     {
         CardFlightEffectSetting setting = FindSetting(effectType);

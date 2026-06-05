@@ -3487,7 +3487,7 @@ MonoBehaviour:
   _countText: {fileID: 1439277522}
   _confirmButton: {fileID: 1927996216}
   _hitAreaRoot: {fileID: 0}
-  _maxPreserveCount: 50
+  _maxPreserveCount: 2
 --- !u!225 &1602625691
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -9378,6 +9378,7 @@ MonoBehaviour:
   _maxActivationSteps: 100
   _cardFeedbackDuration: 0.22
   _maxLoopCount: 3
+  _actionBlockFlightEffectPlayer: {fileID: 1780183745}
   _infiniteLoopText: {fileID: 1924988237}
   _loopSlashDirector: {fileID: 1389832506}
   _infiniteLoopTextDuration: 1.2
