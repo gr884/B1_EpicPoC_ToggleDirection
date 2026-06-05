@@ -20,14 +20,18 @@ MonoBehaviour:
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3
+  isRecaller: 0
+  hasAutoTrigger: 0
+  autoTriggerThreshold: 1
   range: 1
   recallDestination: 0
   directions: 03000000070000000100000005000000
   effects:
-  - scope: 0
+  - trigger: 0
+    scope: 0
     thresholdType: 0
     threshold: 1
-    effectType: 13
+    effectType: 11
     value: 0
     secondaryValue: 0
   icon: {fileID: -8618544467388930750, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

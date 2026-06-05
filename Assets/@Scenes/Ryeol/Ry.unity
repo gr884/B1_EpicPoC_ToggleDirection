@@ -3246,7 +3246,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: 0, y: -0.000061035156}
+  m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1896555591
@@ -3356,12 +3356,16 @@ MonoBehaviour:
   _player: {fileID: 1113997785}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
+  - {fileID: 11400000, guid: d12b03d6da4395345acc596285496af7, type: 2}
+  - {fileID: 11400000, guid: 51d0c89019b818a44bc83a2899d52d99, type: 2}
+  - {fileID: 11400000, guid: d94f7d502b19fe34084a8d2636259f2d, type: 2}
+  - {fileID: 11400000, guid: 3d2a19745f948964ab220ecf14a2dcd9, type: 2}
+  - {fileID: 11400000, guid: 57e6e9ef20032094e9d56f257a58eed5, type: 2}
+  - {fileID: 11400000, guid: a2edcd94dec0e1a43afc8f3807605b65, type: 2}
+  - {fileID: 11400000, guid: 134f77e93d2f48c479f0c6acf4e420f2, type: 2}
+  - {fileID: 11400000, guid: 6924eede43254294aa4d60561768f828, type: 2}
   - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
+  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &1926050208
 MonoBehaviour:
@@ -8547,7 +8551,6 @@ MonoBehaviour:
   _infiniteLoopGraceDuration: 2
   _infiniteLoopTextDuration: 1.2
   _infiniteLoopFinishDamage: 999
-  _flightEffectPlayer: {fileID: 0}
 --- !u!1 &5021724786616653723
 GameObject:
   m_ObjectHideFlags: 0
