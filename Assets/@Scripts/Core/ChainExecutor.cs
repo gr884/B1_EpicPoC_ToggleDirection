@@ -20,6 +20,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     [SerializeField] private float _infiniteLoopTextDuration = 1.2f;
     [SerializeField] private int _infiniteLoopFinishDamage = 999;
 
+    [Header("Effect Visuals")]
+    [SerializeField] private ActionBlockFlightEffectPlayer _flightEffectPlayer;
+
     public event Action OnChainStarted;
     public event Action OnChainFinished;
 
@@ -84,6 +87,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     private void ApplyEffects(CardView card)
     {
         if (card?.Data?.effects == null) return;
+
+        PlayFlightEffect(card);
 
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
@@ -609,6 +614,33 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         return false;
+    }
+
+    private void PlayFlightEffect(CardView card)
+    {
+        ActionBlockFlightEffectPlayer player = GetFlightEffectPlayer();
+        if (player == null || !player.isActiveAndEnabled)
+        {
+            return;
+        }
+
+        StartCoroutine(player.Play(card));
+    }
+
+    private ActionBlockFlightEffectPlayer GetFlightEffectPlayer()
+    {
+        if (_flightEffectPlayer != null)
+        {
+            return _flightEffectPlayer;
+        }
+
+        _flightEffectPlayer = FindFirstObjectByType<ActionBlockFlightEffectPlayer>();
+        if (_flightEffectPlayer == null)
+        {
+            _flightEffectPlayer = FindFirstObjectByType<ActionBlockFlightEffectPlayer>(FindObjectsInactive.Include);
+        }
+
+        return _flightEffectPlayer;
     }
 
     private bool ContainsEffect(CardData data, EffectType effectType)

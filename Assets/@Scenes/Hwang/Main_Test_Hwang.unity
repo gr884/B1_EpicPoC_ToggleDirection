@@ -678,7 +678,7 @@ GameObject:
   - component: {fileID: 406885545}
   - component: {fileID: 406885544}
   m_Layer: 5
-  m_Name: DefenseIcon
+  m_Name: AttackIcon
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -867,6 +867,41 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI_PendingAttackText
   _text: {fileID: 1036663511}
+--- !u!1 &511768683
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 511768684}
+  m_Layer: 0
+  m_Name: ActionBlockFlightEffectLayer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &511768684
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 511768683}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4679821296608261453}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -1265,6 +1300,73 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 662971700}
   m_CullTransparentMesh: 1
+--- !u!1 &677711468
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 677711470}
+  - component: {fileID: 677711469}
+  m_Layer: 0
+  m_Name: ActionBlockFlightEffectPlayer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &677711469
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 677711468}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12f4538f9e4778243bc20fdf1dc1786f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActionBlockFlightEffectPlayer
+  rootCanvas: {fileID: 1708129503398650372}
+  effectLayer: {fileID: 511768684}
+  enemyTarget: {fileID: 743872838}
+  playerTarget: {fileID: 1113997786}
+  settings:
+  - effectType: 0
+    target: {fileID: 406885543}
+    sprite: {fileID: -2237518807768803992, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+    spawnOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    size: {x: 72, y: 72}
+    duration: 1
+    ease: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - effectType: 1
+    target: {fileID: 2856433981474173139}
+    sprite: {fileID: 7544613302241952520, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+    spawnOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    size: {x: 72, y: 72}
+    duration: 1
+    ease: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
+--- !u!4 &677711470
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 677711468}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4383272878506788529}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &743872836
 GameObject:
   m_ObjectHideFlags: 0
@@ -1821,7 +1923,7 @@ GameObject:
   - component: {fileID: 1036663512}
   - component: {fileID: 1036663511}
   m_Layer: 5
-  m_Name: DefenseText
+  m_Name: AttackText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -7624,6 +7726,7 @@ Transform:
   - {fileID: 70767145867504984}
   - {fileID: 3501690114514343067}
   - {fileID: 3705588463999848433}
+  - {fileID: 677711470}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4467062752308689564
@@ -7883,6 +7986,7 @@ RectTransform:
   - {fileID: 7540410703646570376}
   - {fileID: 6901344184052736421}
   - {fileID: 1602625689}
+  - {fileID: 511768684}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -8261,6 +8365,7 @@ MonoBehaviour:
   _infiniteLoopGraceDuration: 2
   _infiniteLoopTextDuration: 1.2
   _infiniteLoopFinishDamage: 999
+  _flightEffectPlayer: {fileID: 0}
 --- !u!1 &5021724786616653723
 GameObject:
   m_ObjectHideFlags: 0
