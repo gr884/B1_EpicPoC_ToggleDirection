@@ -208,6 +208,18 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             case EffectType.Replay:
                 StartCoroutine(ApplyReplayEffect(card));
                 break;
+            case EffectType.FinisherDamage:
+                if (GridManager.Instance != null)
+                {
+                    int onCount = 0;
+                    foreach (GridSlot s in GridManager.Instance.Slots.Values)
+                        if (s.OccupiedCard != null && s.OccupiedCard.IsActivated)
+                            onCount++;
+                    int finisherDamage = Mathf.RoundToInt(value) * onCount;
+                    if (finisherDamage > 0)
+                        BattleManager.Instance.Player.AddPendingAttack(finisherDamage);
+                }
+                break;
         }
     }
 
@@ -354,6 +366,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         {
             CardView card = slot.OccupiedCard;
             if (card == null || card.IsEnemy) continue;
+            if (!card.IsActivated) continue;
             ApplyEffects(card, EffectTrigger.OnTurnEnd);
         }
     }

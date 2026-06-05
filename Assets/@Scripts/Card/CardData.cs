@@ -53,6 +53,9 @@ public enum EffectType
 
     // 재발동형: 이번 턴 첫 번째로 놓인 카드 재발동
     Replay,
+
+    // 마무리형: 턴 종료 시 ON 상태라면 그리드 ON 카드 수 × value 데미지
+    FinisherDamage,
 }
 
 public enum CountScope
