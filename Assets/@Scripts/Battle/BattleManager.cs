@@ -84,7 +84,18 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             && !TutorialManager.Instance.CanConfirm()) return;
 
         TutorialManager.Instance?.OnTurnConfirmed();
-        EnterPhase(BattlePhase.PreserveSelect);
+
+        // 튜토리얼에서는 보존 선택 UI 건너뜀
+        bool isTutorial = GameManager.Instance.CurrentState == GameManager.GameState.Tutorial;
+        if (isTutorial)
+        {
+            EnterPhase(BattlePhase.ResolvingPlayerTurn);
+            StartCoroutine(PlayerTurnRoutine());
+        }
+        else
+        {
+            EnterPhase(BattlePhase.PreserveSelect);
+        }
     }
 
     public void ConfirmPreserveSelect()
@@ -281,12 +292,21 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         // Turn3_Free: 적이 살아있으면 도르마무
         if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && TutorialManager.Instance != null
-            && TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free
-            && !_enemy.IsDead)
+            && TutorialManager.Instance != null)
         {
-            TutorialManager.Instance.OnTurn3FreeFailed();
-            yield break;
+            if (TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free
+                && !_enemy.IsDead)
+            {
+                TutorialManager.Instance.OnTurn3FreeFailed();
+                yield break;
+            }
+
+            if (TutorialManager.Instance.CurrentStep == TutorialStep.Turn2_Place
+                && !_enemy.IsDead)
+            {
+                TutorialManager.Instance.OnTurn2Failed();
+                yield break;
+            }
         }
 
         CardManager.Instance.DiscardAndDraw();

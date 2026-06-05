@@ -155,7 +155,9 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
     {
         if (!IsActive) return true;
         return CurrentStep == TutorialStep.Turn1_Confirm
-            || CurrentStep == TutorialStep.Turn3_Free;
+            || CurrentStep == TutorialStep.Turn2_Place
+            || CurrentStep == TutorialStep.Turn3_Free
+            || (CurrentStep == TutorialStep.Turn3_Guided && _turn3PlacedCount >= 4);
     }
 
     // ── 하이라이트 ─────────────────────────────────────────
@@ -340,8 +342,23 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
     public void OnTurn3FreeFailed()
     {
         if (!IsActive || CurrentStep != TutorialStep.Turn3_Free) return;
-        // Turn3_Free 재진입 — EnterStep이 RestartTurn3FreeRoutine 코루틴을 실행
         EnterStep(TutorialStep.Turn3_Free);
+    }
+
+    public void OnTurn2Failed()
+    {
+        if (!IsActive || CurrentStep != TutorialStep.Turn2_Place) return;
+        StartCoroutine(RestartTurn2Routine());
+    }
+
+    private System.Collections.IEnumerator RestartTurn2Routine()
+    {
+        yield return new WaitForSecondsRealtime(1.0f);
+        CardManager.Instance.DiscardHand();
+        CardManager.Instance.DrawToHand(BattleManager.Instance.Player.HandSize);
+        BattleManager.Instance.ResetToPlayerTurn();
+        RefreshHighlights();
+        Debug.Log("[TutorialManager] Turn2_Place 재시작");
     }
 
     // ── Turn3 내부 ─────────────────────────────────────────

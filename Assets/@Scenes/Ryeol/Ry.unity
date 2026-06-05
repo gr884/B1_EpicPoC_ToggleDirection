@@ -4173,7 +4173,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -575, y: -45}
+  m_AnchoredPosition: {x: -292, y: -117}
   m_SizeDelta: {x: 70, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &605937624730875394
@@ -5464,7 +5464,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 332, y: 1080}
+  m_AnchoredPosition: {x: 1467, y: 454}
   m_SizeDelta: {x: 70, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!222 &1776606039015459317
@@ -7031,7 +7031,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -739, y: -114}
+  m_AnchoredPosition: {x: 371, y: 22}
   m_SizeDelta: {x: 100, y: 140}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &3496728805677245852
@@ -10186,7 +10186,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 1, y: 0}
   m_AnchorMax: {x: 1, y: 0}
-  m_AnchoredPosition: {x: -195, y: 230}
+  m_AnchoredPosition: {x: -239, y: 223}
   m_SizeDelta: {x: 70, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &7270467450042635865
@@ -10202,10 +10202,16 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::TutorialManager
   _tutorialEnemyData: {fileID: 11400000, guid: e0945575906e9ba4cb6d45a9f2ce2e1a, type: 2}
-  _turn3EnemyData: {fileID: 0}
-  _turn3RightCard: {fileID: 0}
-  _turn3LeftCard: {fileID: 0}
-  _tutorialDeck: []
+  _turn3EnemyData: {fileID: 11400000, guid: 62ee41f6055e12e46b0d21f3f2921237, type: 2}
+  _turn3RightCard: {fileID: 11400000, guid: 20670fb3304761246b28fef23c9e0121, type: 2}
+  _turn3LeftCard: {fileID: 11400000, guid: 10c917e10f0bf254d95e22a6af17f8c1, type: 2}
+  _tutorialDeck:
+  - {fileID: 11400000, guid: f471dbcd90b6dc146b4ecf9fca871c61, type: 2}
+  - {fileID: 11400000, guid: c66e5fa00e961ee4e9b00a6707a275e5, type: 2}
+  - {fileID: 11400000, guid: f7b9d43f3f3fdc6479a9b87d5d2f7e8e, type: 2}
+  - {fileID: 11400000, guid: 1e2463275567bc240bbf7de8768c4e68, type: 2}
+  - {fileID: 11400000, guid: 972763e1001ff9349abf0ffcbd02277f, type: 2}
+  - {fileID: 11400000, guid: 2a265fc760c45d3489234e3d83d3ee1f, type: 2}
   _stepRules:
   - step: 0
     placementRules: []
