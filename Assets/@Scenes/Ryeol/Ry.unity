@@ -1980,7 +1980,7 @@ MonoBehaviour:
   _maxHp: 50
   _handSize: 7
   _maxHandSize: 12
-  _maxCost: 5
+  _maxCost: 50
 --- !u!4 &1113997786
 Transform:
   m_ObjectHideFlags: 0
@@ -2134,6 +2134,17 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1124867212}
   m_CullTransparentMesh: 1
+--- !u!114 &1141992323 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 100000004, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+  m_PrefabInstance: {fileID: 1896555591}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff95eaed71004935acefdcd436c38a46, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::CharacterMotionQueuePlayer
 --- !u!1 &1311918260
 GameObject:
   m_ObjectHideFlags: 0
@@ -2806,7 +2817,7 @@ MonoBehaviour:
   _countText: {fileID: 1439277522}
   _confirmButton: {fileID: 1927996216}
   _hitAreaRoot: {fileID: 0}
-  _maxPreserveCount: 2
+  _maxPreserveCount: 50
 --- !u!225 &1602625691
 CanvasGroup:
   m_ObjectHideFlags: 0
@@ -3301,6 +3312,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 100000004, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: _enemyDamageNumberOffset.x
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000004, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: _enemyDamageNumberOffset.y
+      value: 0.25
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -3356,26 +3375,21 @@ MonoBehaviour:
   _player: {fileID: 1113997785}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
-  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
+  - {fileID: 11400000, guid: 5328ca674a2c92c40944c0a2c17319d0, type: 2}
+  - {fileID: 11400000, guid: c3064d7d5fd4394429760711455d6bea, type: 2}
+  - {fileID: 11400000, guid: fba5a0272ff155a438832ffe9e872d2a, type: 2}
+  - {fileID: 11400000, guid: 2f29724f8fa5ee74390de4ea184a797d, type: 2}
+  - {fileID: 11400000, guid: c2a135b4b3c9cbe42833825443d2c52b, type: 2}
+  - {fileID: 11400000, guid: 3293f1cabf093354abbdc77e7ddd1097, type: 2}
+  - {fileID: 11400000, guid: 1035220ea785deb4e9549fda7e1e53ef, type: 2}
+  - {fileID: 11400000, guid: 57624cb01218bfa4a9e5efcac85a346d, type: 2}
+  - {fileID: 11400000, guid: 9a66bf1a1ce171f49b9996f023e1af2f, type: 2}
+  - {fileID: 11400000, guid: 355d39ca5e773d244aae89a0faa93239, type: 2}
+  - {fileID: 11400000, guid: 61235a7023f5ee542b3001d9987fe067, type: 2}
+  - {fileID: 11400000, guid: 5be0f038b104a804c8f33d9209bb005f, type: 2}
+  - {fileID: 11400000, guid: 7dd999e235a68044f88c28f098483d77, type: 2}
+  - {fileID: 11400000, guid: d1724aa5c23df19428868fcfe50c613f, type: 2}
+  - {fileID: 11400000, guid: 6c696da3e21a27e45a491706476db3cf, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &1926050208
 MonoBehaviour:
@@ -10649,11 +10663,14 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleManager
   _player: {fileID: 1113997785}
   _enemy: {fileID: 743872837}
-  _playerMotionPlayer: {fileID: 0}
+  _playerMotionPlayer: {fileID: 1141992323}
   _enemyList:
   - {fileID: 11400000, guid: e97fea7291b1df1489114efc8e808f25, type: 2}
   - {fileID: 11400000, guid: a781314443e24d046bfaf7a0b8a29d45, type: 2}
   - {fileID: 11400000, guid: ffe97d4c08816a147bec545cf3a5e3c3, type: 2}
+  _playerDamageNumberPrefab: {fileID: 4996161422809100937, guid: d357b174cb55db842ad5c77a9c0c41de, type: 3}
+  _playerDamageNumberOffset: {x: 0, y: 0.5, z: 0}
+  _playerDamageNumberScale: 0.5
 --- !u!224 &7810386567169819886
 RectTransform:
   m_ObjectHideFlags: 0

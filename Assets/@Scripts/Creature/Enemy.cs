@@ -55,7 +55,7 @@ public class Enemy : MonoBehaviour
 
     // ── 전투 로직 ──────────────────────────────────────────
 
-    public void TakeAttack(int damage)
+    public int TakeAttack(int damage)
     {
         int blocked = Mathf.Min(CurrentDefense, damage);
         CurrentDefense -= blocked;
@@ -70,6 +70,7 @@ public class Enemy : MonoBehaviour
 
         _view.SetDefense(CurrentDefense);
         _view.TakeDamage(finalDamage);
+        return finalDamage;
     }
 
     public IEnumerator PlayAttackMotion()

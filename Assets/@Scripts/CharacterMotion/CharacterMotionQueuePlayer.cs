@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using DamageNumbersPro;
 using UnityEngine;
 
 public class CharacterMotionQueuePlayer : MonoBehaviour
@@ -26,6 +27,11 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
     [SerializeField] private float _defendDuration = 0.75f;
     [SerializeField] private float _hurtDuration = 0.5f;
     [SerializeField] private float _minimumMotionDuration = 0.05f;
+
+    [Header("Damage Number")]
+    [SerializeField] private DamageNumber _enemyDamageNumberPrefab;
+    [SerializeField] private Vector3 _enemyDamageNumberOffset = new(0f, 1f, 0f);
+    [SerializeField, Min(0f)] private float _enemyDamageNumberScale = 0.5f;
 
     private readonly Queue<CharacterMotionRequest> _motionQueue = new();
     private Coroutine _playRoutine;
@@ -248,10 +254,27 @@ public class CharacterMotionQueuePlayer : MonoBehaviour
         _attackImpactApplied = true;
 
         if (_activeAttackRequest.DamageAmount > 0 && BattleManager.Instance != null)
-            BattleManager.Instance.DealDamageToEnemy(_activeAttackRequest.DamageAmount);
+        {
+            int dealtDamage = BattleManager.Instance.DealDamageToEnemy(_activeAttackRequest.DamageAmount);
+            ShowEnemyDamageNumber(dealtDamage);
+        }
 
         _activeAttackRequest = default;
         _hasActiveAttackRequest = false;
+    }
+
+    private void ShowEnemyDamageNumber(int damageAmount)
+    {
+        if (_enemyDamageNumberPrefab == null || damageAmount <= 0)
+            return;
+
+        Enemy enemy = BattleManager.Instance != null ? BattleManager.Instance.Enemy : null;
+        Transform target = enemy != null ? enemy.ViewTransform : null;
+        Vector3 position = (target != null ? target.position : transform.position) + _enemyDamageNumberOffset;
+
+        DamageNumber damageNumber = _enemyDamageNumberPrefab.Spawn(position, damageAmount);
+        if (damageNumber != null)
+            damageNumber.transform.localScale = Vector3.one * _enemyDamageNumberScale;
     }
 
     private bool TryGetAttackTargetPosition(out Vector3 attackPosition)
