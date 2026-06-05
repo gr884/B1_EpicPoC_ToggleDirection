@@ -335,8 +335,11 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (isRecaller && targetSlot.IsEmpty) return false;
         // 조작형은 적 카드 회수 불가
         if (isRecaller && targetSlot.OccupiedCard != null && targetSlot.OccupiedCard.IsEnemy) return false;
-        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && !TutorialManager.Instance.CanPlaceCard(card, targetSlot)) return false;
+        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial)
+        {
+            TutorialManager tutorial = TutorialManager.Instance;
+            if (tutorial == null || !tutorial.CanPlaceCard(card, targetSlot)) return false;
+        }
         if (!_player.SpendCost(card.Data.cost)) return false;
 
         // 조작형: 대상 카드 손패로 회수 후 자신 소멸

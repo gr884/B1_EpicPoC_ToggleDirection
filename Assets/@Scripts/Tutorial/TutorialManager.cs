@@ -51,6 +51,9 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
     // Turn3_Guided 서브스텝 상태
     private int _turn3PlacedCount;
     private bool _turn3FirstWasRight;
+    private bool _turn2FollowupCardsUnlocked;
+    private bool _initialized;
+    private Coroutine _pendingStepRoutine;
 
     [Header("Tutorial Deck")]
     [Tooltip("튜토리얼에서 사용할 카드 목록 (순서대로 손패에 들어옴)")]
@@ -61,7 +64,7 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
     [SerializeField] private List<TutorialStepRules> _stepRules = new();
 
     public TutorialStep CurrentStep { get; private set; }
-    public bool IsActive => GameManager.Instance.CurrentState == GameManager.GameState.Tutorial;
+    public bool IsActive => GameManager.Instance != null && GameManager.Instance.CurrentState == GameManager.GameState.Tutorial;
 
     public event Action<TutorialStep> OnStepChanged;
     public event Action<string> OnWrongAction;
@@ -70,7 +73,15 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
 
     public void Init()
     {
+        if (_initialized) return;
+        if (GameManager.Instance == null)
+        {
+            Debug.LogWarning("[TutorialManager] GameManager가 없어 초기화할 수 없습니다.");
+            return;
+        }
+
         GameManager.Instance.OnStateChanged += OnGameStateChanged;
+        _initialized = true;
         Debug.Log("[TutorialManager] Init");
     }
 
@@ -84,6 +95,12 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
 
     private void StartTutorial()
     {
+        StopPendingStepRoutine();
+        ResetRuntimeState();
+
+        if (!ValidateStartReferences())
+            return;
+
         BattleManager.Instance.Player.Setup(5);
         BattleManager.Instance.Player.SetHandSize(3);
         CardManager.Instance.SetTutorialDeck(_tutorialDeck);
@@ -97,6 +114,8 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
 
     public void EnterStep(TutorialStep step)
     {
+        StopPendingStepRoutine();
+
         TutorialStepRules prevRules = GetStepRules(CurrentStep);
         if (prevRules != null)
             foreach (GameObject obj in prevRules.highlightObjects)
@@ -105,9 +124,9 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
         CurrentStep = step;
 
         if (step == TutorialStep.Turn3_Guided)
-            StartCoroutine(EnterTurn3Routine(_turn3EnemyData));
+            StartPendingStepRoutine(EnterTurn3Routine(_turn3EnemyData));
         else if (step == TutorialStep.Turn3_Free)
-            StartCoroutine(RestartTurn3FreeRoutine());
+            StartPendingStepRoutine(RestartTurn3FreeRoutine());
 
         TutorialStepRules nextRules = GetStepRules(CurrentStep);
         if (nextRules != null)
@@ -137,7 +156,7 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
         TutorialStepRules stepRules = GetStepRules(CurrentStep);
         if (stepRules == null) return false;
 
-        if (stepRules.blockedCards.Contains(card.Data))
+        if (IsCardBlocked(stepRules, card.Data))
         {
             if (!string.IsNullOrEmpty(stepRules.wrongCardMessage))
                 OnWrongAction?.Invoke(stepRules.wrongCardMessage);
@@ -215,7 +234,7 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
         TutorialStepRules stepRules = GetStepRules(CurrentStep);
         if (stepRules == null) return true;
 
-        if (stepRules.blockedCards.Contains(card.Data))
+        if (IsCardBlocked(stepRules, card.Data))
         {
             if (!string.IsNullOrEmpty(stepRules.wrongCardMessage))
                 OnWrongAction?.Invoke(stepRules.wrongCardMessage);
@@ -277,20 +296,20 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
         switch (CurrentStep)
         {
             case TutorialStep.Turn1_Place:
-                StartCoroutine(EnterStepRoutine(TutorialStep.Turn1_Cost));
+                StartPendingStepRoutine(EnterStepRoutine(TutorialStep.Turn1_Cost));
                 break;
             case TutorialStep.Turn1_Chain:
                 if (CardManager.Instance.HandCount == 0)
-                    StartCoroutine(EnterStepRoutine(TutorialStep.Turn1_Confirm));
+                    StartPendingStepRoutine(EnterStepRoutine(TutorialStep.Turn1_Confirm));
                 break;
             case TutorialStep.Turn2_Place:
                 TutorialStepRules stepRules = GetStepRules(TutorialStep.Turn2_Place);
                 if (stepRules != null)
                 {
-                    bool wasBlocked = stepRules.blockedCards.Contains(card.Data);
-                    if (!wasBlocked)
+                    bool wasBlocked = IsCardBlocked(stepRules, card.Data);
+                    if (!wasBlocked && !_turn2FollowupCardsUnlocked)
                     {
-                        stepRules.blockedCards.Clear();
+                        _turn2FollowupCardsUnlocked = true;
                         RefreshHighlights();
                     }
                 }
@@ -318,22 +337,24 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
     {
         if (!IsActive) return;
         if (CurrentStep == TutorialStep.Turn2_Place)
-            StartCoroutine(EnterStepDelayedRoutine(TutorialStep.Turn3_Guided));
+            StartPendingStepRoutine(EnterStepDelayedRoutine(TutorialStep.Turn3_Guided));
         else if (CurrentStep == TutorialStep.Turn3_Guided)
-            StartCoroutine(EnterStepDelayedRoutine(TutorialStep.Turn3_Free));
+            StartPendingStepRoutine(EnterStepDelayedRoutine(TutorialStep.Turn3_Free));
         else if (CurrentStep == TutorialStep.Turn3_Free)
-            StartCoroutine(EnterStepDelayedRoutine(TutorialStep.Complete));
+            StartPendingStepRoutine(EnterStepDelayedRoutine(TutorialStep.Complete));
     }
 
     private System.Collections.IEnumerator EnterStepRoutine(TutorialStep step)
     {
         yield return null;
+        _pendingStepRoutine = null;
         EnterStep(step);
     }
 
     private System.Collections.IEnumerator EnterStepDelayedRoutine(TutorialStep step)
     {
         yield return new WaitForSecondsRealtime(1.2f);
+        _pendingStepRoutine = null;
         EnterStep(step);
     }
 
@@ -349,6 +370,10 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
     private System.Collections.IEnumerator EnterTurn3Routine(EnemyDataSO enemyData)
     {
         yield return new WaitForSecondsRealtime(1.2f);
+        _pendingStepRoutine = null;
+
+        if (!ValidateTurn3References(enemyData))
+            yield break;
 
         _turn3PlacedCount = 0;
         _turn3FirstWasRight = false;
@@ -368,6 +393,10 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
     private System.Collections.IEnumerator RestartTurn3FreeRoutine()
     {
         yield return new WaitForSecondsRealtime(1.2f);
+        _pendingStepRoutine = null;
+
+        if (!ValidateTurn3References(_turn3EnemyData))
+            yield break;
 
         CardManager.Instance.DestroyHand();
         CardManager.Instance.DiscardGrid();
@@ -441,6 +470,8 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
 
     public void CompleteTutorial()
     {
+        StopPendingStepRoutine();
+
         TutorialStepRules rules = GetStepRules(CurrentStep);
         if (rules != null)
             foreach (GameObject obj in rules.highlightObjects)
@@ -457,8 +488,89 @@ public class TutorialManager : SingletonBehaviour<TutorialManager>
     {
         if (GameManager.Instance != null)
             GameManager.Instance.OnStateChanged -= OnGameStateChanged;
+        _initialized = false;
         OnStepChanged = null;
         OnWrongAction = null;
         base.Dispose();
+    }
+
+    private void ResetRuntimeState()
+    {
+        CurrentStep = TutorialStep.Intro;
+        _turn3PlacedCount = 0;
+        _turn3FirstWasRight = false;
+        _turn2FollowupCardsUnlocked = false;
+    }
+
+    private bool IsCardBlocked(TutorialStepRules rules, CardData cardData)
+    {
+        if (rules == null || cardData == null) return false;
+        if (!rules.blockedCards.Contains(cardData)) return false;
+        return CurrentStep != TutorialStep.Turn2_Place || !_turn2FollowupCardsUnlocked;
+    }
+
+    private void StartPendingStepRoutine(System.Collections.IEnumerator routine)
+    {
+        StopPendingStepRoutine();
+        _pendingStepRoutine = StartCoroutine(routine);
+    }
+
+    private void StopPendingStepRoutine()
+    {
+        if (_pendingStepRoutine == null) return;
+        StopCoroutine(_pendingStepRoutine);
+        _pendingStepRoutine = null;
+    }
+
+    private bool ValidateStartReferences()
+    {
+        bool valid = true;
+        if (BattleManager.Instance == null || BattleManager.Instance.Player == null)
+        {
+            Debug.LogWarning("[TutorialManager] BattleManager 또는 Player 참조가 없어 튜토리얼을 시작할 수 없습니다.");
+            valid = false;
+        }
+        if (CardManager.Instance == null)
+        {
+            Debug.LogWarning("[TutorialManager] CardManager 참조가 없어 튜토리얼을 시작할 수 없습니다.");
+            valid = false;
+        }
+        if (GridManager.Instance == null)
+        {
+            Debug.LogWarning("[TutorialManager] GridManager 참조가 없어 튜토리얼을 시작할 수 없습니다.");
+            valid = false;
+        }
+        if (_tutorialEnemyData == null)
+        {
+            Debug.LogWarning("[TutorialManager] _tutorialEnemyData가 비어 있어 튜토리얼을 시작할 수 없습니다.");
+            valid = false;
+        }
+        if (_tutorialDeck == null || _tutorialDeck.Count == 0)
+        {
+            Debug.LogWarning("[TutorialManager] _tutorialDeck이 비어 있어 튜토리얼 손패를 구성할 수 없습니다.");
+            valid = false;
+        }
+        return valid;
+    }
+
+    private bool ValidateTurn3References(EnemyDataSO enemyData)
+    {
+        bool valid = true;
+        if (enemyData == null)
+        {
+            Debug.LogWarning("[TutorialManager] Turn3 enemyData가 비어 있어 Turn3를 시작할 수 없습니다.");
+            valid = false;
+        }
+        if (_turn3RightCard == null)
+        {
+            Debug.LogWarning("[TutorialManager] _turn3RightCard가 비어 있어 Turn3를 시작할 수 없습니다.");
+            valid = false;
+        }
+        if (_turn3LeftCard == null)
+        {
+            Debug.LogWarning("[TutorialManager] _turn3LeftCard가 비어 있어 Turn3를 시작할 수 없습니다.");
+            valid = false;
+        }
+        return valid;
     }
 }

@@ -13,8 +13,12 @@ public class UI_TutorialPopup : MonoBehaviour
     private void Start()
     {
         _confirmButton.onClick.AddListener(OnConfirmClicked);
-        TutorialManager.Instance.OnStepChanged += OnStepChanged;
-        TutorialManager.Instance.OnWrongAction += OnWrongAction;
+        TutorialManager tutorial = TutorialManager.Instance;
+        if (tutorial != null)
+        {
+            tutorial.OnStepChanged += OnStepChanged;
+            tutorial.OnWrongAction += OnWrongAction;
+        }
         SetVisible(false);
     }
 
@@ -42,7 +46,9 @@ public class UI_TutorialPopup : MonoBehaviour
 
     private void RestoreStepMessage()
     {
-        OnStepChanged(TutorialManager.Instance.CurrentStep);
+        TutorialManager tutorial = TutorialManager.Instance;
+        if (tutorial != null)
+            OnStepChanged(tutorial.CurrentStep);
     }
 
     private void OnStepChanged(TutorialStep step)
@@ -87,22 +93,25 @@ public class UI_TutorialPopup : MonoBehaviour
 
     private void OnConfirmClicked()
     {
-        TutorialStep step = TutorialManager.Instance.CurrentStep;
+        TutorialManager tutorial = TutorialManager.Instance;
+        if (tutorial == null) return;
+
+        TutorialStep step = tutorial.CurrentStep;
         SetVisible(false);
 
         switch (step)
         {
             case TutorialStep.Intro:
-                TutorialManager.Instance.EnterStep(TutorialStep.Turn1_Place);
+                tutorial.EnterStep(TutorialStep.Turn1_Place);
                 break;
             case TutorialStep.Turn1_Cost:
-                TutorialManager.Instance.EnterStep(TutorialStep.Turn1_Chain);
+                tutorial.EnterStep(TutorialStep.Turn1_Chain);
                 break;
             case TutorialStep.Turn2_Intro:
-                TutorialManager.Instance.EnterStep(TutorialStep.Turn2_Place);
+                tutorial.EnterStep(TutorialStep.Turn2_Place);
                 break;
             case TutorialStep.Complete:
-                TutorialManager.Instance.CompleteTutorial();
+                tutorial.CompleteTutorial();
                 break;
         }
     }

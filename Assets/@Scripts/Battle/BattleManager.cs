@@ -80,8 +80,11 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     public void ConfirmPlayerTurn()
     {
         if (CurrentPhase != BattlePhase.PlayerTurn || IsProcessing) return;
-        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && !TutorialManager.Instance.CanConfirm()) return;
+        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial)
+        {
+            TutorialManager tutorial = TutorialManager.Instance;
+            if (tutorial == null || !tutorial.CanConfirm()) return;
+        }
 
         TutorialManager.Instance?.OnTurnConfirmed();
         EnterPhase(BattlePhase.PreserveSelect);
@@ -298,13 +301,17 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private void HandlePlayerDied() => StartCoroutine(EndBattleRoutine(false));
     private void HandleEnemyDied()
     {
-        TutorialManager.Instance?.OnEnemyDefeated();
+        TutorialManager tutorial = TutorialManager.Instance;
+        tutorial?.OnEnemyDefeated();
 
-        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && TutorialManager.Instance != null
-            && (TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Guided
-                || TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free))
-            return;
+        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial && tutorial != null)
+        {
+            TutorialStep step = tutorial.CurrentStep;
+            if (step == TutorialStep.Turn2_Place
+                || step == TutorialStep.Turn3_Guided
+                || step == TutorialStep.Turn3_Free)
+                return;
+        }
 
         StartCoroutine(EndBattleRoutine(true));
     }

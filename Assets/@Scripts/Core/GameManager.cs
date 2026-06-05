@@ -5,6 +5,8 @@ using UnityEngine.SceneManagement;
 public class GameManager : SingletonBehaviour<GameManager>
 {
     public enum GameState { Idle, Playing, Tutorial, GameOver, GameClear }
+    private const string MainSceneName = "Main";
+    private const string TutorialSceneName = "TutorialScene";
 
     // ── 상태 ──────────────────────────────────────
     public GameState CurrentState { get; private set; } = GameState.Idle;
@@ -24,10 +26,11 @@ public class GameManager : SingletonBehaviour<GameManager>
 
     // ── 상태 전환 ─────────────────────────────────
     public void GameStart() => ChangeState(GameState.Playing);
-    public void StartTutorial() => ChangeState(GameState.Tutorial);
+    public void StartTutorial() => SceneManager.LoadScene(TutorialSceneName);
+    public void BeginTutorialSession() => ChangeState(GameState.Tutorial);
     public void GameOver() => ChangeState(GameState.GameOver);
     public void GameClear() => ChangeState(GameState.GameClear);
-    public void GoToMainMenu() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); // 꼼수
+    public void GoToMainMenu() => SceneManager.LoadScene(MainSceneName);
 
     private void ChangeState(GameState state)
     {
