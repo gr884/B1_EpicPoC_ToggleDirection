@@ -2939,7 +2939,7 @@ MonoBehaviour:
   staggerDelay: 0.04
   arcHeight: 120
   rotationSpeed: 720
-  flightEase: 6
+  flightEase: 17
   colorCycleDuration: 0.45
   colorCycle:
   - {r: 1, g: 0, b: 0, a: 1}
