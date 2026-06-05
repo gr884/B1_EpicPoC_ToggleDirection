@@ -1,4 +1,5 @@
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -209,8 +210,21 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void DiscardAndDraw()
     {
+        StartCoroutine(DiscardAndDrawRoutine());
+    }
+
+    public IEnumerator DiscardAndDrawRoutine()
+    {
         ResetTurnOnCounts();
+        bool waitForDiscardFlight = _hand.Count > 0
+            && _flightEffectPlayer != null
+            && _flightEffectPlayer.CanPlayReturn;
+
         DiscardHand();
+
+        if (waitForDiscardFlight && _flightEffectPlayer.DiscardFlightDuration > 0f)
+            yield return new WaitForSeconds(_flightEffectPlayer.DiscardFlightDuration);
+
         DrawToHand(_player.HandSize);
         TutorialManager.Instance?.OnHandDrawn();
     }

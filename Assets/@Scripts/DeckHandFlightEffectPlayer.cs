@@ -40,6 +40,7 @@ public class DeckHandFlightEffectPlayer : MonoBehaviour
     public bool CanPlayRefill => GetRefillSprite() != null && ResolveSceneRefs(null) && discardTarget != null;
     public bool CanPlayRecall => GetRecallSprite() != null && ResolveSceneRefs(null) && handTarget != null;
     public float DrawStaggerDelay => drawStaggerDelay;
+    public float DiscardFlightDuration => returnDuration;
 
     private void Reset()
     {
