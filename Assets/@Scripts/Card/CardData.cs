@@ -52,6 +52,9 @@ public enum EffectType
 
     // 자동 트리거: 체인 종료 후 그리드 ON 카드 수 >= threshold면 자동 ON
     AutoTrigger,
+
+    // 재발동형: ON될 때 이번 턴 첫 번째로 놓인 카드 재발동
+    Replay,
 }
 
 public enum CountScope

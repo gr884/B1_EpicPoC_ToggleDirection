@@ -18,6 +18,10 @@ public class CardManager : SingletonBehaviour<CardManager>
     private readonly List<CardInstance> _drawPile = new();
     private readonly List<CardInstance> _discardPile = new();
     private readonly List<CardInstance> _exiledPile = new(); // 폭발형: 이번 전투 소멸 카드
+
+    // 재발동형: 이번 턴 첫 번째로 그리드에 놓인 카드
+    private CardView _firstPlacedCard;
+    public CardView FirstPlacedCard => _firstPlacedCard;
     private readonly List<CardData> _drawPileView = new();
     private readonly List<CardData> _discardPileView = new();
     public int DrawPileCount => _drawPile.Count;
@@ -210,6 +214,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     public void DiscardAndDraw()
     {
         ResetTurnOnCounts();
+        _firstPlacedCard = null;
         DiscardHand();
         DrawToHand(_player.HandSize);
         TutorialManager.Instance?.OnHandDrawn();
@@ -344,6 +349,10 @@ public class CardManager : SingletonBehaviour<CardManager>
         card.SetDraggable(false);
         _hand.Remove(card);
         OnHandChanged?.Invoke();
+
+        // 재발동형: 이번 턴 첫 번째 카드 기록
+        if (_firstPlacedCard == null)
+            _firstPlacedCard = card;
 
         TutorialManager.Instance?.OnCardPlaced(card);
         ChainExecutor.Instance.ApplyOnPlacedEffects(card);

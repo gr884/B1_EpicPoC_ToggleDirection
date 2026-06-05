@@ -206,6 +206,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         BattleManager.Instance.Player.AddPendingAttack(popularityDamage);
                 }
                 break;
+            case EffectType.AutoTrigger:
+                // CheckAutoTriggers에서 처리 — ApplyEffect에서는 무시
+                break;
+            case EffectType.Replay:
+                StartCoroutine(ApplyReplayEffect(card));
+                break;
         }
     }
 
@@ -245,6 +251,34 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 if (damage > 0)
                     BattleManager.Instance.Player.AddPendingAttack(damage);
             }
+        }
+    }
+
+    // ── 재발동형 ──────────────────────────────────────────
+
+    private IEnumerator ApplyReplayEffect(CardView replayCard)
+    {
+        CardView target = CardManager.Instance.FirstPlacedCard;
+
+        // 자기 자신이거나 없으면 무시
+        if (target == null || target == replayCard) yield break;
+        if (target.CurrentSlot == null) yield break;
+
+        if (!target.IsActivated)
+        {
+            // OFF → ON: 체인 전파 포함
+            yield return ActivateChainFrom(target, _activatedCards);
+        }
+        else
+        {
+            // ON 유지: 효과 + 전파만 (상태 변경 없음)
+            _turnToggleCount++;
+            OnToggleCountChanged?.Invoke();
+            target.Instance?.PersistentState.IncrementTurnOnCount();
+            ApplyEffects(target);
+            StartCoroutine(target.PlayActivationFeedback(_cardFeedbackDuration));
+            yield return new WaitForSeconds(_cardFeedbackDuration);
+            yield return ActivateChainFromWave(new List<CardView> { target }, _activatedCards);
         }
     }
 
