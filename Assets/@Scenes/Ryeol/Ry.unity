@@ -3010,6 +3010,73 @@ RectTransform:
   m_CorrespondingSourceObject: {fileID: 9189366267873355258, guid: a7899e4f39a2ecc4195e426714798813, type: 3}
   m_PrefabInstance: {fileID: 1720199221}
   m_PrefabAsset: {fileID: 0}
+--- !u!1 &1780183743
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1780183744}
+  - component: {fileID: 1780183745}
+  m_Layer: 0
+  m_Name: ActionBlockFlightEffectPlayer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &1780183744
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1780183743}
+  serializedVersion: 2
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4383272878506788529}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1780183745
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1780183743}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 12f4538f9e4778243bc20fdf1dc1786f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::ActionBlockFlightEffectPlayer
+  rootCanvas: {fileID: 1708129503398650372}
+  effectLayer: {fileID: 1858029412}
+  enemyTarget: {fileID: 743872838}
+  playerTarget: {fileID: 1113997786}
+  settings:
+  - effectType: 0
+    target: {fileID: 406885543}
+    sprite: {fileID: -2237518807768803992, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+    spawnOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    size: {x: 72, y: 72}
+    duration: 1
+    ease: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
+  - effectType: 1
+    target: {fileID: 2856433981474173139}
+    sprite: {fileID: 7544613302241952520, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+    spawnOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    size: {x: 72, y: 72}
+    duration: 1
+    ease: 6
+    color: {r: 1, g: 1, b: 1, a: 1}
 --- !u!1 &1843453996
 GameObject:
   m_ObjectHideFlags: 0
@@ -3147,6 +3214,41 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1843453996}
   m_CullTransparentMesh: 1
+--- !u!1 &1858029411
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1858029412}
+  m_Layer: 0
+  m_Name: ActionBlockFlightEffectLayer
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &1858029412
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1858029411}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 4679821296608261453}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0, y: 0}
+  m_AnchorMax: {x: 1, y: 1}
+  m_AnchoredPosition: {x: 0, y: 0}
+  m_SizeDelta: {x: 0, y: 0}
+  m_Pivot: {x: 0.5, y: 0.5}
 --- !u!1001 &1896555591
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -3254,16 +3356,16 @@ MonoBehaviour:
   _player: {fileID: 1113997785}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
+  - {fileID: 11400000, guid: d12b03d6da4395345acc596285496af7, type: 2}
+  - {fileID: 11400000, guid: 51d0c89019b818a44bc83a2899d52d99, type: 2}
+  - {fileID: 11400000, guid: d94f7d502b19fe34084a8d2636259f2d, type: 2}
+  - {fileID: 11400000, guid: 3d2a19745f948964ab220ecf14a2dcd9, type: 2}
+  - {fileID: 11400000, guid: 57e6e9ef20032094e9d56f257a58eed5, type: 2}
+  - {fileID: 11400000, guid: a2edcd94dec0e1a43afc8f3807605b65, type: 2}
+  - {fileID: 11400000, guid: 134f77e93d2f48c479f0c6acf4e420f2, type: 2}
+  - {fileID: 11400000, guid: 6924eede43254294aa4d60561768f828, type: 2}
   - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
-  - {fileID: 11400000, guid: 655a34ea223c56343aab4db29eb7d44c, type: 2}
+  - {fileID: 11400000, guid: f734320b605841f4780eb2428857a04b, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &1926050208
 MonoBehaviour:
@@ -7809,6 +7911,7 @@ Transform:
   - {fileID: 70767145867504984}
   - {fileID: 3501690114514343067}
   - {fileID: 3705588463999848433}
+  - {fileID: 1780183744}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &4467062752308689564
@@ -8069,6 +8172,7 @@ RectTransform:
   - {fileID: 6901344184052736421}
   - {fileID: 1602625689}
   - {fileID: 1931931696}
+  - {fileID: 1858029412}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

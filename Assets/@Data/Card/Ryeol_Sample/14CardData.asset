@@ -22,19 +22,16 @@ MonoBehaviour:
   isCurseCard: 0
   curseDamage: 3
   isRecaller: 0
+  hasAutoTrigger: 1
+  autoTriggerThreshold: 3
   range: 1
   recallDestination: 0
   directions: 0300000007000000
   effects:
-  - scope: 0
+  - trigger: 0
+    scope: 0
     thresholdType: 0
     threshold: 3
-    effectType: 15
-    value: 0
-    secondaryValue: 0
-  - scope: 0
-    thresholdType: 0
-    threshold: 0
     effectType: 4
     value: 1
     secondaryValue: 0

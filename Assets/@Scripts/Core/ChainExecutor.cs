@@ -20,9 +20,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     [SerializeField] private float _infiniteLoopTextDuration = 1.2f;
     [SerializeField] private int _infiniteLoopFinishDamage = 999;
 
-    [Header("Effect Visuals")]
-    [SerializeField] private ActionBlockFlightEffectPlayer _flightEffectPlayer;
-
     public event Action OnChainStarted;
     public event Action OnChainFinished;
 
@@ -84,16 +81,16 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 효과 처리 ──────────────────────────────────────────
 
-    private void ApplyEffects(CardView card)
+    private void ApplyEffects(CardView card, EffectTrigger trigger = EffectTrigger.OnActivated)
     {
         if (card?.Data?.effects == null) return;
-
-        PlayFlightEffect(card);
 
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
         foreach (CardEffect effect in card.Data.effects)
         {
+            if (effect.trigger != trigger) continue;
+
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
@@ -153,7 +150,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     {
                         if (e.effectType != EffectType.Damage) continue;
                         int targetBaseDamage = Mathf.Max(1, Mathf.RoundToInt(e.value));
-                        // 누적 카드의 경우 기존 데미지에 여태까지 추가된 데미지 합산
                         int finalDamage = targetRuntime != null
                             ? targetRuntime.GetModifiedDamage(targetBaseDamage)
                             : targetBaseDamage;
@@ -183,12 +179,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     runtime.DeductBonusDamage(Mathf.RoundToInt(value));
                 break;
             case EffectType.DefenseOnOff:
-                // ON될 때 → Damage (value)
                 int reverseDamage = Mathf.Max(1, Mathf.RoundToInt(value));
                 BattleManager.Instance.Player.AddPendingAttack(reverseDamage);
                 break;
             case EffectType.CounterDamage:
-                // ON될 때 → value + 이번 턴 전체 ON 횟수 데미지
                 int counterDamage = Mathf.Max(1, Mathf.RoundToInt(value) + _turnToggleCount);
                 BattleManager.Instance.Player.AddPendingAttack(counterDamage);
                 break;
@@ -202,14 +196,17 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     foreach (CardDirection dir in System.Enum.GetValues(typeof(CardDirection)))
                     {
                         if (dir == CardDirection.None) continue;
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
-                        if (neighbor != null && !neighbor.IsEmpty)
+                        GridSlot neighborSlot = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
+                        if (neighborSlot != null && !neighborSlot.IsEmpty)
                             neighborCount++;
                     }
                     int popularityDamage = Mathf.RoundToInt(value) * neighborCount;
                     if (popularityDamage > 0)
                         BattleManager.Instance.Player.AddPendingAttack(popularityDamage);
                 }
+                break;
+            case EffectType.Replay:
+                StartCoroutine(ApplyReplayEffect(card));
                 break;
         }
     }
@@ -225,31 +222,31 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
     }
 
-    // ── 턴 종료 시 이펙트 ─────────────────────────────────
+    // ── 재발동형 ──────────────────────────────────────────
 
-    public void ApplyFinisherEffects()
+    private IEnumerator ApplyReplayEffect(CardView replayCard)
     {
-        if (GridManager.Instance == null) return;
+        CardView target = CardManager.Instance.FirstPlacedCard;
 
-        // 그리드 전체 ON 카드 수 계산
-        int onCount = 0;
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-            if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
-                onCount++;
+        // 자기 자신이거나 없으면 무시
+        if (target == null || target == replayCard) yield break;
+        if (target.CurrentSlot == null) yield break;
 
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        if (!target.IsActivated)
         {
-            CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy || !card.IsActivated) continue;
-            if (card.Data?.effects == null) continue;
-
-            foreach (CardEffect effect in card.Data.effects)
-            {
-                if (effect.effectType != EffectType.FinisherDamage) continue;
-                int damage = Mathf.Max(0, Mathf.RoundToInt(effect.value) * onCount);
-                if (damage > 0)
-                    BattleManager.Instance.Player.AddPendingAttack(damage);
-            }
+            // OFF → ON: 체인 전파 포함
+            yield return ActivateChainFrom(target, _activatedCards);
+        }
+        else
+        {
+            // ON 유지: 효과 + 전파만 (상태 변경 없음)
+            _turnToggleCount++;
+            OnToggleCountChanged?.Invoke();
+            target.Instance?.PersistentState.IncrementTurnOnCount();
+            ApplyEffects(target);
+            StartCoroutine(target.PlayActivationFeedback(_cardFeedbackDuration));
+            yield return new WaitForSeconds(_cardFeedbackDuration);
+            yield return ActivateChainFromWave(new List<CardView> { target }, _activatedCards);
         }
     }
 
@@ -259,32 +256,21 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (GridManager.Instance == null) yield break;
 
-        // 현재 그리드 ON 카드 수 계산
         int onCount = 0;
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
             if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
                 onCount++;
 
-        // AutoTrigger 카드 중 OFF 상태이고 조건 충족한 카드 수집
         List<CardView> toTrigger = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
             if (card == null || card.IsEnemy || card.IsActivated) continue;
-            if (card.Data?.effects == null) continue;
-
-            foreach (CardEffect effect in card.Data.effects)
-            {
-                if (effect.effectType != EffectType.AutoTrigger) continue;
-                if (onCount >= effect.threshold)
-                {
-                    toTrigger.Add(card);
-                    break;
-                }
-            }
+            if (card.Data == null || !card.Data.hasAutoTrigger) continue;
+            if (onCount >= card.Data.autoTriggerThreshold)
+                toTrigger.Add(card);
         }
 
-        // 조건 충족 카드 순차 ON
         foreach (CardView card in toTrigger)
         {
             if (card == null || card.CurrentSlot == null) continue;
@@ -372,15 +358,18 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     public void ApplyOnPlacedEffects(CardView card)
     {
         if (card?.Data?.effects == null || card.IsEnemy) return;
+        ApplyEffects(card, EffectTrigger.OnPlaced);
+    }
 
-        var runtime = card.GetComponent<CardRuntimeState>();
-        foreach (CardEffect effect in card.Data.effects)
+    public void ApplyTurnEndEffects()
+    {
+        if (GridManager.Instance == null) return;
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
-            if (effect.effectType != EffectType.OnPlaced) continue;
-
-            // OnPlaced의 value는 GainDamage 용도로만 사용 (초기 BonusDamage 세팅)
-            if (runtime != null)
-                runtime.AddBonusDamage(Mathf.RoundToInt(effect.value));
+            CardView card = slot.OccupiedCard;
+            if (card == null || card.IsEnemy) continue;
+            ApplyEffects(card, EffectTrigger.OnTurnEnd);
         }
     }
 
@@ -614,33 +603,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         return false;
-    }
-
-    private void PlayFlightEffect(CardView card)
-    {
-        ActionBlockFlightEffectPlayer player = GetFlightEffectPlayer();
-        if (player == null || !player.isActiveAndEnabled)
-        {
-            return;
-        }
-
-        StartCoroutine(player.Play(card));
-    }
-
-    private ActionBlockFlightEffectPlayer GetFlightEffectPlayer()
-    {
-        if (_flightEffectPlayer != null)
-        {
-            return _flightEffectPlayer;
-        }
-
-        _flightEffectPlayer = FindFirstObjectByType<ActionBlockFlightEffectPlayer>();
-        if (_flightEffectPlayer == null)
-        {
-            _flightEffectPlayer = FindFirstObjectByType<ActionBlockFlightEffectPlayer>(FindObjectsInactive.Include);
-        }
-
-        return _flightEffectPlayer;
     }
 
     private bool ContainsEffect(CardData data, EffectType effectType)
