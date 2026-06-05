@@ -219,7 +219,13 @@ public class Enemy : MonoBehaviour
             return;
         }
 
-        _intentIndex = UnityEngine.Random.Range(0, _data.intentPattern.Count);
+        bool isTutorial = GameManager.Instance != null
+            && GameManager.Instance.CurrentState == GameManager.GameState.Tutorial;
+
+        if (isTutorial)
+            _intentIndex = (_intentIndex + 1) % _data.intentPattern.Count;
+        else
+            _intentIndex = UnityEngine.Random.Range(0, _data.intentPattern.Count);
 
         CurrentIntentTurn = _data.intentPattern[_intentIndex];
         OnIntentChanged?.Invoke(CurrentIntentTurn);
