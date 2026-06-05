@@ -35,9 +35,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         if (!enabled || Card == null) return;
         if (!_isDraggable) return;
         if (Card.CurrentSlot != null) return;
-        if (BattleManager.Instance != null && BattleManager.Instance.IsProcessing) return;
-        if (BattleManager.Instance != null && BattleManager.Instance.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return;
-        if (ChainExecutor.Instance != null && ChainExecutor.Instance.IsExecuting) return;
+        if (!CanAcceptPlayerCardInput()) return;
 
         // 튜토리얼에서 막힌 카드면 드래그 차단
         if (TutorialManager.Instance != null && !TutorialManager.Instance.CanDragCard(Card))
@@ -62,6 +60,12 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public void OnDrag(PointerEventData eventData)
     {
         if (!enabled || _dragBlocked || _rootCanvas == null || Card.CurrentSlot != null) return;
+        if (!CanAcceptPlayerCardInput())
+        {
+            CancelDrag();
+            return;
+        }
+
         _rectTransform.anchoredPosition += eventData.delta / _rootCanvas.scaleFactor;
     }
 
@@ -74,10 +78,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         if (!_dropAccepted)
         {
-            _rectTransform.SetParent(_startParent, false);
-            _rectTransform.SetSiblingIndex(_startSiblingIndex);
-            _rectTransform.anchoredPosition = _startAnchoredPosition;
-            TutorialManager.Instance?.OnCardDragCancelled(Card);
+            CancelDrag();
         }
     }
 
@@ -96,5 +97,31 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     {
         if (Card != null)
             Card.ApplyGridLayout();
+    }
+
+    private bool CanAcceptPlayerCardInput()
+    {
+        return CardManager.Instance != null && CardManager.Instance.CanAcceptPlayerCardInput;
+    }
+
+    private void CancelDrag()
+    {
+        _dragBlocked = true;
+
+        if (_canvasGroup != null)
+        {
+            _canvasGroup.blocksRaycasts = true;
+            _canvasGroup.alpha = 1f;
+        }
+
+        if (_startParent != null)
+        {
+            _rectTransform.SetParent(_startParent, false);
+            _rectTransform.SetSiblingIndex(_startSiblingIndex);
+            _rectTransform.anchoredPosition = _startAnchoredPosition;
+        }
+
+        _rootCanvas = null;
+        TutorialManager.Instance?.OnCardDragCancelled(Card);
     }
 }

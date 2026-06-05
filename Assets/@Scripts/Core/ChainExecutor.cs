@@ -29,6 +29,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     // 카운터형: 이번 턴 그리드 전체 ON 횟수
     private int _turnToggleCount;
     public int TurnToggleCount => _turnToggleCount;
+    private int _runningDetachedChainCount;
 
     public event Action OnToggleCountChanged;
 
@@ -47,16 +48,22 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     public void ExecuteFrom(CardView rootCard)
     {
+        if (rootCard == null || IsExecuting) return;
+
+        IsExecuting = true;
         StartCoroutine(ExecuteChain(rootCard));
     }
 
     private IEnumerator ExecuteChain(CardView rootCard)
     {
-        if (rootCard == null) yield break;
+        if (rootCard == null)
+        {
+            IsExecuting = false;
+            yield break;
+        }
 
         bool willCreateInfiniteLoop = WouldCreateInfiniteLoop(rootCard);
 
-        IsExecuting = true;
         OnChainStarted?.Invoke();
         _activatedCards.Clear();
 
@@ -71,11 +78,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
 
-        IsExecuting = false;
-
         // 자동 트리거: 체인 종료 후 조건 충족 카드 자동 ON
         yield return CheckAutoTriggers();
 
+        while (_runningDetachedChainCount > 0)
+            yield return null;
+
+        IsExecuting = false;
         OnChainFinished?.Invoke();
     }
 
@@ -338,7 +347,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         // 새로 ON된 카드들의 이웃부터 체인 시작 (카드 자체는 이미 ON 상태)
         if (nextWave.Count > 0)
-            StartCoroutine(ActivateChainFromWave(new List<CardView>(nextWave), _activatedCards));
+            StartCoroutine(ActivateChainFromWaveTracked(new List<CardView>(nextWave), _activatedCards));
+    }
+
+    private IEnumerator ActivateChainFromWaveTracked(List<CardView> emitters, HashSet<CardView> activatedCards)
+    {
+        _runningDetachedChainCount++;
+        yield return ActivateChainFromWave(emitters, activatedCards);
+        _runningDetachedChainCount = Mathf.Max(0, _runningDetachedChainCount - 1);
     }
 
     private IEnumerator ActivateChainFromWave(List<CardView> emitters, HashSet<CardView> activatedCards)
