@@ -16,7 +16,7 @@ MonoBehaviour:
   displayName: "\uAC15\uD654 \uACF5\uACA9"
   description: "\uACF5\uACA9 + 4\n\n\uC774 \uCE74\uB4DC\uAC00\n\uD65C\uC131\uD654\uB420
     \uB54C\uB9C8\uB2E4\n\uC774\uBC88 \uC804\uD22C\uC5D0\uC11C\n\uACF5\uACA9\uC774
-    2 \uCD94\uAC00\uB429\uB2C8\uB2E4."
+    1 \uCD94\uAC00\uB429\uB2C8\uB2E4."
   cost: 0
   isUnplayable: 0
   isCurseCard: 0
@@ -40,6 +40,6 @@ MonoBehaviour:
     thresholdType: 0
     threshold: 0
     effectType: 7
-    value: 2
+    value: 1
     secondaryValue: 0
   icon: {fileID: -7142010459297365230, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

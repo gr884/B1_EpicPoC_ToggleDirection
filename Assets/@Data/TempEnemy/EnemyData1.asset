@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDataSO
   enemyId: 
   displayName: Enemy
-  maxHp: 90
+  maxHp: 80
   sprite: {fileID: 0}
   motionPrefab: {fileID: 910000000000000003, guid: 8ef2777b3b9a465f9b661a63c7f348c5, type: 3}
   intentPattern:
@@ -25,19 +25,19 @@ MonoBehaviour:
       spawnCount: 3
       cursePerCard: 2
     - type: 1
-      value: 5
+      value: 10
       hits: 1
       spawnCount: 3
       cursePerCard: 2
   - intents:
     - type: 0
-      value: 4
+      value: 6
       hits: 5
       spawnCount: 3
       cursePerCard: 2
   - intents:
     - type: 1
-      value: 15
+      value: 20
       hits: 1
       spawnCount: 3
       cursePerCard: 2
