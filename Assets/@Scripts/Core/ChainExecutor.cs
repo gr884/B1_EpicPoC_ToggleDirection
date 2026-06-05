@@ -232,22 +232,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         if (target == null || target == replayCard) yield break;
         if (target.CurrentSlot == null) yield break;
 
-        if (!target.IsActivated)
-        {
-            // OFF → ON: 체인 전파 포함
-            yield return ActivateChainFrom(target, _activatedCards);
-        }
-        else
-        {
-            // ON 유지: 효과 + 전파만 (상태 변경 없음)
-            _turnToggleCount++;
-            OnToggleCountChanged?.Invoke();
-            target.Instance?.PersistentState.IncrementTurnOnCount();
-            ApplyEffects(target);
-            StartCoroutine(target.PlayActivationFeedback(_cardFeedbackDuration));
-            yield return new WaitForSeconds(_cardFeedbackDuration);
-            yield return ActivateChainFromWave(new List<CardView> { target }, _activatedCards);
-        }
+        yield return ActivateChainFrom(target, _activatedCards);
     }
 
     // ── 자동 트리거 ───────────────────────────────────────
@@ -265,7 +250,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy || card.IsActivated) continue;
+            if (card == null || card.IsEnemy) continue;
             if (card.Data == null || !card.Data.hasAutoTrigger) continue;
             if (onCount >= card.Data.autoTriggerThreshold)
                 toTrigger.Add(card);
