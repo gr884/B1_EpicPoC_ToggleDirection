@@ -268,11 +268,36 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 toTrigger.Add(card);
         }
 
+        if (toTrigger.Count == 0) yield break;
+
+        // 조건 충족 카드들을 동시에 하나의 웨이브로 토글
         foreach (CardView card in toTrigger)
         {
             if (card == null || card.CurrentSlot == null) continue;
-            yield return ActivateChainFrom(card, _activatedCards);
+            bool nextState = !card.IsActivated;
+            card.SetActivated(nextState);
+
+            if (nextState && !card.IsEnemy)
+            {
+                _turnToggleCount++;
+                OnToggleCountChanged?.Invoke();
+                card.Instance?.PersistentState.IncrementTurnOnCount();
+                ApplyEffects(card, EffectTrigger.OnActivated);
+            }
+            else if (!nextState && !card.IsEnemy)
+            {
+                ApplyDefenseOnOffEffects(card);
+            }
+
+            StartCoroutine(card.PlayActivationFeedback(_cardFeedbackDuration));
         }
+
+        yield return new WaitForSeconds(_cardFeedbackDuration);
+
+        // 새로 ON된 카드들로 체인 전파
+        yield return ActivateChainFromWave(
+            toTrigger.FindAll(c => c != null && c.IsActivated),
+            _activatedCards);
     }
 
     // ── 폭발형 ────────────────────────────────────────────
