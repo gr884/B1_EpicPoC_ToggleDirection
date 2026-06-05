@@ -214,7 +214,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         {
             CardView card = slot.OccupiedCard;
 
-            // 아직 ON 상태면 저주 카드 삽입
             if (card.IsActivated)
             {
                 CardData curseCard = _enemy.CurseCardData;
@@ -230,7 +229,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
                 Debug.Log("[BattleManager] 오염 카드 제거 성공 — 저주 없음");
             }
 
-            // ON/OFF 상관없이 오염 카드 그리드에서 제거
             slot.ClearCard();
             PoolManager.Instance.Return(card.gameObject);
         }
@@ -244,14 +242,12 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        // 플레이어 카드 먼저 정리
         CardManager.Instance.DiscardGrid();
 
         yield return new WaitForSeconds(0.3f);
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        // 현재 Intent 실행: Defend → Defense 쌓음, Attack → hits만큼 반복 피격, Contaminate → 오염 카드 배치
         _enemy.ExecuteIntents();
         if (_enemy.CurrentIntentTurn != null)
         {
@@ -277,19 +273,17 @@ public class BattleManager : SingletonBehaviour<BattleManager>
             }
         }
 
-        // 적 공격 이후 플레이어 Defense 리셋
         _player.ResetDefense();
 
         yield return new WaitForSeconds(0.5f);
 
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
-        // 다음 플레이어 턴에 보여줄 Intent로 갱신 (실행 아님)
         _enemy.AdvanceIntent();
 
         EnterPhase(BattlePhase.PlayerTurn);
 
-        // Turn3_Free: 적이 살아있으면 도르마무
+        // 튜토리얼: 적이 살아있으면 재시도
         if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
             && TutorialManager.Instance != null)
         {
@@ -297,6 +291,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
                 && !_enemy.IsDead)
             {
                 TutorialManager.Instance.OnTurn3FreeFailed();
+                IsProcessing = false;
                 yield break;
             }
 
@@ -304,11 +299,12 @@ public class BattleManager : SingletonBehaviour<BattleManager>
                 && !_enemy.IsDead)
             {
                 TutorialManager.Instance.OnTurn2Failed();
+                IsProcessing = false;
                 yield break;
             }
         }
 
-        yield return CardManager.Instance.DiscardAndDrawRoutine();
+        CardManager.Instance.DiscardAndDraw();
         IsProcessing = false;
     }
 
@@ -363,7 +359,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     // ── 유틸 ───────────────────────────────────────────────
 
-    /// <summary>Turn3 재시작 등 외부에서 PlayerTurn 상태로 강제 복귀할 때 사용</summary>
     public void ResetToPlayerTurn()
     {
         StopAllCoroutines();

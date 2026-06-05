@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -214,22 +213,9 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void DiscardAndDraw()
     {
-        StartCoroutine(DiscardAndDrawRoutine());
-    }
-
-    public IEnumerator DiscardAndDrawRoutine()
-    {
         ResetTurnOnCounts();
         _firstPlacedCard = null;
-        bool waitForDiscardFlight = _hand.Count > 0
-            && _flightEffectPlayer != null
-            && _flightEffectPlayer.CanPlayReturn;
-
         DiscardHand();
-
-        if (waitForDiscardFlight && _flightEffectPlayer.DiscardFlightDuration > 0f)
-            yield return new WaitForSeconds(_flightEffectPlayer.DiscardFlightDuration);
-
         DrawToHand(_player.HandSize);
         TutorialManager.Instance?.OnHandDrawn();
     }
@@ -239,6 +225,15 @@ public class CardManager : SingletonBehaviour<CardManager>
         foreach (CardView card in _hand)
         {
             if (card == null) continue;
+
+            // 저주 카드는 소멸 (버린파일로 안 감)
+            if (card.Data != null && card.Data.isCurseCard)
+            {
+                _flightEffectPlayer?.PlayDiscardFrom(card.transform);
+                PoolManager.Instance.Return(card.gameObject);
+                continue;
+            }
+
             if (card.Instance != null)
                 _discardPile.Add(card.Instance);
             _flightEffectPlayer?.PlayDiscardFrom(card.transform);
