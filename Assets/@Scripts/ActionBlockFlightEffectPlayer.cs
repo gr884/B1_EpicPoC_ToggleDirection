@@ -283,7 +283,10 @@ public class ActionBlockFlightEffectPlayer : MonoBehaviour
                 effectLayer.offsetMin = Vector2.zero;
                 effectLayer.offsetMax = Vector2.zero;
             }
+        }
 
+        if (effectLayer != null)
+        {
             effectLayer.SetAsLastSibling();
         }
 

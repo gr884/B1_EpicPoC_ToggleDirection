@@ -9536,6 +9536,7 @@ MonoBehaviour:
   _actionBlockFlightEffectPlayer: {fileID: 1780183745}
   _infiniteLoopText: {fileID: 1924988237}
   _loopSlashDirector: {fileID: 1389832506}
+  _infiniteLoopGraceDuration: 2
   _infiniteLoopTextDuration: 1.2
   _infiniteLoopFinishDamage: 999
 --- !u!1 &5021724786616653723
