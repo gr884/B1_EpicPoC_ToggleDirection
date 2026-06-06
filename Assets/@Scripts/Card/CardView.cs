@@ -34,6 +34,12 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     [SerializeField] private Color _enemyActiveColor = new Color(0.2f, 0.55f, 1f, 1f);
     [SerializeField] private Color _enemyInactiveColor = new Color(0.55f, 0.55f, 1f, 1f);
 
+    [Header("Preview")]
+    [SerializeField] private TMP_Text _previewText; // 예상 데미지/효과 미리보기
+
+    [Header("Cost Feedback")]
+    [SerializeField] private float _unaffordableAlpha = 0.4f;
+
     public CardData Data { get; private set; }
     public CardInstance Instance { get; private set; }
     public bool IsActivated { get; private set; }
@@ -59,7 +65,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         RefreshPreserveUI();
     }
 
-    /// <summary>보존 스택 1 차감. 스택이 있으면 true(유지), 없으면 false(버려야 함) 반환.</summary>
     public bool ConsumePreserve()
     {
         if (PreserveStack <= 0) return false;
@@ -86,22 +91,28 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     private Vector2 _handOffsetMax;
     private bool _hasHandLayout;
 
-    [Header("Cost Feedback")]
-    [SerializeField] private float _unaffordableAlpha = 0.4f;
-
     private void Awake()
     {
         _rectTransform = GetComponent<RectTransform>();
         _canvasGroup = GetComponent<CanvasGroup>();
 
         _runtimeState = GetComponent<CardRuntimeState>();
-        if (_runtimeState != null) _runtimeState.OnChanged += RefreshRuntimeText;
+        if (_runtimeState != null)
+        {
+            _runtimeState.OnChanged += RefreshRuntimeText;
+            _runtimeState.OnChanged += RefreshPreviewText;
+        }
         CaptureHandLayout();
     }
 
     void OnDestroy()
     {
-        if (_runtimeState != null) _runtimeState.OnChanged -= RefreshRuntimeText;
+        if (_runtimeState != null)
+        {
+            _runtimeState.OnChanged -= RefreshRuntimeText;
+            _runtimeState.OnChanged -= RefreshPreviewText;
+        }
+        UnsubscribeChainFinished();
     }
 
     public void Initialize(CardData data, bool isEnemy = false, bool startsActivated = false)
@@ -142,6 +153,9 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             _costText.gameObject.SetActive(!isEnemy);
             _costText.text = Data != null ? Data.cost.ToString() : "";
         }
+
+        if (_previewText != null)
+            _previewText.text = "";
 
         RefreshRuntimeText();
         RefreshDirectionIcons();
@@ -206,13 +220,27 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     public void SetPlaced(GridSlot slot)
     {
+        bool wasOnGrid = CurrentSlot != null;
         CurrentSlot = slot;
+
+        if (slot != null && !wasOnGrid)
+        {
+            SubscribeChainFinished();
+            RefreshPreviewText();
+        }
+        else if (slot == null && wasOnGrid)
+        {
+            UnsubscribeChainFinished();
+            if (_previewText != null)
+                _previewText.text = "";
+        }
     }
 
     public void SetActivated(bool activated)
     {
         IsActivated = activated;
         RefreshVisual();
+        RefreshPreviewText();
     }
 
     public void SetDraggable(bool draggable)
@@ -236,7 +264,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public void SetAffordable(bool affordable)
     {
         if (_canvasGroup == null) return;
-        // 드래그 중 alpha는 CardDragHandler가 관리하므로, 손패에 있을 때만 적용
         if (CurrentSlot == null)
             _canvasGroup.alpha = affordable ? 1f : _unaffordableAlpha;
     }
@@ -288,6 +315,18 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     }
 
     // ── 내부 ───────────────────────────────────────────────
+
+    private void SubscribeChainFinished()
+    {
+        if (ChainExecutor.Instance != null)
+            ChainExecutor.Instance.OnChainFinished += RefreshPreviewText;
+    }
+
+    private void UnsubscribeChainFinished()
+    {
+        if (ChainExecutor.Instance != null)
+            ChainExecutor.Instance.OnChainFinished -= RefreshPreviewText;
+    }
 
     private void CaptureHandLayout()
     {
@@ -354,15 +393,135 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     private void RefreshRuntimeText()
     {
         if (_titleText == null || Data == null) return;
-        if (_runtimeState == null || _runtimeState.BonusDamage <= 0)
-            _titleText.text = Data.displayName;
-        else
+        _titleText.text = Data.displayName;
+    }
+
+    //* 예상 데미지/효과 미리보기
+    private void RefreshPreviewText()
+    {
+        if (_previewText == null || Data == null || CurrentSlot == null) return;
+
+        int bonusDamage = _runtimeState != null ? _runtimeState.BonusDamage : 0;
+        var lines = new System.Text.StringBuilder();
+
+        // Damage + DirectionalDamageBonus가 같이 있으면 한 줄로 합산
+        bool hasDirectionalBonus = false;
+        int baseDamageTotal = 0;
+        foreach (CardEffect e in Data.effects)
         {
-            int baseDamage = 0;
-            foreach (var e in Data.effects)
-                if (e.effectType == EffectType.Damage)
-                    baseDamage += Mathf.Max(1, Mathf.RoundToInt(e.value));
-            _titleText.text = $"{Data.displayName}\n({baseDamage}+{_runtimeState.BonusDamage})";
+            if (e.trigger == EffectTrigger.OnPlaced) continue;
+            if (e.effectType == EffectType.DirectionalDamageBonus) hasDirectionalBonus = true;
+            if (e.effectType == EffectType.Damage)
+                baseDamageTotal += Mathf.Max(1, Mathf.RoundToInt(e.value));
+        }
+
+        bool damageLineWritten = false;
+
+        foreach (CardEffect effect in Data.effects)
+        {
+            if (effect.trigger == EffectTrigger.OnPlaced) continue;
+
+            // Damage는 DirectionalDamageBonus와 합산 처리
+            if (effect.effectType == EffectType.Damage && hasDirectionalBonus)
+            {
+                if (!damageLineWritten)
+                {
+                    string line = BuildDirectionalPreviewLine(baseDamageTotal, bonusDamage);
+                    if (lines.Length > 0) lines.Append("\n");
+                    lines.Append(line);
+                    damageLineWritten = true;
+                }
+                continue;
+            }
+
+            if (effect.effectType == EffectType.DirectionalDamageBonus) continue;
+
+            string l = BuildPreviewLine(effect, bonusDamage);
+            if (!string.IsNullOrEmpty(l))
+            {
+                if (lines.Length > 0) lines.Append("\n");
+                lines.Append(l);
+            }
+        }
+
+        _previewText.text = lines.ToString();
+    }
+
+    private string BuildDirectionalPreviewLine(int baseDamage, int bonusDamage)
+    {
+        int neighborDamage = 0;
+        if (CurrentSlot != null && GridManager.Instance != null)
+        {
+            foreach (CardDirection dir in Data.GetAllDirections())
+            {
+                GridSlot n = GridManager.Instance.GetNeighbor(CurrentSlot, dir);
+                if (n == null || n.OccupiedCard == null || n.OccupiedCard.Data == null) continue;
+                var neighborRuntime = n.OccupiedCard.GetComponent<CardRuntimeState>();
+                foreach (CardEffect e in n.OccupiedCard.Data.effects)
+                {
+                    if (e.effectType != EffectType.Damage) continue;
+                    int base_ = Mathf.Max(1, Mathf.RoundToInt(e.value));
+                    neighborDamage += neighborRuntime != null
+                        ? neighborRuntime.GetModifiedDamage(base_)
+                        : base_;
+                }
+            }
+        }
+
+        if (bonusDamage > 0)
+            return $"{baseDamage} + {bonusDamage} + ({neighborDamage})";
+        return $"{baseDamage} + ({neighborDamage})";
+    }
+
+    private string BuildPreviewLine(CardEffect effect, int bonusDamage)
+    {
+        switch (effect.effectType)
+        {
+            case EffectType.Damage:
+                {
+                    int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
+                    return bonusDamage > 0 ? $"{baseVal} + {bonusDamage}" : $"{baseVal}";
+                }
+            case EffectType.FinisherDamage:
+                {
+                    int onCount = 0;
+                    if (GridManager.Instance != null)
+                        foreach (GridSlot s in GridManager.Instance.Slots.Values)
+                            if (s.OccupiedCard != null && s.OccupiedCard.IsActivated)
+                                onCount++;
+                    return $"{Mathf.RoundToInt(effect.value)} × {onCount}";
+                }
+            case EffectType.CounterDamage:
+                {
+                    int toggleCount = ChainExecutor.Instance != null ? ChainExecutor.Instance.TurnToggleCount : 0;
+                    return $"{Mathf.RoundToInt(effect.value)} + {toggleCount}";
+                }
+            case EffectType.PopularityDamage:
+                {
+                    int neighborCount = 0;
+                    if (CurrentSlot != null && GridManager.Instance != null)
+                        foreach (CardDirection dir in System.Enum.GetValues(typeof(CardDirection)))
+                        {
+                            if (dir == CardDirection.None) continue;
+                            GridSlot n = GridManager.Instance.GetNeighbor(CurrentSlot, dir);
+                            if (n != null && !n.IsEmpty) neighborCount++;
+                        }
+                    return $"{Mathf.RoundToInt(effect.value)} × {neighborCount}";
+                }
+            case EffectType.Defense:
+                return $"{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
+            case EffectType.Heal:
+                return $"{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
+            case EffectType.Draw:
+                return $"+{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
+            case EffectType.GainCost:
+                return $"+{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
+            case EffectType.DefenseOnOff:
+                return IsActivated
+                    ? $"{Mathf.RoundToInt(effect.value)}"
+                    : $"{Mathf.RoundToInt(effect.secondaryValue)}";
+            default:
+                return "";
         }
     }
 }
