@@ -512,10 +512,6 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                 return $"{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
             case EffectType.Heal:
                 return $"{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
-            case EffectType.Draw:
-                return $"+{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
-            case EffectType.GainCost:
-                return $"+{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
             case EffectType.DefenseOnOff:
                 return IsActivated
                     ? $"{Mathf.RoundToInt(effect.value)}"
