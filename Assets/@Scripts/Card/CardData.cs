@@ -56,6 +56,9 @@ public enum EffectType
 
     // 마무리형: 턴 종료 시 ON 상태라면 그리드 ON 카드 수 × value 데미지
     FinisherDamage,
+
+    // 소진형 초기화: 배치 시 BonusDamage를 value로 세팅 (누적 아닌 덮어쓰기)
+    InitDamage,
 }
 
 public enum CountScope

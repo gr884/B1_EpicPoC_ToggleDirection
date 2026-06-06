@@ -14,6 +14,11 @@ public class CardPersistentState
         BonusDamage += Mathf.Max(0, amount);
     }
 
+    public void SetBonusDamage(int amount)
+    {
+        BonusDamage = Mathf.Max(0, amount);
+    }
+
     public void DeductBonusDamage(int amount)
     {
         BonusDamage = Mathf.Max(0, BonusDamage - Mathf.Max(0, amount));
@@ -53,7 +58,6 @@ public class CardInstance
 
     // 폭발형: 이번 전투에서 소멸 여부
     public bool IsExiled { get; private set; }
-
     public void Exile() => IsExiled = true;
     public void ResetExile() => IsExiled = false;
 }

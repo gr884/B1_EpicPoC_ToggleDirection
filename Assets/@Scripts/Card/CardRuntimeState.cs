@@ -29,11 +29,17 @@ public class CardRuntimeState : MonoBehaviour
     public void AddBonusDamage(int amount)
     {
         if (_isEnemy || _instance == null) return;
-
         int add = Mathf.Max(0, amount);
         if (add == 0) return;
-
         _instance.PersistentState.AddBonusDamage(add);
+        OnChanged?.Invoke();
+    }
+
+    //* 누적 데미지를 amount로 덮어쓰기 (OnPlaced 초기화용)
+    public void SetBonusDamage(int amount)
+    {
+        if (_isEnemy || _instance == null) return;
+        _instance.PersistentState.SetBonusDamage(amount);
         OnChanged?.Invoke();
     }
 
@@ -41,10 +47,8 @@ public class CardRuntimeState : MonoBehaviour
     public void DeductBonusDamage(int amount)
     {
         if (_isEnemy || _instance == null) return;
-
         int deduct = Mathf.Max(0, amount);
         if (deduct == 0) return;
-
         _instance.PersistentState.DeductBonusDamage(deduct);
         OnChanged?.Invoke();
     }
