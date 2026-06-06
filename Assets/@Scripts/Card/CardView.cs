@@ -357,6 +357,12 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (_runtimeState == null || _runtimeState.BonusDamage <= 0)
             _titleText.text = Data.displayName;
         else
-            _titleText.text = $"{Data.displayName}\n(+{_runtimeState.BonusDamage})";
+        {
+            int baseDamage = 0;
+            foreach (var e in Data.effects)
+                if (e.effectType == EffectType.Damage)
+                    baseDamage += Mathf.Max(1, Mathf.RoundToInt(e.value));
+            _titleText.text = $"{Data.displayName}\n({baseDamage}+{_runtimeState.BonusDamage})";
+        }
     }
 }
