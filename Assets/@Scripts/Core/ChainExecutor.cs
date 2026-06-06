@@ -230,7 +230,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                     foreach (var e in targetCard.Data.effects)
                     {
-                        if (e.effectType != EffectType.Damage) continue;
+                        bool isdmg = (e.effectType == EffectType.Damage) ||
+                            (e.effectType == EffectType.DefenseOnOff);
+                        if (!isdmg) continue;
                         int targetBaseDamage = Mathf.Max(1, Mathf.RoundToInt(e.value));
                         int finalDamage = targetRuntime != null
                             ? targetRuntime.GetModifiedDamage(targetBaseDamage)
