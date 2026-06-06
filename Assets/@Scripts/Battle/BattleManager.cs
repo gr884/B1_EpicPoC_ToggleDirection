@@ -29,9 +29,13 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     public bool IsProcessing { get; private set; }
     public Player Player => _player;
     public Enemy Enemy => _enemy;
+    public int CurrentStageNumber => HasStageInfo ? Mathf.Clamp(_currentEnemyIndex + 1, 1, TotalStageCount) : 0;
+    public int TotalStageCount => _enemyList != null ? _enemyList.Count : 0;
+    public bool HasStageInfo => TotalStageCount > 0;
 
     public event Action<BattlePhase> OnPhaseChanged;
     public event Action OnBattleEnded;
+    public event Action<int, int> OnStageChanged;
 
     // ── 초기화 ─────────────────────────────────────────────
 
@@ -76,6 +80,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _player.ResetPendingAttack();
         _enemy.Setup(enemyData);
 
+        OnStageChanged?.Invoke(CurrentStageNumber, TotalStageCount);
         EnterPhase(BattlePhase.PlayerTurn);
 
         Debug.Log($"[BattleManager] 전투 시작 — {_currentEnemyIndex + 1}/{_enemyList.Count}");
@@ -421,6 +426,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         OnPhaseChanged = null;
         OnBattleEnded = null;
+        OnStageChanged = null;
         base.Dispose();
     }
 }
