@@ -33,7 +33,7 @@ MonoBehaviour:
   - intents:
     - type: 0
       value: 30
-      hits: 4
+      hits: 1
       spawnCount: 0
       cursePerCard: 0
     - type: 1
