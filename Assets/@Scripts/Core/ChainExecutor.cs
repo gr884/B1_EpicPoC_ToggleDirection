@@ -13,10 +13,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     [SerializeField] private float _cardFeedbackDuration = 0.22f;
     [SerializeField] private int _maxLoopCount = 3;
 
+    [Header("Action Block Flight Effect")]
+    [SerializeField] private ActionBlockFlightEffectPlayer _actionBlockFlightEffectPlayer;
+
     [Header("Infinite Loop Finish")]
     [SerializeField] private TMP_Text _infiniteLoopText;
     [SerializeField] private BattleCinematicSlashDirector _loopSlashDirector;
-    [SerializeField] private float _infiniteLoopGraceDuration = 2f;
     [SerializeField] private float _infiniteLoopTextDuration = 1.2f;
     [SerializeField] private int _infiniteLoopFinishDamage = 999;
 
@@ -32,6 +34,52 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     private int _runningDetachedChainCount;
 
     public event Action OnToggleCountChanged;
+
+    private sealed class ChainLoopContext
+    {
+        private readonly Dictionary<string, int> _stateRepeatCounts = new();
+
+        public int StepCount { get; private set; }
+        public bool InfiniteLoopDetected { get; private set; }
+        public string DetectionReason { get; private set; }
+
+        public bool TryAdvanceStep(int maxSteps, string source)
+        {
+            StepCount++;
+            if (StepCount <= maxSteps) return true;
+
+            MarkInfiniteLoop($"안전 한도 초과 ({source}, {StepCount}/{maxSteps})");
+            return false;
+        }
+
+        public bool TryRecordState(string stateKey, int maxLoopCount, string source)
+        {
+            if (InfiniteLoopDetected) return false;
+
+            if (!_stateRepeatCounts.TryGetValue(stateKey, out int repeatCount))
+            {
+                _stateRepeatCounts[stateKey] = 0;
+                return true;
+            }
+
+            repeatCount++;
+            _stateRepeatCounts[stateKey] = repeatCount;
+            Debug.Log($"[ChainExecutor] 루프 후보 감지 — {source} {repeatCount}/{maxLoopCount}");
+
+            if (repeatCount < maxLoopCount) return true;
+
+            MarkInfiniteLoop($"반복 상태 감지 ({source})");
+            return false;
+        }
+
+        public void MarkInfiniteLoop(string reason)
+        {
+            if (InfiniteLoopDetected) return;
+
+            InfiniteLoopDetected = true;
+            DetectionReason = reason;
+        }
+    }
 
     public void ResetTurnToggleCount()
     {
@@ -62,27 +110,38 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             yield break;
         }
 
-        bool willCreateInfiniteLoop = WouldCreateInfiniteLoop(rootCard);
+        ChainLoopContext loopContext = new();
+        _runningDetachedChainCount = 0;
 
         OnChainStarted?.Invoke();
         _activatedCards.Clear();
 
         SetAllCardsDraggable(false);
 
-        if (willCreateInfiniteLoop)
-            yield return ExecutePredictedInfiniteLoopRoutine(rootCard, _activatedCards);
-        else
-            yield return ActivateChainFrom(rootCard, _activatedCards);
+        yield return ActivateChainFrom(rootCard, _activatedCards, loopContext);
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
 
-        // 자동 트리거: 체인 종료 후 조건 충족 카드 자동 ON
-        yield return CheckAutoTriggers();
+        while (_runningDetachedChainCount > 0)
+            yield return null;
+
+        if (!loopContext.InfiniteLoopDetected)
+        {
+            // 자동 트리거: 체인 종료 후 조건 충족 카드 자동 ON
+            yield return CheckAutoTriggers(loopContext);
+        }
 
         while (_runningDetachedChainCount > 0)
             yield return null;
+
+        if (loopContext.InfiniteLoopDetected && !IsEnemyDead())
+        {
+            OnInfiniteLoopDetected(loopContext.DetectionReason);
+            ClearPlayerMotionQueues();
+            yield return ExecuteInfiniteLoopFinishRoutine();
+        }
 
         IsExecuting = false;
         OnChainFinished?.Invoke();
@@ -90,9 +149,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 효과 처리 ──────────────────────────────────────────
 
-    private void ApplyEffects(CardView card, EffectTrigger trigger = EffectTrigger.OnActivated)
+    private HashSet<EffectType> ApplyEffects(CardView card, EffectTrigger trigger = EffectTrigger.OnActivated, ChainLoopContext loopContext = null)
     {
-        if (card?.Data?.effects == null) return;
+        HashSet<EffectType> appliedTypes = new();
+        if (card?.Data?.effects == null) return appliedTypes;
 
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
@@ -103,13 +163,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
-                    ApplyEffect(effect.effectType, effect.value, card);
+                    ApplyEffectAndRecord(effect.effectType, effect.value, card, loopContext, appliedTypes);
                 continue;
             }
 
             if (effect.scope == CountScope.None)
             {
-                ApplyEffect(effect.effectType, effect.value, card);
+                ApplyEffectAndRecord(effect.effectType, effect.value, card, loopContext, appliedTypes);
                 continue;
             }
 
@@ -124,10 +184,23 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         foreach (var kv in atLeastBest)
-            ApplyEffect(kv.Key, kv.Value.value, card);
+            ApplyEffectAndRecord(kv.Key, kv.Value.value, card, loopContext, appliedTypes);
+
+        return appliedTypes;
     }
 
-    private void ApplyEffect(EffectType type, float value, CardView card)
+    private void ApplyEffectAndRecord(
+        EffectType type,
+        float value,
+        CardView card,
+        ChainLoopContext loopContext,
+        HashSet<EffectType> appliedTypes)
+    {
+        ApplyEffect(type, value, card, loopContext);
+        appliedTypes?.Add(type);
+    }
+
+    private void ApplyEffect(EffectType type, float value, CardView card, ChainLoopContext loopContext = null)
     {
         var runtime = card != null ? card.GetComponent<CardRuntimeState>() : null;
         switch (type)
@@ -196,7 +269,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 BattleManager.Instance.Player.AddPendingAttack(counterDamage);
                 break;
             case EffectType.Explode:
-                ApplyExplodeEffect(card);
+                ApplyExplodeEffect(card, loopContext);
                 break;
             case EffectType.PopularityDamage:
                 if (card.CurrentSlot != null)
@@ -245,22 +318,25 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 재발동형 ──────────────────────────────────────────
 
-    private IEnumerator ApplyReplayEffect(CardView replayCard)
+    private IEnumerator ApplyReplayEffect(CardView replayCard, ChainLoopContext loopContext)
     {
         CardView target = CardManager.Instance.FirstPlacedCard;
 
         // 자기 자신이거나 없으면 무시
         if (target == null || target == replayCard) yield break;
         if (target.CurrentSlot == null) yield break;
+        if (!loopContext.TryRecordState(BuildRuntimeLoopStateKey("Replay", new List<CardView> { target }), _maxLoopCount, "Replay"))
+            yield break;
 
-        yield return ActivateChainFrom(target, _activatedCards);
+        yield return ActivateChainFrom(target, _activatedCards, loopContext);
     }
 
     // ── 자동 트리거 ───────────────────────────────────────
 
-    private IEnumerator CheckAutoTriggers()
+    private IEnumerator CheckAutoTriggers(ChainLoopContext loopContext)
     {
         if (GridManager.Instance == null) yield break;
+        if (loopContext.InfiniteLoopDetected) yield break;
 
         int onCount = 0;
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
@@ -278,11 +354,15 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         if (toTrigger.Count == 0) yield break;
+        if (!loopContext.TryRecordState(BuildRuntimeLoopStateKey("AutoTrigger", toTrigger), _maxLoopCount, "AutoTrigger"))
+            yield break;
 
         // 조건 충족 카드들을 동시에 하나의 웨이브로 토글
         foreach (CardView card in toTrigger)
         {
             if (card == null || card.CurrentSlot == null) continue;
+            if (!loopContext.TryAdvanceStep(_maxActivationSteps, "AutoTrigger")) yield break;
+
             bool nextState = !card.IsActivated;
             card.SetActivated(nextState);
 
@@ -291,7 +371,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 _turnToggleCount++;
                 OnToggleCountChanged?.Invoke();
                 card.Instance?.PersistentState.IncrementTurnOnCount();
-                ApplyEffects(card, EffectTrigger.OnActivated);
+                HashSet<EffectType> appliedTypes = ApplyEffects(card, EffectTrigger.OnActivated, loopContext);
+                PlayActionBlockFlightEffect(card, appliedTypes);
+                if (loopContext.InfiniteLoopDetected) yield break;
             }
             else if (!nextState && !card.IsEnemy)
             {
@@ -306,14 +388,19 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         // 새로 ON된 카드들로 체인 전파
         yield return ActivateChainFromWave(
             toTrigger.FindAll(c => c != null && c.IsActivated),
-            _activatedCards);
+            _activatedCards,
+            loopContext);
     }
 
     // ── 폭발형 ────────────────────────────────────────────
 
-    private void ApplyExplodeEffect(CardView card)
+    private void ApplyExplodeEffect(CardView card, ChainLoopContext loopContext)
     {
         if (card?.Data == null || card.CurrentSlot == null) return;
+        if (loopContext != null && loopContext.InfiniteLoopDetected) return;
+        if (loopContext != null
+            && !loopContext.TryRecordState(BuildRuntimeLoopStateKey("Explode", new List<CardView> { card }), _maxLoopCount, "Explode"))
+            return;
 
         HashSet<CardView> nextWave = new();
 
@@ -324,6 +411,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
             CardView neighbor = neighborSlot.OccupiedCard;
             if (neighbor == null || neighbor.IsEnemy) continue;
+            if (loopContext != null && !loopContext.TryAdvanceStep(_maxActivationSteps, "Explode")) return;
 
             bool wasOff = !neighbor.IsActivated;
 
@@ -334,7 +422,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             _turnToggleCount++;
             OnToggleCountChanged?.Invoke();
             neighbor.Instance?.PersistentState.IncrementTurnOnCount();
-            ApplyEffects(neighbor);
+            HashSet<EffectType> appliedTypes = ApplyEffects(neighbor, EffectTrigger.OnActivated, loopContext);
+            PlayActionBlockFlightEffect(neighbor, appliedTypes);
+            if (loopContext != null && loopContext.InfiniteLoopDetected) return;
             StartCoroutine(neighbor.PlayActivationFeedback(_cardFeedbackDuration));
 
             // OFF→ON이 된 카드만 이웃으로 체인 전파
@@ -347,18 +437,28 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         // 새로 ON된 카드들의 이웃부터 체인 시작 (카드 자체는 이미 ON 상태)
         if (nextWave.Count > 0)
-            StartCoroutine(ActivateChainFromWaveTracked(new List<CardView>(nextWave), _activatedCards));
+            StartCoroutine(ActivateChainFromWaveTracked(new List<CardView>(nextWave), _activatedCards, loopContext));
     }
 
-    private IEnumerator ActivateChainFromWaveTracked(List<CardView> emitters, HashSet<CardView> activatedCards)
+    private IEnumerator ActivateChainFromWaveTracked(
+        List<CardView> emitters,
+        HashSet<CardView> activatedCards,
+        ChainLoopContext loopContext)
     {
         _runningDetachedChainCount++;
-        yield return ActivateChainFromWave(emitters, activatedCards);
+        yield return ActivateChainFromWave(emitters, activatedCards, loopContext);
         _runningDetachedChainCount = Mathf.Max(0, _runningDetachedChainCount - 1);
     }
 
-    private IEnumerator ActivateChainFromWave(List<CardView> emitters, HashSet<CardView> activatedCards)
+    private IEnumerator ActivateChainFromWave(
+        List<CardView> emitters,
+        HashSet<CardView> activatedCards,
+        ChainLoopContext loopContext)
     {
+        if (loopContext.InfiniteLoopDetected) yield break;
+        if (!loopContext.TryRecordState(BuildRuntimeLoopStateKey("Wave", emitters), _maxLoopCount, "Wave"))
+            yield break;
+
         // emitters는 이미 ON 상태 — 이웃으로만 전파
         HashSet<CardView> nextWaveSet = new();
         foreach (CardView emitter in emitters)
@@ -387,7 +487,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             // 다음 웨이브 카드들을 ActivateChainFrom에 순차 처리
             // 웨이브 내 카드가 여러 개일 때 각각 독립 체인으로 시작
             foreach (CardView next in nextWaveSet)
-                yield return ActivateChainFrom(next, activatedCards);
+            {
+                if (loopContext.InfiniteLoopDetected) yield break;
+                yield return ActivateChainFrom(next, activatedCards, loopContext);
+            }
         }
     }
 
@@ -495,16 +598,16 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
     }
 
-    private IEnumerator ActivateChainFrom(CardView root, HashSet<CardView> activatedCards)
+    private IEnumerator ActivateChainFrom(CardView root, HashSet<CardView> activatedCards, ChainLoopContext loopContext)
     {
         List<CardView> currentWave = new() { root };
-        int step = 0;
-
-        List<HashSet<CardView>> waveHistory = new();
-        int loopCount = 0;
 
         while (currentWave.Count > 0)
         {
+            if (loopContext.InfiniteLoopDetected) yield break;
+            if (!loopContext.TryRecordState(BuildRuntimeLoopStateKey("Chain", currentWave), _maxLoopCount, "Chain"))
+                yield break;
+
             List<CardView> emitters = new();
 
             foreach (CardView current in currentWave)
@@ -514,12 +617,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 bool nextState = !current.IsActivated;
                 current.SetActivated(nextState);
 
-                step++;
-                if (step > _maxActivationSteps)
-                {
-                    Debug.LogWarning("[ChainExecutor] 안전 한도 초과로 체인 중단.");
-                    yield break;
-                }
+                if (!loopContext.TryAdvanceStep(_maxActivationSteps, "Chain")) yield break;
 
                 if (nextState)
                 {
@@ -535,7 +633,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         OnToggleCountChanged?.Invoke();
 
                         bool hasMotionRequest = TryCreateMotionRequest(current, out CharacterMotionRequest motionRequest);
-                        ApplyEffects(current);
+                        HashSet<EffectType> appliedTypes = ApplyEffects(current, EffectTrigger.OnActivated, loopContext);
+                        PlayActionBlockFlightEffect(current, appliedTypes);
+                        if (loopContext.InfiniteLoopDetected) yield break;
 
                         if (hasMotionRequest)
                         {
@@ -549,7 +649,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                             {
                                 if (effect.trigger != EffectTrigger.OnActivated) continue;
                                 if (effect.effectType != EffectType.Replay) continue;
-                                yield return ApplyReplayEffect(current);
+                                yield return ApplyReplayEffect(current, loopContext);
+                                if (loopContext.InfiniteLoopDetected) yield break;
                             }
                         }
                     }
@@ -579,6 +680,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             HashSet<CardView> nextWaveSet = new();
             foreach (CardView emitter in emitters)
             {
+                if (loopContext.InfiniteLoopDetected) yield break;
                 if (emitter.Data == null) continue;
 
                 foreach (CardDirection dir in emitter.Data.GetAllDirections())
@@ -595,30 +697,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         current = neighbor;
                     }
                 }
-            }
-
-            if (nextWaveSet.Count > 0)
-            {
-                foreach (HashSet<CardView> pastWave in waveHistory)
-                {
-                    if (pastWave.SetEquals(nextWaveSet))
-                    {
-                        loopCount++;
-                        Debug.Log($"[ChainExecutor] 루프 감지 — {loopCount}/{_maxLoopCount}");
-
-                        if (loopCount >= _maxLoopCount)
-                        {
-                            Debug.Log("[ChainExecutor] 최대 루프 횟수 도달 — 체인 중단");
-                            OnInfiniteLoopDetected();
-                            yield break;
-                        }
-
-                        waveHistory.Clear();
-                        break;
-                    }
-                }
-
-                waveHistory.Add(nextWaveSet);
             }
 
             currentWave = new List<CardView>(nextWaveSet);
@@ -655,6 +733,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         return false;
     }
 
+    private void PlayActionBlockFlightEffect(CardView card, HashSet<EffectType> appliedTypes)
+    {
+        if (_actionBlockFlightEffectPlayer == null || card == null || appliedTypes == null) return;
+        if (!appliedTypes.Contains(EffectType.Damage) && !appliedTypes.Contains(EffectType.Defense)) return;
+
+        StartCoroutine(_actionBlockFlightEffectPlayer.Play(card, appliedTypes));
+    }
+
     private bool ContainsEffect(CardData data, EffectType effectType)
     {
         if (data?.effects == null) return false;
@@ -664,114 +750,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 return true;
 
         return false;
-    }
-
-    private bool WouldCreateInfiniteLoop(CardView root)
-    {
-        if (root == null || root.CurrentSlot == null || GridManager.Instance == null)
-            return false;
-
-        List<CardView> placedCards = GetPlacedCards();
-        if (!placedCards.Contains(root))
-            placedCards.Add(root);
-        SortCardsByGridPosition(placedCards);
-
-        Dictionary<CardView, bool> simulatedStates = new();
-        foreach (CardView card in placedCards)
-            if (card != null)
-                simulatedStates[card] = card.IsActivated;
-
-        List<CardView> currentWave = new() { root };
-        HashSet<string> visitedStates = new();
-        int step = 0;
-
-        while (currentWave.Count > 0)
-        {
-            string stateKey = BuildLoopStateKey(currentWave, placedCards, simulatedStates);
-            if (!visitedStates.Add(stateKey))
-            {
-                Debug.Log("[ChainExecutor] 사전 시뮬레이션에서 무한 루프 감지.");
-                return true;
-            }
-
-            List<CardView> emitters = new();
-            foreach (CardView current in currentWave)
-            {
-                if (current == null || current.CurrentSlot == null) continue;
-                if (!simulatedStates.TryGetValue(current, out bool currentState)) continue;
-
-                bool nextState = !currentState;
-                simulatedStates[current] = nextState;
-
-                step++;
-                if (step > _maxActivationSteps)
-                {
-                    Debug.LogWarning("[ChainExecutor] 사전 시뮬레이션 안전 한도 초과 — 무한 루프로 처리.");
-                    return true;
-                }
-
-                if (nextState)
-                    emitters.Add(current);
-            }
-
-            HashSet<CardView> nextWaveSet = new();
-            foreach (CardView emitter in emitters)
-            {
-                if (emitter == null || emitter.Data == null) continue;
-
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
-                {
-                    GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
-                    {
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                        if (neighbor == null) break;
-
-                        CardView target = neighbor.OccupiedCard;
-                        if (target != null && simulatedStates.ContainsKey(target))
-                            nextWaveSet.Add(target);
-
-                        current = neighbor;
-                    }
-                }
-            }
-
-            currentWave = new List<CardView>(nextWaveSet);
-        }
-
-        return false;
-    }
-
-    private IEnumerator ExecutePredictedInfiniteLoopRoutine(CardView root, HashSet<CardView> activatedCards)
-    {
-        bool chainFinished = false;
-        Coroutine chainRoutine = StartCoroutine(ActivateChainAndMarkFinished(root, activatedCards, () => chainFinished = true));
-
-        float elapsed = 0f;
-        float graceDuration = Mathf.Max(0f, _infiniteLoopGraceDuration);
-        while (elapsed < graceDuration && !IsEnemyDead())
-        {
-            elapsed += Time.deltaTime;
-            yield return null;
-        }
-
-        if (!chainFinished && chainRoutine != null)
-            StopCoroutine(chainRoutine);
-
-        if (IsEnemyDead())
-            yield break;
-
-        ClearPlayerMotionQueues();
-        yield return ExecuteInfiniteLoopFinishRoutine();
-    }
-
-    private IEnumerator ActivateChainAndMarkFinished(
-        CardView root,
-        HashSet<CardView> activatedCards,
-        Action onFinished)
-    {
-        yield return ActivateChainFrom(root, activatedCards);
-        onFinished?.Invoke();
     }
 
     private IEnumerator ExecuteInfiniteLoopFinishRoutine()
@@ -887,29 +865,121 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         });
     }
 
-    private static string BuildLoopStateKey(
-        List<CardView> currentWave,
-        List<CardView> placedCards,
-        Dictionary<CardView, bool> simulatedStates)
+    private string BuildRuntimeLoopStateKey(string source, List<CardView> currentWave)
     {
-        HashSet<CardView> waveSet = new(currentWave);
         StringBuilder builder = new();
 
-        foreach (CardView card in placedCards)
-            builder.Append(waveSet.Contains(card) ? '1' : '0');
+        builder.Append(source);
+        builder.Append("|wave:");
 
-        builder.Append('|');
+        List<CardView> waveCards = new(currentWave);
+        SortCardsByGridPosition(waveCards);
+        foreach (CardView card in waveCards)
+            builder.Append(GetCardInstanceId(card)).Append(',');
 
-        foreach (CardView card in placedCards)
-            builder.Append(simulatedStates.TryGetValue(card, out bool active) && active ? '1' : '0');
+        builder.Append("|first:");
+        builder.Append(GetCardInstanceId(CardManager.Instance != null ? CardManager.Instance.FirstPlacedCard : null));
+
+        builder.Append("|grid:");
+        List<GridSlot> slots = GetSortedSlots();
+        foreach (GridSlot slot in slots)
+        {
+            builder.Append(slot.Position.x).Append(',').Append(slot.Position.y).Append('=');
+
+            CardView card = slot.OccupiedCard;
+            if (card == null)
+            {
+                builder.Append("empty;");
+                continue;
+            }
+
+            builder.Append(GetCardInstanceId(card)).Append(':');
+            builder.Append(card.IsActivated ? '1' : '0').Append(':');
+            builder.Append(card.IsEnemy ? '1' : '0').Append(':');
+            builder.Append(card.Data != null ? card.Data.cardId : "").Append(':');
+            builder.Append(card.Data != null ? card.Data.range : 0).Append(':');
+            builder.Append(GetDirectionMask(card.Data)).Append(':');
+            builder.Append(card.Data != null && card.Data.hasAutoTrigger ? '1' : '0').Append(':');
+            builder.Append(card.Data != null ? card.Data.autoTriggerThreshold : 0).Append(':');
+            builder.Append(BuildEffectProgressKey(card)).Append(';');
+        }
 
         return builder.ToString();
     }
 
-    /// <summary>무한 루프가 감지됐을 때 호출됩니다. 처리 방식은 추후 결정.</summary>
-    private void OnInfiniteLoopDetected()
+    private string BuildEffectProgressKey(CardView card)
     {
-        // TODO: 무한 루프 처리 구현
+        if (card?.Data?.effects == null) return "";
+
+        StringBuilder builder = new();
+        for (int i = 0; i < card.Data.effects.Count; i++)
+        {
+            CardEffect effect = card.Data.effects[i];
+            if (effect.trigger != EffectTrigger.OnActivated) continue;
+
+            builder.Append(i).Append(':');
+            builder.Append((int)effect.effectType).Append(':');
+            builder.Append((int)effect.scope).Append(':');
+            builder.Append((int)effect.thresholdType).Append(':');
+
+            int threshold = Mathf.Max(0, effect.threshold);
+            if (effect.scope == CountScope.Self || effect.scope == CountScope.GridTotal)
+                builder.Append(Mathf.Min(CountByScope(effect.scope, card), threshold));
+            else
+                builder.Append(IsEffectConditionMet(effect, card) ? '1' : '0');
+
+            builder.Append(',');
+        }
+
+        return builder.ToString();
+    }
+
+    private bool IsEffectConditionMet(CardEffect effect, CardView card)
+    {
+        if (effect.thresholdType == ThresholdType.Full)
+            return IsFullActivated(effect.scope, card);
+        if (effect.scope == CountScope.None)
+            return true;
+        return CountByScope(effect.scope, card) >= effect.threshold;
+    }
+
+    private List<GridSlot> GetSortedSlots()
+    {
+        List<GridSlot> slots = new();
+        if (GridManager.Instance == null) return slots;
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+            if (slot != null)
+                slots.Add(slot);
+
+        slots.Sort((a, b) =>
+        {
+            int yCompare = a.Position.y.CompareTo(b.Position.y);
+            return yCompare != 0 ? yCompare : a.Position.x.CompareTo(b.Position.x);
+        });
+
+        return slots;
+    }
+
+    private static int GetCardInstanceId(CardView card)
+    {
+        return card != null && card.Instance != null ? card.Instance.InstanceId : 0;
+    }
+
+    private static int GetDirectionMask(CardData data)
+    {
+        if (data == null) return 0;
+
+        int mask = 0;
+        foreach (CardDirection direction in data.GetAllDirections())
+            mask |= 1 << (int)direction;
+        return mask;
+    }
+
+    /// <summary>무한 루프가 감지됐을 때 원인을 로그로 남깁니다.</summary>
+    private void OnInfiniteLoopDetected(string reason)
+    {
+        Debug.Log($"[ChainExecutor] 무한 루프 판정 — {reason}");
     }
 
     protected override void Dispose()
