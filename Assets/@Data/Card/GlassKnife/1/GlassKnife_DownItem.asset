@@ -31,7 +31,7 @@ MonoBehaviour:
     scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 7
+    effectType: 15
     value: 11
     secondaryValue: 0
   - trigger: 0
