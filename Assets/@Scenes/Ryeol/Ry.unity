@@ -2899,7 +2899,7 @@ GameObject:
   - component: {fileID: 1350665514}
   - component: {fileID: 1350665513}
   m_Layer: 5
-  m_Name: Text (TMP)
+  m_Name: StageTXT
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -9140,6 +9140,8 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 592037915}
+  - {fileID: 1350665512}
+  - {fileID: 1931931696}
   - {fileID: 5393082946120160727}
   - {fileID: 6772309790853338454}
   - {fileID: 4116963259513212459}
@@ -9156,10 +9158,8 @@ RectTransform:
   - {fileID: 7540410703646570376}
   - {fileID: 6901344184052736421}
   - {fileID: 1602625689}
-  - {fileID: 1931931696}
   - {fileID: 1858029412}
   - {fileID: 1924988236}
-  - {fileID: 1350665512}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}

@@ -14,8 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
   displayName: "\uB9C8\uBB34\uB9AC"
-  description: "\uD134 \uC885\uB8CC \uC2DC \uCF1C\uC838\uC788\uC73C\uBA74\n(\uCF1C
-    \uCE74\uB4DC \uC218) \xD7 3 \uB9CC\uD07C \uACF5\uACA9"
+  description: "\uD134 \uC885\uB8CC \uC2DC ON \uC0C1\uD0DC\uBA74 \n(\uADF8\uB9AC\uB4DC
+    ON \uC0C1\uD0DC\uC778 \uCE74\uB4DC \uC218) \xD7 3 \uACF5\uACA9"
   cost: 1
   isUnplayable: 0
   isCurseCard: 0
