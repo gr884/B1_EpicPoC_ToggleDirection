@@ -7,6 +7,7 @@ public class GridManager : SingletonBehaviour<GridManager>
     [Header("Refs")]
     [SerializeField] private RectTransform _gridRoot;
     [SerializeField] private GridSlot _slotPrefab;
+    [SerializeField] private DirectionalImpactTrailEffectPlayer _directionalImpactEffectPlayer;
 
     [Header("Grid Settings")]
     [SerializeField] private int _rows = 4;
@@ -159,8 +160,7 @@ public class GridManager : SingletonBehaviour<GridManager>
         CreatePendingPlacementPreviewEffect(attachSlot);
 
         List<GridSlot> targets = GetDirectionalImpactSlots(sourceCard, attachSlot);
-        foreach (GridSlot target in targets)
-            CreatePendingDirectionalImpactEffect(target);
+        ResolveDirectionalImpactEffectPlayer()?.Show(targets);
     }
 
     public void ClearPendingDirectionalImpact()
@@ -169,21 +169,24 @@ public class GridManager : SingletonBehaviour<GridManager>
             if (slot != null)
                 slot.SetHighlight(false);
         _pendingDirectionalImpactSlots.Clear();
+        _directionalImpactEffectPlayer?.Clear();
     }
 
     // ── 내부 ───────────────────────────────────────────────
 
     private void CreatePendingPlacementPreviewEffect(GridSlot targetSlot)
     {
-        CreatePendingDirectionalImpactEffect(targetSlot);
-    }
-
-    private void CreatePendingDirectionalImpactEffect(GridSlot targetSlot)
-    {
         if (targetSlot == null || _pendingDirectionalImpactSlots.Contains(targetSlot)) return;
 
         targetSlot.SetHighlight(true);
         _pendingDirectionalImpactSlots.Add(targetSlot);
+    }
+
+    private DirectionalImpactTrailEffectPlayer ResolveDirectionalImpactEffectPlayer()
+    {
+        if (_directionalImpactEffectPlayer == null)
+            _directionalImpactEffectPlayer = FindFirstObjectByType<DirectionalImpactTrailEffectPlayer>(FindObjectsInactive.Include);
+        return _directionalImpactEffectPlayer;
     }
 
     private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated)
