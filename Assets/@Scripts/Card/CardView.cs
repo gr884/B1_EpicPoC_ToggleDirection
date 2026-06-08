@@ -476,7 +476,8 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                 {
                     if (e.effectType != EffectType.Damage && 
                         e.effectType != EffectType.CounterDamage && 
-                        e.effectType != EffectType.PopularityDamage) continue;
+                        e.effectType != EffectType.PopularityDamage)
+                        continue;
 
                     // 해당 효과의 기본 데미지
                     int base_ = Mathf.Max(1, Mathf.RoundToInt(e.value));
@@ -536,7 +537,11 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                         foreach (GridSlot s in GridManager.Instance.Slots.Values)
                             if (s.OccupiedCard != null && s.OccupiedCard.IsActivated)
                                 onCount++;
-                    return $"{Mathf.RoundToInt(effect.value)} × {onCount}";
+                    
+                    // (기본 값 + 추가되는 값) * 켜진 카운트 를 합산해 리턴
+                    int baseVal = Mathf.RoundToInt(effect.value);
+                    int totalBonus = bonusDamage + totemBonus;
+                    return $"{baseVal + totalBonus} × {onCount}";
                 }
             case EffectType.CounterDamage:
                 {
