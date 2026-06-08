@@ -115,6 +115,20 @@ public class CardEffectPlaySystem : MonoBehaviour
         EnqueueEffect(sourceCard, effectType, QueuedEffectTiming.Direct, onImpact, targetOverride, value);
     }
 
+    public void PlayAppliedEffects(CardView sourceCard, IEnumerable<EffectType> effectTypes)
+    {
+        if (sourceCard == null || effectTypes == null)
+            return;
+
+        HashSet<EffectType> requestedTypes = effectTypes as HashSet<EffectType> ?? new HashSet<EffectType>(effectTypes);
+
+        if (requestedTypes.Contains(EffectType.Damage))
+            EnqueueDirectEffect(sourceCard, EffectType.Damage);
+
+        if (requestedTypes.Contains(EffectType.Defense))
+            EnqueueDirectEffect(sourceCard, EffectType.Defense);
+    }
+
     public void EnqueueEffect(QueuedEffectRequest request)
     {
         _effectQueue.Enqueue(request);

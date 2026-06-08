@@ -13,8 +13,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     [SerializeField] private float _cardFeedbackDuration = 0.22f;
     [SerializeField] private int _maxLoopCount = 3;
 
-    [Header("Action Block Flight Effect")]
-    [SerializeField] private ActionBlockFlightEffectPlayer _actionBlockFlightEffectPlayer;
+    [Header("Card Effect Visual")]
+    [SerializeField] private CardEffectPlaySystem _cardEffectPlaySystem;
 
     [Header("Infinite Loop Finish")]
     [SerializeField] private TMP_Text _infiniteLoopText;
@@ -377,7 +377,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 OnToggleCountChanged?.Invoke();
                 card.Instance?.PersistentState.IncrementTurnOnCount();
                 HashSet<EffectType> appliedTypes = ApplyEffects(card, EffectTrigger.OnActivated);
-                PlayActionBlockFlightEffect(card, appliedTypes);
+                PlayCardEffectVisual(card, appliedTypes);
             }
             else if (!nextState && !card.IsEnemy)
             {
@@ -422,7 +422,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             OnToggleCountChanged?.Invoke();
             neighbor.Instance?.PersistentState.IncrementTurnOnCount();
             HashSet<EffectType> appliedTypes = ApplyEffects(neighbor);
-            PlayActionBlockFlightEffect(neighbor, appliedTypes);
+            PlayCardEffectVisual(neighbor, appliedTypes);
             StartCoroutine(neighbor.PlayActivationFeedback(_cardFeedbackDuration));
 
             // OFF→ON이 된 카드만 이웃으로 체인 전파
@@ -636,7 +636,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         OnToggleCountChanged?.Invoke();
 
                         HashSet<EffectType> appliedTypes = ApplyEffects(current);
-                        PlayActionBlockFlightEffect(current, appliedTypes);
+                        PlayCardEffectVisual(current, appliedTypes);
 
                         // Replay 이펙트: 체인 흐름 안에서 처리
                         if (current.Data?.effects != null)
@@ -721,12 +721,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
     }
 
-    private void PlayActionBlockFlightEffect(CardView card, HashSet<EffectType> appliedTypes)
+    private void PlayCardEffectVisual(CardView card, HashSet<EffectType> appliedTypes)
     {
-        if (_actionBlockFlightEffectPlayer == null || card == null || appliedTypes == null) return;
+        if (_cardEffectPlaySystem == null || card == null || appliedTypes == null) return;
         if (!appliedTypes.Contains(EffectType.Damage) && !appliedTypes.Contains(EffectType.Defense)) return;
 
-        StartCoroutine(_actionBlockFlightEffectPlayer.Play(card, appliedTypes));
+        _cardEffectPlaySystem.PlayAppliedEffects(card, appliedTypes);
     }
 
     private static bool TryGetActionBlockFlightEffectType(EffectType effectType, out EffectType flightEffectType)
