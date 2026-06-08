@@ -10,7 +10,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: Totem_Defense_8
+  m_Name: 19CardData
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardId: 
   displayName: "\uBC29\uD1A0\uD15C"
@@ -43,4 +43,4 @@ MonoBehaviour:
   - {x: -1, y: -1}
   - {x: 0, y: 1}
   - {x: 0, y: -1}
-  icon: {fileID: 6895606531896045745, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  icon: {fileID: -1961673142432110262, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
