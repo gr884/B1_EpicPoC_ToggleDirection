@@ -5347,10 +5347,10 @@ RectTransform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 4679821296608261453}
+  m_Father: {fileID: 6772309790853338454}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 1, y: 1}
+  m_AnchorMax: {x: 0, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
@@ -5370,11 +5370,11 @@ MonoBehaviour:
   effectLayer: {fileID: 779104201234560002}
   moveSpeed: 260
   headSize: 20
-  trailCount: 7
-  trailSpacing: 10
+  trailCount: 10
+  trailSpacing: 8
   slotOuterOffset: 4
-  headColor: {r: 1, g: 0.32, b: 0.05, a: 1}
-  trailColor: {r: 1, g: 0.08, b: 0.02, a: 0.65}
+  headColor: {r: 1, g: 0, b: 0, a: 1}
+  trailColor: {r: 1, g: 0, b: 0, a: 1}
 --- !u!1 &802052607235681621
 GameObject:
   m_ObjectHideFlags: 0
@@ -9259,7 +9259,6 @@ RectTransform:
   - {fileID: 1602625689}
   - {fileID: 1858029412}
   - {fileID: 1924988236}
-  - {fileID: 779104201234560002}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 3.88, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -11059,7 +11058,8 @@ RectTransform:
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children: []
+  m_Children:
+  - {fileID: 779104201234560002}
   m_Father: {fileID: 4679821296608261453}
   m_LocalEulerAnglesHint: {x: 40, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}

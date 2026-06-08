@@ -10,9 +10,9 @@ public class DirectionalImpactTrailEffectPlayer : MonoBehaviour
 
     [Header("Motion")]
     [SerializeField, Min(1f)] private float moveSpeed = 260f;
-    [SerializeField, Min(1f)] private float headSize = 18f;
-    [SerializeField, Min(0)] private int trailCount = 5;
-    [SerializeField, Min(0f)] private float trailSpacing = 10f;
+    [SerializeField, Min(1f)] private float headSize = 20f;
+    [SerializeField, Min(0)] private int trailCount = 7;
+    [SerializeField, Min(0f)] private float trailSpacing = 8f;
     [SerializeField, Min(0f)] private float slotOuterOffset = 4f;
 
     [Header("Colors")]
@@ -22,6 +22,39 @@ public class DirectionalImpactTrailEffectPlayer : MonoBehaviour
     private readonly List<LoopingTrail> activeTrails = new();
     private readonly Vector3[] worldCorners = new Vector3[4];
     private Sprite radialSprite;
+
+    private void Awake()
+    {
+        if (ResolveRefs())
+            EnsureLayoutExcluded();
+    }
+
+    public void AttachToGridRoot(RectTransform gridRoot)
+    {
+        if (gridRoot == null) return;
+        if (!ResolveRefs()) return;
+
+        if (effectLayer.parent != gridRoot)
+            effectLayer.SetParent(gridRoot, false);
+
+        effectLayer.anchorMin = Vector2.zero;
+        effectLayer.anchorMax = Vector2.one;
+        effectLayer.pivot = new Vector2(0.5f, 0.5f);
+        effectLayer.anchoredPosition = Vector2.zero;
+        effectLayer.sizeDelta = Vector2.zero;
+        effectLayer.localRotation = Quaternion.identity;
+        effectLayer.localScale = Vector3.one;
+        effectLayer.SetAsLastSibling();
+
+        EnsureLayoutExcluded();
+    }
+
+    private void EnsureLayoutExcluded()
+    {
+        if (!TryGetComponent(out LayoutElement layoutElement))
+            layoutElement = gameObject.AddComponent<LayoutElement>();
+        layoutElement.ignoreLayout = true;
+    }
 
     public void Show(IReadOnlyList<GridSlot> slots)
     {
@@ -75,26 +108,24 @@ public class DirectionalImpactTrailEffectPlayer : MonoBehaviour
         if (effectLayer == null)
             effectLayer = transform as RectTransform;
 
-        return rootCanvas != null && effectLayer != null;
+        return effectLayer != null;
     }
 
     private bool TryBuildSlotPath(GridSlot slot, out List<Vector2> waypoints)
     {
         waypoints = null;
-        if (slot == null || effectLayer == null || rootCanvas == null) return false;
+        if (slot == null || effectLayer == null) return false;
         if (!slot.TryGetComponent(out RectTransform slotRect)) return false;
 
         slotRect.GetWorldCorners(worldCorners);
-
-        Camera sourceCamera = GetSourceCamera(slotRect);
-        Camera canvasCamera = rootCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : rootCanvas.worldCamera;
         Vector2[] localCorners = new Vector2[4];
 
         for (int i = 0; i < worldCorners.Length; i++)
         {
-            Vector2 screenPoint = RectTransformUtility.WorldToScreenPoint(sourceCamera, worldCorners[i]);
-            if (!RectTransformUtility.ScreenPointToLocalPointInRectangle(effectLayer, screenPoint, canvasCamera, out localCorners[i]))
+            Vector3 localPoint = effectLayer.InverseTransformPoint(worldCorners[i]);
+            if (!IsFinite(localPoint))
                 return false;
+            localCorners[i] = new Vector2(localPoint.x, localPoint.y);
         }
 
         Vector2 center = Vector2.zero;
@@ -108,7 +139,10 @@ public class DirectionalImpactTrailEffectPlayer : MonoBehaviour
             Vector2 outward = localCorners[i] - center;
             if (outward.sqrMagnitude > 0.0001f)
                 outward.Normalize();
-            waypoints.Add(localCorners[i] + outward * slotOuterOffset);
+            Vector2 waypoint = localCorners[i] + outward * slotOuterOffset;
+            if (!IsFinite(waypoint))
+                return false;
+            waypoints.Add(waypoint);
         }
 
         return true;
@@ -188,12 +222,14 @@ public class DirectionalImpactTrailEffectPlayer : MonoBehaviour
         return radialSprite;
     }
 
-    private static Camera GetSourceCamera(RectTransform source)
+    private static bool IsFinite(Vector2 value)
     {
-        Canvas sourceCanvas = source.GetComponentInParent<Canvas>();
-        if (sourceCanvas != null && sourceCanvas.renderMode != RenderMode.ScreenSpaceOverlay)
-            return sourceCanvas.worldCamera;
-        return null;
+        return float.IsFinite(value.x) && float.IsFinite(value.y);
+    }
+
+    private static bool IsFinite(Vector3 value)
+    {
+        return float.IsFinite(value.x) && float.IsFinite(value.y) && float.IsFinite(value.z);
     }
 
     private sealed class LoopingTrail
@@ -206,7 +242,7 @@ public class DirectionalImpactTrailEffectPlayer : MonoBehaviour
         public RectTransform Head { get; set; }
         public List<RectTransform> TrailDots { get; } = new();
         public List<Image> TrailImages { get; } = new();
-        public bool IsValid => totalLength > 0f;
+        public bool IsValid => float.IsFinite(totalLength) && totalLength > 0f;
 
         public LoopingTrail(List<Vector2> sourceWaypoints)
         {
@@ -218,6 +254,11 @@ public class DirectionalImpactTrailEffectPlayer : MonoBehaviour
                 Vector2 a = waypoints[i];
                 Vector2 b = waypoints[(i + 1) % waypoints.Count];
                 segmentLengths[i] = Vector2.Distance(a, b);
+                if (!float.IsFinite(segmentLengths[i]))
+                {
+                    totalLength = 0f;
+                    return;
+                }
                 totalLength += segmentLengths[i];
             }
         }

@@ -186,6 +186,7 @@ public class GridManager : SingletonBehaviour<GridManager>
     {
         if (_directionalImpactEffectPlayer == null)
             _directionalImpactEffectPlayer = FindFirstObjectByType<DirectionalImpactTrailEffectPlayer>(FindObjectsInactive.Include);
+        _directionalImpactEffectPlayer?.AttachToGridRoot(_gridRoot);
         return _directionalImpactEffectPlayer;
     }
 
@@ -207,7 +208,12 @@ public class GridManager : SingletonBehaviour<GridManager>
     {
         _slots.Clear();
         for (int i = _gridRoot.childCount - 1; i >= 0; i--)
-            Destroy(_gridRoot.GetChild(i).gameObject);
+        {
+            Transform child = _gridRoot.GetChild(i);
+            if (_directionalImpactEffectPlayer != null && child == _directionalImpactEffectPlayer.transform)
+                continue;
+            Destroy(child.gameObject);
+        }
     }
 
     private static void Shuffle<T>(List<T> list)
