@@ -1,0 +1,14 @@
+fileFormatVersion: 2
+guid: ddd30d4fa6316904d8cfbac736b5720e
+PrefabImporter:
+  externalObjects: {}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+AssetOrigin:
+  serializedVersion: 1
+  productId: 308259
+  packageName: Pixel Craft VFX - URP
+  packageVersion: 1.0.02
+  assetPath: Assets/Vefects/Pixel Craft VFX URP/VFX/Impact Sparks/Particles/Loop/VFX_Impact_Sparks_01_Mask_Loop_Static.prefab
+  uploadId: 771196

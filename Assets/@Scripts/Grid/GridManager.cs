@@ -156,6 +156,8 @@ public class GridManager : SingletonBehaviour<GridManager>
         if (sourceCard == null || attachSlot == null) return;
         if (CardManager.Instance == null || !CardManager.Instance.CanPreviewPlaceCard(sourceCard, attachSlot)) return;
 
+        CreatePendingPlacementPreviewEffect(attachSlot);
+
         List<GridSlot> targets = GetDirectionalImpactSlots(sourceCard, attachSlot);
         foreach (GridSlot target in targets)
             CreatePendingDirectionalImpactEffect(target);
@@ -170,6 +172,11 @@ public class GridManager : SingletonBehaviour<GridManager>
     }
 
     // ── 내부 ───────────────────────────────────────────────
+
+    private void CreatePendingPlacementPreviewEffect(GridSlot targetSlot)
+    {
+        CreatePendingDirectionalImpactEffect(targetSlot);
+    }
 
     private void CreatePendingDirectionalImpactEffect(GridSlot targetSlot)
     {
