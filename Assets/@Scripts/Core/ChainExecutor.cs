@@ -195,11 +195,16 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                     foreach (var e in targetCard.Data.effects)
                     {
-                        bool isdmg = (e.effectType == EffectType.Damage) ||
-                            (e.effectType == EffectType.DefenseOnOff);
+                        bool isdmg =    (e.effectType == EffectType.Damage) ||
+                                        (e.effectType == EffectType.DefenseOnOff) ||
+                                        (e.effectType == EffectType.CounterDamage);
                         if (!isdmg) continue;
                         float adjusted = GetTotemAdjustedValue(targetCard, e.effectType, e.value);
                         int targetBaseDamage = Mathf.Max(1, Mathf.RoundToInt(adjusted));
+                        // 카운트 기물이라면 적용될 카운트 횟수를 가져와 추가
+                        if (e.effectType == EffectType.CounterDamage)
+                            targetBaseDamage += _turnToggleCount;
+
                         int finalDamage = targetRuntime != null
                             ? targetRuntime.GetModifiedDamage(targetBaseDamage)
                             : targetBaseDamage;
@@ -233,8 +238,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 BattleManager.Instance.Player.AddPendingAttack(reverseDamage);
                 break;
             case EffectType.CounterDamage:
-                int counterDamage = Mathf.Max(1, Mathf.RoundToInt(value) + _turnToggleCount);
-                BattleManager.Instance.Player.AddPendingAttack(counterDamage);
+                // 토템 보너스가 합산된 데미지
+                int baseCounterDamage = Mathf.Max(1, Mathf.RoundToInt(value));
+                // 토글 횟수 추가
+                int finalCounterDamage = baseCounterDamage + _turnToggleCount;
+                BattleManager.Instance.Player.AddPendingAttack(finalCounterDamage);
                 break;
             case EffectType.Explode:
                 ApplyExplodeEffect(card);
@@ -243,14 +251,21 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 if (card.CurrentSlot != null)
                 {
                     int neighborCount = 0;
-                    foreach (CardDirection dir in System.Enum.GetValues(typeof(CardDirection)))
+                    foreach (CardDirection dir in Enum.GetValues(typeof(CardDirection)))
                     {
                         if (dir == CardDirection.None) continue;
                         GridSlot neighborSlot = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
                         if (neighborSlot != null && !neighborSlot.IsEmpty)
                             neighborCount++;
                     }
-                    int popularityDamage = Mathf.RoundToInt(value) * neighborCount;
+                    // 토템 데미지가 합산되어 들어온 데미지
+                    int basePopDamage = Mathf.Max(1, Mathf.RoundToInt(value));
+                    // 그를 기반으로 한 영구 누적 데미지 합산
+                    int modifiedPopDamage = runtime != null ?
+                        runtime.GetModifiedDamage(basePopDamage) : basePopDamage;
+                    // 주위 블럭들을 기반으로 한 총합 데미지
+                    int popularityDamage = modifiedPopDamage * neighborCount;
+                    
                     if (popularityDamage > 0)
                         BattleManager.Instance.Player.AddPendingAttack(popularityDamage);
                 }
