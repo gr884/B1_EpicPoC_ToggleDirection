@@ -1,11 +1,11 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.UI;
 
 public class GridSlot : MonoBehaviour, IDropHandler
 {
     [Header("Highlight")]
     [SerializeField] private GameObject _highlightOverlay;
+    [SerializeField] private GameObject _totemBorderOverlay;
 
     public Vector2Int Position { get; private set; }
     public CardView OccupiedCard { get; private set; }
@@ -16,6 +16,7 @@ public class GridSlot : MonoBehaviour, IDropHandler
         Position = position;
         OccupiedCard = null;
         SetHighlight(false);
+        SetTotemBorder(false);
     }
 
     public void AssignCard(CardView card)
@@ -24,6 +25,7 @@ public class GridSlot : MonoBehaviour, IDropHandler
         if (card != null)
             card.SetPlaced(this);
         SetHighlight(false);
+        SetTotemBorder(false);
     }
 
     public void ClearCard()
@@ -37,6 +39,15 @@ public class GridSlot : MonoBehaviour, IDropHandler
     {
         if (_highlightOverlay != null)
             _highlightOverlay.SetActive(highlight);
+    }
+
+    //* 토템으로 인한 영역을 show에 따라 켜고 끄기
+    public void SetTotemBorder(bool show)
+    {
+        if (_totemBorderOverlay != null)
+        {
+            _totemBorderOverlay.SetActive(show);
+        }
     }
 
     // ── UI 이벤트 ──────────────────────────────────────────

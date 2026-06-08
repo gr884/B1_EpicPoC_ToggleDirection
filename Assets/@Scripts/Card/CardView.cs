@@ -402,6 +402,8 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (_previewText == null || Data == null || CurrentSlot == null) return;
 
         int bonusDamage = _runtimeState != null ? _runtimeState.BonusDamage : 0;
+        int totemBonus = ChainExecutor.Instance != null ? 
+            ChainExecutor.Instance.GetTotemBonus(this) : 0;
         var lines = new System.Text.StringBuilder();
 
         // Damage + DirectionalDamageBonus가 같이 있으면 한 줄로 합산
@@ -426,7 +428,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             {
                 if (!damageLineWritten)
                 {
-                    string line = BuildDirectionalPreviewLine(baseDamageTotal, bonusDamage);
+                    string line = BuildDirectionalPreviewLine(baseDamageTotal, bonusDamage + totemBonus);
                     if (lines.Length > 0) lines.Append("\n");
                     lines.Append(line);
                     damageLineWritten = true;
@@ -436,7 +438,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
             if (effect.effectType == EffectType.DirectionalDamageBonus) continue;
 
-            string l = BuildPreviewLine(effect, bonusDamage);
+            string l = BuildPreviewLine(effect, bonusDamage, totemBonus);
             if (!string.IsNullOrEmpty(l))
             {
                 if (lines.Length > 0) lines.Append("\n");
@@ -473,14 +475,15 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         return $"{baseDamage} + ({neighborDamage})";
     }
 
-    private string BuildPreviewLine(CardEffect effect, int bonusDamage)
+    private string BuildPreviewLine(CardEffect effect, int bonusDamage, int totemBonus)
     {
         switch (effect.effectType)
         {
             case EffectType.Damage:
                 {
                     int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
-                    return bonusDamage > 0 ? $"{baseVal} + {bonusDamage}" : $"{baseVal}";
+                    int totalBonus = bonusDamage + totemBonus;
+                    return totalBonus > 0 ? $"{baseVal + totalBonus}" : $"{baseVal}";
                 }
             case EffectType.FinisherDamage:
                 {
