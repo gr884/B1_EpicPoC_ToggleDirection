@@ -4388,28 +4388,10 @@ MonoBehaviour:
   _player: {fileID: 1113997785}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
+  - {fileID: 11400000, guid: 06f9f3b9cfca9a7498cd07412cdae102, type: 2}
   - {fileID: 11400000, guid: 629694bd7af8cda468c7002136d064bc, type: 2}
-  - {fileID: 11400000, guid: 629694bd7af8cda468c7002136d064bc, type: 2}
-  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
-  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
-  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
-  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
-  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
-  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
-  - {fileID: 11400000, guid: 612445577a5007943ae9638866b316ec, type: 2}
-  - {fileID: 11400000, guid: 7651bbda5845f9344b096e73d3da8979, type: 2}
   - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
-  - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
-  - {fileID: 11400000, guid: 655e4b300084d684fab190c009d77759, type: 2}
-  - {fileID: 11400000, guid: abdfb843543012c439d78009a27bd27f, type: 2}
-  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
-  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
-  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
-  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
-  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
-  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
-  - {fileID: 11400000, guid: 94fc21356a7d0d14597708bc243f4f71, type: 2}
-  - {fileID: 11400000, guid: 94fc21356a7d0d14597708bc243f4f71, type: 2}
+  - {fileID: 11400000, guid: da334d31e0718974c8bf5f193401a0c8, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &1926050208
 MonoBehaviour:
