@@ -27,12 +27,10 @@ public class Player : MonoBehaviour
     public int MaxCost => _maxCost;
     public int CurrentCost { get; private set; }
     public int CurrentDefense { get; private set; }
-    public int CurrentPendingAttack { get; private set; }
 
     public event Action OnDied;
     public event Action OnCostChanged;
     public event Action OnDefenseChanged;
-    public event Action OnPendingAttackChanged;
 
     private void Awake()
     {
@@ -49,10 +47,8 @@ public class Player : MonoBehaviour
 
         CurrentDefense = 0;
         _view.SetDefense(0);
-        CurrentPendingAttack = 0;
         CurrentCost = _maxCost;
         OnDefenseChanged?.Invoke();
-        OnPendingAttackChanged?.Invoke();
         OnCostChanged?.Invoke();
     }
 
@@ -96,33 +92,6 @@ public class Player : MonoBehaviour
         OnDefenseChanged?.Invoke();
     }
 
-    // ── Pending Attack ────────────────────────────────────
-
-    public void AddPendingAttack(int amount)
-    {
-        int attack = Mathf.Max(0, amount);
-        if (attack <= 0) return;
-
-        CurrentPendingAttack += attack;
-        OnPendingAttackChanged?.Invoke();
-    }
-
-    public int ConsumePendingAttack()
-    {
-        int attack = CurrentPendingAttack;
-        CurrentPendingAttack = 0;
-        OnPendingAttackChanged?.Invoke();
-        return attack;
-    }
-
-    public void ResetPendingAttack()
-    {
-        if (CurrentPendingAttack == 0) return;
-
-        CurrentPendingAttack = 0;
-        OnPendingAttackChanged?.Invoke();
-    }
-
     // ── 전투 로직 ──────────────────────────────────────────
 
     public int TakeAttack(int damage)
@@ -154,6 +123,5 @@ public class Player : MonoBehaviour
         OnDied = null;
         OnCostChanged = null;
         OnDefenseChanged = null;
-        OnPendingAttackChanged = null;
     }
 }

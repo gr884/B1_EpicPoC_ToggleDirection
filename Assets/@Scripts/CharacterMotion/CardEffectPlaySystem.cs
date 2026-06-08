@@ -13,6 +13,13 @@ public class CardEffectPlaySystem : MonoBehaviour
         Direct,
     }
 
+    public enum VisualMovementMode
+    {
+        Auto,
+        LinearTransform,
+        RigidbodyProjectile,
+    }
+
     [Serializable]
     public sealed class CardEffectVisualSetting
     {
@@ -27,6 +34,11 @@ public class CardEffectPlaySystem : MonoBehaviour
         public Vector2 size = Vector2.one;
         [Min(0f)] public float duration = 0.28f;
         public bool waitForVisualImpact = true;
+        public VisualMovementMode movementMode = VisualMovementMode.Auto;
+        [Min(0f)] public float projectileForce = 1000f;
+        [Min(0f)] public float forwardSpawnOffset = 0.3f;
+        [Min(0f)] public float impactDistance = 0.35f;
+        [Min(0f)] public float maxFlightDuration = 5f;
     }
 
     public readonly struct QueuedEffectRequest
@@ -66,9 +78,27 @@ public class CardEffectPlaySystem : MonoBehaviour
     [SerializeField] private bool _fallbackCardIconWaitsForImpact = true;
     [SerializeField] private int _projectileSortingOrder = 100;
 
-    private readonly Queue<QueuedEffectRequest> _effectQueue = new();
+    private const float DefaultProjectileForce = 1000f;
+    private const float DefaultForwardSpawnOffset = 0.3f;
+    private const float DefaultImpactDistance = 0.35f;
+    private const float DefaultMaxFlightDuration = 5f;
+
+    private sealed class QueuedEffectHandle
+    {
+        public QueuedEffectHandle(QueuedEffectRequest request, Action<bool> onComplete)
+        {
+            Request = request;
+            OnComplete = onComplete;
+        }
+
+        public QueuedEffectRequest Request { get; }
+        public Action<bool> OnComplete { get; }
+    }
+
+    private readonly Queue<QueuedEffectHandle> _effectQueue = new();
     private readonly List<GameObject> _spawnedVisuals = new();
     private Coroutine _playRoutine;
+    private Action<bool> _activeCompletion;
 
     private void OnDisable()
     {
@@ -129,9 +159,57 @@ public class CardEffectPlaySystem : MonoBehaviour
             EnqueueDirectEffect(sourceCard, EffectType.Defense);
     }
 
+    public bool HasAssignedVisual(CardView sourceCard, EffectType effectType)
+    {
+        CardData cardData = sourceCard != null ? sourceCard.Data : null;
+        CardEffectVisualSetting setting = FindVisualSetting(cardData, effectType);
+        return HasAssignedVisual(setting);
+    }
+
+    public IEnumerator PlayAssignedEffectAndWait(
+        CardView sourceCard,
+        EffectType effectType,
+        QueuedEffectTiming timing,
+        Action onImpact = null,
+        Transform targetOverride = null,
+        float value = 0f,
+        Action<bool> onComplete = null)
+    {
+        if (!HasAssignedVisual(sourceCard, effectType))
+        {
+            onImpact?.Invoke();
+            onComplete?.Invoke(true);
+            yield break;
+        }
+
+        bool completed = false;
+        CardData cardData = sourceCard != null ? sourceCard.Data : null;
+        EnqueueEffect(new QueuedEffectRequest(
+                sourceCard,
+                cardData,
+                effectType,
+                timing,
+                onImpact,
+                targetOverride,
+                value),
+            completedNormally =>
+            {
+                completed = true;
+                onComplete?.Invoke(completedNormally);
+            });
+
+        while (!completed && isActiveAndEnabled)
+            yield return null;
+    }
+
     public void EnqueueEffect(QueuedEffectRequest request)
     {
-        _effectQueue.Enqueue(request);
+        EnqueueEffect(request, null);
+    }
+
+    private void EnqueueEffect(QueuedEffectRequest request, Action<bool> onComplete)
+    {
+        _effectQueue.Enqueue(new QueuedEffectHandle(request, onComplete));
 
         if (_playRoutine == null && isActiveAndEnabled)
             _playRoutine = StartCoroutine(PlayQueuedEffects());
@@ -139,6 +217,12 @@ public class CardEffectPlaySystem : MonoBehaviour
 
     public void CancelQueuedEffects()
     {
+        _activeCompletion?.Invoke(false);
+        _activeCompletion = null;
+
+        while (_effectQueue.Count > 0)
+            _effectQueue.Dequeue().OnComplete?.Invoke(false);
+
         _effectQueue.Clear();
 
         if (_playRoutine != null)
@@ -173,8 +257,11 @@ public class CardEffectPlaySystem : MonoBehaviour
     {
         while (_effectQueue.Count > 0)
         {
-            QueuedEffectRequest request = _effectQueue.Dequeue();
-            yield return PlayEffectRequest(request);
+            QueuedEffectHandle handle = _effectQueue.Dequeue();
+            _activeCompletion = handle.OnComplete;
+            yield return PlayEffectRequest(handle.Request);
+            _activeCompletion?.Invoke(true);
+            _activeCompletion = null;
         }
 
         _playRoutine = null;
@@ -203,15 +290,102 @@ public class CardEffectPlaySystem : MonoBehaviour
 
     private IEnumerator PlayVisual(QueuedEffectRequest request, CardEffectVisualSetting setting)
     {
-        if (!TryCreateVisual(request, setting, out GameObject visualObject))
-            yield break;
-
         if (!TryGetStartPosition(request, setting, out Vector3 startPosition) ||
             !TryGetTargetPosition(request, setting, out Vector3 targetPosition))
         {
-            DestroyVisual(visualObject);
             yield break;
         }
+
+        Vector3 rawStartPosition = startPosition;
+        // 기울어진 UI 그리드의 깊이값이 월드 VFX 시작 위치에 섞이지 않게 한다.
+        startPosition.z = targetPosition.z;
+
+        VisualMovementMode movementMode = ResolveMovementMode(setting);
+        if (movementMode == VisualMovementMode.RigidbodyProjectile)
+        {
+            Vector3 direction = targetPosition - startPosition;
+            if (direction.sqrMagnitude <= Mathf.Epsilon)
+            {
+                if (TryCreateVisual(request, setting, targetPosition, GetInitialRotation(setting), out GameObject zeroDistanceVisual))
+                {
+                    LogVisualSpawn(request, zeroDistanceVisual, rawStartPosition, targetPosition, targetPosition);
+                    DestroyVisual(zeroDistanceVisual);
+                }
+                yield break;
+            }
+
+            direction.Normalize();
+            Vector3 projectileStartPosition = startPosition + direction * GetForwardSpawnOffset(setting);
+            Quaternion projectileRotation = Quaternion.LookRotation(direction, Vector3.up);
+
+            if (!TryCreateVisual(request, setting, projectileStartPosition, projectileRotation, out GameObject projectileObject))
+                yield break;
+
+            LogVisualSpawn(request, projectileObject, rawStartPosition, projectileStartPosition, targetPosition);
+            yield return PlayRigidbodyProjectile(projectileObject, direction, targetPosition, setting);
+            yield break;
+        }
+
+        if (!TryCreateVisual(request, setting, startPosition, GetInitialRotation(setting), out GameObject visualObject))
+            yield break;
+
+        LogVisualSpawn(request, visualObject, rawStartPosition, startPosition, targetPosition);
+        yield return PlayLinearVisual(visualObject, startPosition, targetPosition, setting);
+    }
+
+    private IEnumerator PlayRigidbodyProjectile(
+        GameObject visualObject,
+        Vector3 direction,
+        Vector3 targetPosition,
+        CardEffectVisualSetting setting)
+    {
+        if (visualObject == null)
+            yield break;
+
+        Rigidbody body = visualObject.GetComponent<Rigidbody>();
+        if (body == null)
+        {
+            yield return PlayLinearVisual(visualObject, visualObject.transform.position, targetPosition, setting);
+            yield break;
+        }
+
+        body.linearVelocity = Vector3.zero;
+        body.angularVelocity = Vector3.zero;
+        body.AddForce(direction * GetProjectileForce(setting));
+
+        float impactDistance = GetImpactDistance(setting);
+        float maxFlightDuration = GetMaxFlightDuration(setting);
+        float elapsed = 0f;
+
+        while (visualObject != null && elapsed < maxFlightDuration)
+        {
+            if (Vector3.Distance(visualObject.transform.position, targetPosition) <= impactDistance)
+                break;
+
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        if (visualObject == null)
+            yield break;
+
+        if (elapsed >= maxFlightDuration)
+        {
+            Debug.LogWarning($"[CardEffectPlaySystem] Rigidbody projectile timed out before impact: {visualObject.name}");
+            visualObject.transform.position = targetPosition;
+        }
+
+        DestroyVisual(visualObject);
+    }
+
+    private IEnumerator PlayLinearVisual(
+        GameObject visualObject,
+        Vector3 startPosition,
+        Vector3 targetPosition,
+        CardEffectVisualSetting setting)
+    {
+        if (visualObject == null)
+            yield break;
 
         visualObject.transform.position = startPosition;
 
@@ -241,13 +415,15 @@ public class CardEffectPlaySystem : MonoBehaviour
     private bool TryCreateVisual(
         QueuedEffectRequest request,
         CardEffectVisualSetting setting,
+        Vector3 position,
+        Quaternion rotation,
         out GameObject visualObject)
     {
         visualObject = null;
 
         if (setting != null && setting.vfxPrefab != null)
         {
-            visualObject = Instantiate(setting.vfxPrefab);
+            visualObject = Instantiate(setting.vfxPrefab, position, rotation);
             ApplyVisualScale(visualObject, GetSize(setting));
             _spawnedVisuals.Add(visualObject);
             return true;
@@ -258,6 +434,7 @@ public class CardEffectPlaySystem : MonoBehaviour
             return false;
 
         visualObject = new GameObject($"CardEffectProjectile_{request.EffectType}");
+        visualObject.transform.SetPositionAndRotation(position, rotation);
         SpriteRenderer renderer = visualObject.AddComponent<SpriteRenderer>();
         renderer.sprite = projectileSprite;
         renderer.sortingOrder = _projectileSortingOrder;
@@ -271,10 +448,18 @@ public class CardEffectPlaySystem : MonoBehaviour
         CardEffectVisualSetting setting,
         out Vector3 position)
     {
-        Transform source = request.SourceCard != null ? request.SourceCard.transform : transform;
+        Transform source = ResolveSourceTransform(request.SourceCard);
         Vector2 offset = setting != null ? setting.spawnOffset : Vector2.zero;
         position = GetOffsetWorldPosition(source, offset);
         return source != null;
+    }
+
+    private Transform ResolveSourceTransform(CardView sourceCard)
+    {
+        if (sourceCard != null && sourceCard.CurrentSlot != null)
+            return sourceCard.CurrentSlot.transform;
+
+        return sourceCard != null ? sourceCard.transform : transform;
     }
 
     private bool TryGetTargetPosition(
@@ -328,12 +513,50 @@ public class CardEffectPlaySystem : MonoBehaviour
             || GetProjectileSprite(request, setting) != null;
     }
 
+    private static bool HasAssignedVisual(CardEffectVisualSetting setting)
+    {
+        return setting != null
+            && (setting.vfxPrefab != null || setting.projectileSprite != null);
+    }
+
     private Sprite GetProjectileSprite(QueuedEffectRequest request, CardEffectVisualSetting setting)
     {
         if (setting != null && setting.projectileSprite != null)
             return setting.projectileSprite;
 
         return request.CardData != null ? request.CardData.icon : null;
+    }
+
+    private void LogVisualSpawn(
+        QueuedEffectRequest request,
+        GameObject visualObject,
+        Vector3 rawStartPosition,
+        Vector3 startPosition,
+        Vector3 targetPosition)
+    {
+        Debug.Log(
+            $"[CardEffectPlaySystem] Spawn visual={visualObject.name}, effect={request.EffectType}, card={(request.CardData != null ? request.CardData.displayName : "None")}, rawStart={rawStartPosition}, start={startPosition}, target={targetPosition}");
+    }
+
+    private VisualMovementMode ResolveMovementMode(CardEffectVisualSetting setting)
+    {
+        VisualMovementMode movementMode = setting != null
+            ? setting.movementMode
+            : VisualMovementMode.LinearTransform;
+
+        if (movementMode != VisualMovementMode.Auto)
+            return movementMode;
+
+        return setting != null && setting.vfxPrefab != null && setting.vfxPrefab.GetComponent<Rigidbody>() != null
+            ? VisualMovementMode.RigidbodyProjectile
+            : VisualMovementMode.LinearTransform;
+    }
+
+    private static Quaternion GetInitialRotation(CardEffectVisualSetting setting)
+    {
+        return setting != null && setting.vfxPrefab != null
+            ? setting.vfxPrefab.transform.rotation
+            : Quaternion.identity;
     }
 
     private float GetDuration(CardEffectVisualSetting setting)
@@ -350,6 +573,34 @@ public class CardEffectPlaySystem : MonoBehaviour
             return setting.size;
 
         return _defaultProjectileSize;
+    }
+
+    private float GetProjectileForce(CardEffectVisualSetting setting)
+    {
+        return setting != null && setting.projectileForce > 0f
+            ? setting.projectileForce
+            : DefaultProjectileForce;
+    }
+
+    private float GetForwardSpawnOffset(CardEffectVisualSetting setting)
+    {
+        return setting != null && setting.forwardSpawnOffset > 0f
+            ? setting.forwardSpawnOffset
+            : DefaultForwardSpawnOffset;
+    }
+
+    private float GetImpactDistance(CardEffectVisualSetting setting)
+    {
+        return setting != null && setting.impactDistance > 0f
+            ? setting.impactDistance
+            : DefaultImpactDistance;
+    }
+
+    private float GetMaxFlightDuration(CardEffectVisualSetting setting)
+    {
+        return setting != null && setting.maxFlightDuration > 0f
+            ? setting.maxFlightDuration
+            : DefaultMaxFlightDuration;
     }
 
     private void ApplyVisualScale(GameObject visualObject, Vector2 size)

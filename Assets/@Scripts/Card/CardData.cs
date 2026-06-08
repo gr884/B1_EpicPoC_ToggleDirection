@@ -19,6 +19,7 @@ public enum EffectTrigger
 {
     OnActivated, // ON될 때 (기본)
     OnTurnEnd,   // 턴 종료 시
+    OnTurnStart, // 턴 시작 시
     OnPlaced,    // 배치 시 (체인 전)
 }
 
@@ -91,7 +92,7 @@ public enum ThresholdType
 public class CardEffect
 {
     [Header("발동 타이밍")]
-    public EffectTrigger trigger; // OnActivated / OnTurnEnd / OnPlaced
+    public EffectTrigger trigger; // OnActivated / OnTurnEnd / OnTurnStart / OnPlaced
 
     [Header("집계 범위")]
     public CountScope scope;

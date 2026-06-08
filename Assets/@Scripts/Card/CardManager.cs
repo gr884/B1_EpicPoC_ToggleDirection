@@ -410,8 +410,7 @@ public class CardManager : SingletonBehaviour<CardManager>
             _firstPlacedCard = card;
 
         TutorialManager.Instance?.OnCardPlaced(card);
-        ChainExecutor.Instance.ApplyOnPlacedEffects(card);
-        ChainExecutor.Instance.ExecuteFrom(card);
+        ChainExecutor.Instance.ExecutePlacedCard(card);
         return true;
     }
 

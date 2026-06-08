@@ -76,7 +76,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         _isBattleActive = true;
         _isEndingBattle = false;
-        _player.ResetPendingAttack();
         _enemy.Setup(enemyData);
 
         OnStageChanged?.Invoke(CurrentStageNumber, TotalStageCount);
@@ -125,7 +124,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         _isBattleActive = true;
         _isEndingBattle = false;
-        _player.ResetPendingAttack();
         _enemy.Setup(enemyData);
 
         EnterPhase(BattlePhase.PlayerTurn);
@@ -170,16 +168,9 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         if (!_isBattleActive) { IsProcessing = false; yield break; }
 
         // 턴 종료 시 이펙트 처리
-        ChainExecutor.Instance.ApplyTurnEndEffects();
+        yield return ChainExecutor.Instance.ApplyTurnEndEffects();
 
-        int pendingDamage = _player.CurrentPendingAttack;
-        if (pendingDamage > 0)
-        {
-            DealDamageToEnemy(pendingDamage);
-            _player.ConsumePendingAttack();
-
-            if (!_isBattleActive || _enemy.IsDead) { IsProcessing = false; yield break; }
-        }
+        if (!_isBattleActive || _enemy.IsDead) { IsProcessing = false; yield break; }
 
         yield return new WaitForSeconds(0.5f);
 
@@ -287,6 +278,10 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         _enemy.AdvanceIntent();
 
+        yield return ChainExecutor.Instance.ApplyTurnStartEffects();
+
+        if (!_isBattleActive) { IsProcessing = false; yield break; }
+
         EnterPhase(BattlePhase.PlayerTurn);
 
         // 튜토리얼: 적이 살아있으면 재시도
@@ -333,7 +328,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private IEnumerator EndBattleRoutine(bool victory)
     {
         _player.ResetDefense();
-        _player.ResetPendingAttack();
 
         if (_isEndingBattle) yield break;
         _isEndingBattle = true;
@@ -372,7 +366,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         _isBattleActive = true;
         _isEndingBattle = false;
         IsProcessing = false;
-        _player.ResetPendingAttack();
 
         _enemy.OnDied -= HandleEnemyDied;
         _player.OnDied -= HandlePlayerDied;

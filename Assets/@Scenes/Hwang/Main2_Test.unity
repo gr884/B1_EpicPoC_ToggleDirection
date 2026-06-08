@@ -163,7 +163,7 @@ Transform:
   m_GameObject: {fileID: 82675636}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 6, y: -1.59, z: 0}
+  m_LocalPosition: {x: -12.41, y: -1.24, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -859,7 +859,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 457939302}
-  - component: {fileID: 457939303}
   m_Layer: 5
   m_Name: AttackRoot
   m_TagString: Untagged
@@ -888,19 +887,6 @@ RectTransform:
   m_AnchoredPosition: {x: 119.9, y: 93}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &457939303
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457939301}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7bbae11c50d4412fa00dadbd8c98198c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UI_PendingAttackText
-  _text: {fileID: 1036663511}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -1722,9 +1708,9 @@ Transform:
   m_GameObject: {fileID: 743872836}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1.3, z: -5}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
+  m_LocalPosition: {x: 0, y: 5.27, z: 5}
+  m_LocalScale: {x: 3, y: 3, z: 3}
+  m_ConstrainProportionsScale: 1
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -3968,13 +3954,18 @@ MonoBehaviour:
     matchAnyEffectType: 0
     effectType: 0
     projectileSprite: {fileID: 0}
-    vfxPrefab: {fileID: 100000, guid: ac362dee23e5abd49a1bea78db16488b, type: 3}
+    vfxPrefab: {fileID: 100000, guid: 85189cce24e80d841a5e5e7944bdd238, type: 3}
     targetOverride: {fileID: 743872838}
     spawnOffset: {x: 0, y: 0}
     targetOffset: {x: 0, y: 0}
-    size: {x: 1, y: 1}
-    duration: 0.28
+    size: {x: 0.005, y: 0.005}
+    duration: 2
     waitForVisualImpact: 1
+    movementMode: 0
+    projectileForce: 500
+    forwardSpawnOffset: 0
+    impactDistance: 0.35
+    maxFlightDuration: 5
   - card: {fileID: 0}
     matchAnyEffectType: 0
     effectType: 1
@@ -3986,9 +3977,14 @@ MonoBehaviour:
     size: {x: 1, y: 1}
     duration: 0.28
     waitForVisualImpact: 1
+    movementMode: 0
+    projectileForce: 1000
+    forwardSpawnOffset: 0.3
+    impactDistance: 0.35
+    maxFlightDuration: 5
   _defaultTarget: {fileID: 743872838}
-  _defaultProjectileSize: {x: 1, y: 1}
-  _defaultProjectileDuration: 0.28
+  _defaultProjectileSize: {x: 0.1, y: 0.1}
+  _defaultProjectileDuration: 5
   _fallbackCardIconWaitsForImpact: 1
   _projectileSortingOrder: 100
 --- !u!1 &1843453996
@@ -6271,7 +6267,7 @@ MonoBehaviour:
   m_HandleRect: {fileID: 517628098247642699}
   m_Direction: 2
   m_Value: 0
-  m_Size: 1
+  m_Size: 0.99999815
   m_NumberOfSteps: 0
   m_OnValueChanged:
     m_PersistentCalls:
@@ -6424,7 +6420,7 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 1}
   m_AnchorMax: {x: 1, y: 1}
-  m_AnchoredPosition: {x: -0.00042731542, y: 0.0000690872}
+  m_AnchoredPosition: {x: -0.00027636363, y: 0.0010218072}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 1}
 --- !u!224 &1682293499277179028
@@ -6457,7 +6453,7 @@ Canvas:
   serializedVersion: 3
   m_RenderMode: 1
   m_Camera: {fileID: 519420031}
-  m_PlaneDistance: 5
+  m_PlaneDistance: 20
   m_PixelPerfect: 0
   m_ReceivesEvents: 1
   m_OverrideSorting: 0
@@ -6467,7 +6463,7 @@ Canvas:
   m_AdditionalShaderChannelsFlag: 31
   m_UpdateRectTransformForStandalone: 0
   m_SortingLayerID: 0
-  m_SortingOrder: 10
+  m_SortingOrder: -50
   m_TargetDisplay: 0
 --- !u!224 &1713541322195820426
 RectTransform:

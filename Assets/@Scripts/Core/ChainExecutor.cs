@@ -63,6 +63,17 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         StartCoroutine(ExecuteChain(rootCard));
     }
 
+    public void ExecutePlacedCard(CardView card)
+    {
+        StartCoroutine(ExecutePlacedCardRoutine(card));
+    }
+
+    private IEnumerator ExecutePlacedCardRoutine(CardView card)
+    {
+        yield return ApplyOnPlacedEffects(card);
+        ExecuteFrom(card);
+    }
+
     private IEnumerator ExecuteChain(CardView rootCard)
     {
         if (rootCard == null) yield break;
@@ -112,10 +123,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 효과 처리 ──────────────────────────────────────────
 
-    private HashSet<EffectType> ApplyEffects(CardView card, EffectTrigger trigger = EffectTrigger.OnActivated)
+    private IEnumerator ApplyEffects(CardView card, EffectTrigger trigger = EffectTrigger.OnActivated)
     {
-        HashSet<EffectType> appliedTypes = new();
-        if (card?.Data?.effects == null) return appliedTypes;
+        if (card?.Data?.effects == null) yield break;
 
         var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
 
@@ -126,13 +136,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (effect.thresholdType == ThresholdType.Full)
             {
                 if (IsFullActivated(effect.scope, card))
-                    ApplyEffectAndRecord(effect.effectType, effect.value, card, appliedTypes);
+                    yield return ApplyEffectWithVisual(effect.effectType, effect.value, card, trigger);
                 continue;
             }
 
             if (effect.scope == CountScope.None)
             {
-                ApplyEffectAndRecord(effect.effectType, effect.value, card, appliedTypes);
+                yield return ApplyEffectWithVisual(effect.effectType, effect.value, card, trigger);
                 continue;
             }
 
@@ -147,27 +157,54 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
 
         foreach (var kv in atLeastBest)
-            ApplyEffectAndRecord(kv.Key, kv.Value.value, card, appliedTypes);
-
-        return appliedTypes;
+            yield return ApplyEffectWithVisual(kv.Key, kv.Value.value, card, trigger);
     }
 
-    private void ApplyEffectAndRecord(
+    private IEnumerator ApplyEffectWithVisual(
         EffectType type,
         float value,
         CardView card,
-        HashSet<EffectType> appliedTypes)
+        EffectTrigger trigger)
     {
         float resolvedValue = GetTotemAdjustedValue(card, type, value);
-        ApplyEffect(type, resolvedValue, card);
 
-        if (TryGetActionBlockFlightEffectType(type, out EffectType flightEffectType))
+        if (type == EffectType.InitDamage)
         {
-            appliedTypes?.Add(flightEffectType);
+            yield return ApplyEffect(type, resolvedValue, card);
+            yield break;
         }
+
+        if (_cardEffectPlaySystem != null && _cardEffectPlaySystem.HasAssignedVisual(card, type))
+        {
+            bool impacted = false;
+            bool completedNormally = false;
+            yield return _cardEffectPlaySystem.PlayAssignedEffectAndWait(
+                card,
+                type,
+                ToQueuedEffectTiming(trigger),
+                () => impacted = true,
+                value: resolvedValue,
+                onComplete: completed => completedNormally = completed);
+
+            if (!completedNormally || !impacted)
+                yield break;
+        }
+
+        yield return ApplyEffect(type, resolvedValue, card);
     }
 
-    private void ApplyEffect(EffectType type, float value, CardView card)
+    private static CardEffectPlaySystem.QueuedEffectTiming ToQueuedEffectTiming(EffectTrigger trigger)
+    {
+        return trigger switch
+        {
+            EffectTrigger.OnActivated => CardEffectPlaySystem.QueuedEffectTiming.OnActivated,
+            EffectTrigger.OnTurnEnd => CardEffectPlaySystem.QueuedEffectTiming.OnTurnEnd,
+            EffectTrigger.OnTurnStart => CardEffectPlaySystem.QueuedEffectTiming.OnTurnStart,
+            _ => CardEffectPlaySystem.QueuedEffectTiming.Direct,
+        };
+    }
+
+    private IEnumerator ApplyEffect(EffectType type, float value, CardView card)
     {
         var runtime = card != null ? card.GetComponent<CardRuntimeState>() : null;
         switch (type)
@@ -175,7 +212,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             case EffectType.Damage:
                 int baseDamage = Mathf.Max(1, Mathf.RoundToInt(value));
                 int damage = runtime != null ? runtime.GetModifiedDamage(baseDamage) : baseDamage;
-                BattleManager.Instance.Player.AddPendingAttack(damage);
+                DealDamageToEnemy(damage);
                 break;
             case EffectType.Defense:
                 int defense = Mathf.Max(1, Mathf.RoundToInt(value));
@@ -226,7 +263,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         totalDamage += finalDamage;
                     }
                 }
-                BattleManager.Instance.Player.AddPendingAttack(totalDamage);
+                DealDamageToEnemy(totalDamage);
                 break;
             case EffectType.Draw:
                 int drawCount = Mathf.Max(1, Mathf.RoundToInt(value));
@@ -254,17 +291,17 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 // 최종 데미지
                 int modifiedDualDamage = runtime != null ?
                     runtime.GetModifiedDamage(baseDualDamage) : baseDualDamage;
-                BattleManager.Instance.Player.AddPendingAttack(modifiedDualDamage);
+                DealDamageToEnemy(modifiedDualDamage);
                 break;
             case EffectType.CounterDamage:
                 // 토템 보너스가 합산된 데미지
                 int baseCounterDamage = Mathf.Max(1, Mathf.RoundToInt(value));
                 // 토글 횟수 추가
                 int finalCounterDamage = baseCounterDamage + _turnToggleCount;
-                BattleManager.Instance.Player.AddPendingAttack(finalCounterDamage);
+                DealDamageToEnemy(finalCounterDamage);
                 break;
             case EffectType.Explode:
-                ApplyExplodeEffect(card);
+                yield return ApplyExplodeEffect(card);
                 break;
             case EffectType.PopularityDamage:
                 if (card.CurrentSlot != null)
@@ -286,7 +323,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     int popularityDamage = modifiedPopDamage * neighborCount;
                     
                     if (popularityDamage > 0)
-                        BattleManager.Instance.Player.AddPendingAttack(popularityDamage);
+                        DealDamageToEnemy(popularityDamage);
                 }
                 break;
             case EffectType.Replay:
@@ -308,23 +345,32 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     int finisherDamage = modifiedFinisher * onCount;
 
                     if (finisherDamage > 0)
-                        BattleManager.Instance.Player.AddPendingAttack(finisherDamage);
+                        DealDamageToEnemy(finisherDamage);
                 }
                 break;
             case EffectType.TotemAura:
                 break;
         }
+
+        yield break;
     }
 
-    private void ApplyDefenseOnOffEffects(CardView card)
+    private static int DealDamageToEnemy(int damage)
     {
+        if (damage <= 0 || BattleManager.Instance == null)
+            return 0;
+
+        return BattleManager.Instance.DealDamageToEnemy(damage);
+    }
+
+    private IEnumerator ApplyDefenseOnOffEffects(CardView card)
+    {
+        if (card?.Data?.effects == null) yield break;
+
         foreach (CardEffect effect in card.Data.effects)
         {
             if (effect.effectType != EffectType.DefenseOnOff) continue;
-            // OFF될 때 → Defense (secondaryValue)
-            float adjusted = GetTotemAdjustedValue(card, EffectType.Defense, effect.secondaryValue);
-            int defense = Mathf.Max(1, Mathf.RoundToInt(adjusted));
-            BattleManager.Instance.Player.AddDefense(defense);
+            yield return ApplyEffectWithVisual(EffectType.Defense, effect.secondaryValue, card, EffectTrigger.OnActivated);
         }
     }
 
@@ -378,12 +424,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 _turnToggleCount++;
                 OnToggleCountChanged?.Invoke();
                 card.Instance?.PersistentState.IncrementTurnOnCount();
-                HashSet<EffectType> appliedTypes = ApplyEffects(card, EffectTrigger.OnActivated);
-                PlayCardEffectVisual(card, appliedTypes);
+                yield return ApplyEffects(card, EffectTrigger.OnActivated);
             }
             else if (!nextState && !card.IsEnemy)
             {
-                ApplyDefenseOnOffEffects(card);
+                yield return ApplyDefenseOnOffEffects(card);
             }
 
             StartCoroutine(card.PlayActivationFeedback(_cardFeedbackDuration));
@@ -399,9 +444,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 폭발형 ────────────────────────────────────────────
 
-    private void ApplyExplodeEffect(CardView card)
+    private IEnumerator ApplyExplodeEffect(CardView card)
     {
-        if (card?.Data == null || card.CurrentSlot == null) return;
+        if (card?.Data == null || card.CurrentSlot == null) yield break;
 
         HashSet<CardView> nextWave = new();
 
@@ -423,8 +468,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             _turnToggleCount++;
             OnToggleCountChanged?.Invoke();
             neighbor.Instance?.PersistentState.IncrementTurnOnCount();
-            HashSet<EffectType> appliedTypes = ApplyEffects(neighbor);
-            PlayCardEffectVisual(neighbor, appliedTypes);
+            yield return ApplyEffects(neighbor);
             StartCoroutine(neighbor.PlayActivationFeedback(_cardFeedbackDuration));
 
             // OFF→ON이 된 카드만 이웃으로 체인 전파
@@ -476,9 +520,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 배치 시 이펙트 ────────────────────────────────────
 
-    public void ApplyOnPlacedEffects(CardView card)
+    private IEnumerator ApplyOnPlacedEffects(CardView card)
     {
-        if (card?.Data?.effects == null || card.IsEnemy) return;
+        if (card?.Data?.effects == null || card.IsEnemy) yield break;
 
         var runtime = card.GetComponent<CardRuntimeState>();
         foreach (CardEffect effect in card.Data.effects)
@@ -493,7 +537,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         runtime.SetBonusDamage(Mathf.RoundToInt(effect.value));
                     break;
                 default:
-                    ApplyEffect(effect.effectType, effect.value, card);
+                    yield return ApplyEffectWithVisual(effect.effectType, effect.value, card, EffectTrigger.OnPlaced);
                     break;
             }
         }
@@ -501,16 +545,29 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         RefreshTotemAuras();
     }
 
-    public void ApplyTurnEndEffects()
+    public IEnumerator ApplyTurnEndEffects()
     {
-        if (GridManager.Instance == null) return;
+        if (GridManager.Instance == null) yield break;
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
             if (card == null || card.IsEnemy) continue;
             if (!card.IsActivated) continue;
-            ApplyEffects(card, EffectTrigger.OnTurnEnd);
+            yield return ApplyEffects(card, EffectTrigger.OnTurnEnd);
+        }
+    }
+
+    public IEnumerator ApplyTurnStartEffects()
+    {
+        if (GridManager.Instance == null) yield break;
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            CardView card = slot.OccupiedCard;
+            if (card == null || card.IsEnemy) continue;
+            if (!card.IsActivated) continue;
+            yield return ApplyEffects(card, EffectTrigger.OnTurnStart);
         }
     }
 
@@ -637,8 +694,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         _turnToggleCount++;
                         OnToggleCountChanged?.Invoke();
 
-                        HashSet<EffectType> appliedTypes = ApplyEffects(current);
-                        PlayCardEffectVisual(current, appliedTypes);
+                        yield return ApplyEffects(current);
 
                         // Replay 이펙트: 체인 흐름 안에서 처리
                         if (current.Data?.effects != null)
@@ -662,9 +718,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 {
                     activatedCards.Remove(current);
 
-                    // 반전형: OFF될 때 즉시 방어 발동
+                    // 반전형: OFF될 때 방어 발동
                     if (!current.IsEnemy && current.Data?.effects != null)
-                        ApplyDefenseOnOffEffects(current);
+                        yield return ApplyDefenseOnOffEffects(current);
                 }
             }
 
@@ -720,37 +776,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             }
 
             currentWave = new List<CardView>(nextWaveSet);
-        }
-    }
-
-    private void PlayCardEffectVisual(CardView card, HashSet<EffectType> appliedTypes)
-    {
-        if (_cardEffectPlaySystem == null || card == null || appliedTypes == null) return;
-        if (!appliedTypes.Contains(EffectType.Damage) && !appliedTypes.Contains(EffectType.Defense)) return;
-
-        _cardEffectPlaySystem.PlayAppliedEffects(card, appliedTypes);
-    }
-
-    private static bool TryGetActionBlockFlightEffectType(EffectType effectType, out EffectType flightEffectType)
-    {
-        switch (effectType)
-        {
-            case EffectType.Damage:
-            case EffectType.DirectionalDamageBonus:
-            case EffectType.DefenseOnOff:
-            case EffectType.CounterDamage:
-            case EffectType.PopularityDamage:
-            case EffectType.FinisherDamage:
-                flightEffectType = EffectType.Damage;
-                return true;
-
-            case EffectType.Defense:
-                flightEffectType = EffectType.Defense;
-                return true;
-
-            default:
-                flightEffectType = default;
-                return false;
         }
     }
 

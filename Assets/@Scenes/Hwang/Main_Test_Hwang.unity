@@ -825,7 +825,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 457939302}
-  - component: {fileID: 457939303}
   m_Layer: 5
   m_Name: AttackRoot
   m_TagString: Untagged
@@ -854,19 +853,6 @@ RectTransform:
   m_AnchoredPosition: {x: 119.9, y: 93}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &457939303
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457939301}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7bbae11c50d4412fa00dadbd8c98198c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UI_PendingAttackText
-  _text: {fileID: 1036663511}
 --- !u!1 &511768683
 GameObject:
   m_ObjectHideFlags: 0
@@ -8365,12 +8351,12 @@ MonoBehaviour:
   _maxActivationSteps: 100
   _cardFeedbackDuration: 0.22
   _maxLoopCount: 3
+  _cardEffectPlaySystem: {fileID: 677711469}
   _infiniteLoopText: {fileID: 0}
   _loopSlashDirector: {fileID: 0}
   _infiniteLoopGraceDuration: 2
   _infiniteLoopTextDuration: 1.2
   _infiniteLoopFinishDamage: 999
-  _flightEffectPlayer: {fileID: 0}
 --- !u!1 &5021724786616653723
 GameObject:
   m_ObjectHideFlags: 0

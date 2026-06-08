@@ -825,7 +825,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 457939302}
-  - component: {fileID: 457939303}
   m_Layer: 5
   m_Name: AttackRoot
   m_TagString: Untagged
@@ -854,19 +853,6 @@ RectTransform:
   m_AnchoredPosition: {x: 119.9, y: 93}
   m_SizeDelta: {x: 100, y: 100}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &457939303
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 457939301}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 7bbae11c50d4412fa00dadbd8c98198c, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UI_PendingAttackText
-  _text: {fileID: 1036663511}
 --- !u!1 &519420028
 GameObject:
   m_ObjectHideFlags: 0
@@ -3908,7 +3894,7 @@ GameObject:
   - component: {fileID: 1780183744}
   - component: {fileID: 1780183745}
   m_Layer: 0
-  m_Name: ActionBlockFlightEffectPlayer
+  m_Name: CardEffectPlaySystem
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3938,32 +3924,37 @@ MonoBehaviour:
   m_GameObject: {fileID: 1780183743}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 12f4538f9e4778243bc20fdf1dc1786f, type: 3}
+  m_Script: {fileID: 11500000, guid: ff95eaed71004935acefdcd436c38a46, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::ActionBlockFlightEffectPlayer
-  rootCanvas: {fileID: 1708129503398650372}
-  effectLayer: {fileID: 1858029412}
-  enemyTarget: {fileID: 743872838}
-  playerTarget: {fileID: 1113997786}
-  settings:
-  - effectType: 0
-    target: {fileID: 406885543}
-    sprite: {fileID: -2237518807768803992, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  m_EditorClassIdentifier: Assembly-CSharp::CardEffectPlaySystem
+  _visualSettings:
+  - card: {fileID: 0}
+    matchAnyEffectType: 0
+    effectType: 0
+    projectileSprite: {fileID: 0}
+    vfxPrefab: {fileID: 0}
+    targetOverride: {fileID: 743872838}
     spawnOffset: {x: 0, y: 0}
     targetOffset: {x: 0, y: 0}
-    size: {x: 72, y: 72}
-    duration: 1
-    ease: 6
-    color: {r: 1, g: 1, b: 1, a: 1}
-  - effectType: 1
-    target: {fileID: 2856433981474173139}
-    sprite: {fileID: 7544613302241952520, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+    size: {x: 1, y: 1}
+    duration: 0.28
+    waitForVisualImpact: 1
+  - card: {fileID: 0}
+    matchAnyEffectType: 0
+    effectType: 1
+    projectileSprite: {fileID: 0}
+    vfxPrefab: {fileID: 0}
+    targetOverride: {fileID: 1113997786}
     spawnOffset: {x: 0, y: 0}
     targetOffset: {x: 0, y: 0}
-    size: {x: 72, y: 72}
-    duration: 1
-    ease: 6
-    color: {r: 1, g: 1, b: 1, a: 1}
+    size: {x: 1, y: 1}
+    duration: 0.28
+    waitForVisualImpact: 1
+  _defaultTarget: {fileID: 743872838}
+  _defaultProjectileSize: {x: 1, y: 1}
+  _defaultProjectileDuration: 0.28
+  _fallbackCardIconWaitsForImpact: 1
+  _projectileSortingOrder: 100
 --- !u!1 &1843453996
 GameObject:
   m_ObjectHideFlags: 0
@@ -9575,7 +9566,7 @@ MonoBehaviour:
   _maxActivationSteps: 100
   _cardFeedbackDuration: 0.22
   _maxLoopCount: 3
-  _actionBlockFlightEffectPlayer: {fileID: 1780183745}
+  _cardEffectPlaySystem: {fileID: 1780183745}
   _infiniteLoopText: {fileID: 1924988237}
   _loopSlashDirector: {fileID: 1389832506}
   _infiniteLoopGraceDuration: 2
