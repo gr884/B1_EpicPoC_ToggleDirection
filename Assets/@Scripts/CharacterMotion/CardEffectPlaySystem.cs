@@ -3,7 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class CharacterMotionQueuePlayer : MonoBehaviour
+public class CardEffectPlaySystem : MonoBehaviour
 {
     public enum QueuedEffectTiming
     {

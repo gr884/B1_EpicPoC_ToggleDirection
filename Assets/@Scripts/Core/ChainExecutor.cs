@@ -1025,11 +1025,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     private static void ClearEffectQueues()
     {
-        CharacterMotionQueuePlayer[] queuePlayers = FindObjectsByType<CharacterMotionQueuePlayer>(
+        CardEffectPlaySystem[] queuePlayers = FindObjectsByType<CardEffectPlaySystem>(
             FindObjectsInactive.Include,
             FindObjectsSortMode.None);
 
-        foreach (CharacterMotionQueuePlayer queuePlayer in queuePlayers)
+        foreach (CardEffectPlaySystem queuePlayer in queuePlayers)
             if (queuePlayer != null)
                 queuePlayer.CancelQueuedEffects();
     }
