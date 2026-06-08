@@ -119,6 +119,57 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &82675636
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 82675638}
+  - component: {fileID: 82675637}
+  m_Layer: 0
+  m_Name: Player
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &82675637
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82675636}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 83e6fa4557c8d25458721501eb411e31, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Player
+  _view: {fileID: 1428243873926886614}
+  _motionTarget: {fileID: 1279183634}
+  _maxHp: 50
+  _handSize: 7
+  _maxHandSize: 12
+  _maxCost: 7
+--- !u!4 &82675638
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 82675636}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 6, y: -1.59, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 1279183635}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &283825426
 GameObject:
   m_ObjectHideFlags: 0
@@ -2168,6 +2219,71 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1001 &972554116
+PrefabInstance:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Modification:
+    serializedVersion: 3
+    m_TransformParent: {fileID: 82675638}
+    m_Modifications:
+    - target: {fileID: 100000000, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_Name
+      value: KnightCharacterMotion
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalPosition.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalPosition.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalPosition.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalRotation.w
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalRotation.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalRotation.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalRotation.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.x
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.y
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000004, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: _enemyDamageNumberOffset.x
+      value: 0.2
+      objectReference: {fileID: 0}
+    - target: {fileID: 100000004, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+      propertyPath: _enemyDamageNumberOffset.y
+      value: 0.25
+      objectReference: {fileID: 0}
+    m_RemovedComponents: []
+    m_RemovedGameObjects: []
+    m_AddedGameObjects: []
+    m_AddedComponents: []
+  m_SourcePrefab: {fileID: 100100000, guid: 20391276273849449704fa53f2a0edd2, type: 3}
 --- !u!1 &1036663509
 GameObject:
   m_ObjectHideFlags: 0
@@ -2671,6 +2787,22 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1279183634 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 100000005, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+  m_PrefabInstance: {fileID: 972554116}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2bcccb6b2fac4217821a153014e51aa7, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::BattleActorMotionTarget
+--- !u!4 &1279183635 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 100000001, guid: 20391276273849449704fa53f2a0edd2, type: 3}
+  m_PrefabInstance: {fileID: 972554116}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1 &1311918260
 GameObject:
   m_ObjectHideFlags: 0
@@ -3866,7 +3998,7 @@ MonoBehaviour:
   rootCanvas: {fileID: 1708129503398650372}
   effectLayer: {fileID: 1858029412}
   enemyTarget: {fileID: 743872838}
-  playerTarget: {fileID: 0}
+  playerTarget: {fileID: 82675638}
   settings:
   - effectType: 0
     target: {fileID: 406885543}
@@ -4242,7 +4374,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::ItemManager
   _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
   _handRoot: {fileID: 4116963259513212459}
-  _player: {fileID: 0}
+  _player: {fileID: 82675637}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
   - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
@@ -10864,13 +10996,13 @@ RectTransform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5554076871030367719}
-  m_LocalRotation: {x: 0.38268343, y: 0, z: 0, w: 0.92387956}
+  m_LocalRotation: {x: 0.2588191, y: 0, z: 0, w: 0.9659258}
   m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1.0540925, y: 1.0540925, z: 1.0540925}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 4679821296608261453}
-  m_LocalEulerAnglesHint: {x: 45, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 30, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 1}
   m_AnchorMax: {x: 0.5, y: 1}
   m_AnchoredPosition: {x: 0, y: -550}
@@ -11534,7 +11666,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 7b32a7654b0f4a64b9d66d9e6e340197, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::BattleManager
-  _player: {fileID: 0}
+  _player: {fileID: 82675637}
   _enemy: {fileID: 743872837}
   _enemyList:
   - {fileID: 11400000, guid: e97fea7291b1df1489114efc8e808f25, type: 2}
@@ -12180,7 +12312,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::UI_CostView
   _costText: {fileID: 3076235875049031523}
-  _player: {fileID: 0}
+  _player: {fileID: 82675637}
 --- !u!114 &8220522719465521653
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12490,7 +12622,7 @@ MonoBehaviour:
   m_ChildAlignment: 4
   m_StartCorner: 0
   m_StartAxis: 0
-  m_CellSize: {x: 170, y: 170}
+  m_CellSize: {x: 120, y: 120}
   m_Spacing: {x: 14, y: 14}
   m_Constraint: 1
   m_ConstraintCount: 5
@@ -12937,3 +13069,4 @@ SceneRoots:
   - {fileID: 934598858}
   - {fileID: 743872838}
   - {fileID: 1139617443}
+  - {fileID: 82675638}

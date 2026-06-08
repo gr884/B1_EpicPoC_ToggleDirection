@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -14,6 +15,8 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private bool _dropAccepted;
     private bool _dragBlocked;
     private bool _isDraggable = true;
+    private GridSlot _previewSlot;
+    private readonly List<RaycastResult> _raycastResults = new();
 
     public void SetDraggable(bool draggable)
     {
@@ -46,6 +49,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         _dragBlocked = false; // 여기까지 왔으면 정상 드래그
         _dropAccepted = false;
+        _previewSlot = null;
         _startAnchoredPosition = _rectTransform.anchoredPosition;
         _startParent = transform.parent;
         _startSiblingIndex = transform.GetSiblingIndex();
@@ -62,11 +66,13 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         if (!enabled || _dragBlocked || _rootCanvas == null || Card.CurrentSlot != null) return;
         if (!CanAcceptPlayerCardInput())
         {
+            ClearPendingDirectionalImpact();
             CancelDrag();
             return;
         }
 
         _rectTransform.anchoredPosition += eventData.delta / _rootCanvas.scaleFactor;
+        RefreshPendingDirectionalImpact(eventData);
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -75,6 +81,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         _canvasGroup.blocksRaycasts = true;
         _canvasGroup.alpha = 1f;
+        ClearPendingDirectionalImpact();
 
         if (!_dropAccepted)
         {
@@ -85,6 +92,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public void CommitDrop(Transform newParent)
     {
         _dropAccepted = true;
+        ClearPendingDirectionalImpact();
 
         _rectTransform.SetParent(newParent, false);
         FitToParent();
@@ -104,9 +112,52 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         return CardManager.Instance != null && CardManager.Instance.CanAcceptPlayerCardInput;
     }
 
+    private void RefreshPendingDirectionalImpact(PointerEventData eventData)
+    {
+        GridSlot hoveredSlot = FindHoveredSlot(eventData);
+        if (hoveredSlot == _previewSlot) return;
+
+        _previewSlot = hoveredSlot;
+        if (GridManager.Instance == null) return;
+
+        if (_previewSlot == null)
+            GridManager.Instance.ClearPendingDirectionalImpact();
+        else
+            GridManager.Instance.ShowPendingDirectionalImpact(Card, _previewSlot);
+    }
+
+    private GridSlot FindHoveredSlot(PointerEventData eventData)
+    {
+        GridSlot slot = eventData.pointerCurrentRaycast.gameObject != null
+            ? eventData.pointerCurrentRaycast.gameObject.GetComponentInParent<GridSlot>()
+            : null;
+        if (slot != null) return slot;
+
+        if (EventSystem.current == null) return null;
+
+        _raycastResults.Clear();
+        EventSystem.current.RaycastAll(eventData, _raycastResults);
+        foreach (RaycastResult result in _raycastResults)
+        {
+            slot = result.gameObject != null
+                ? result.gameObject.GetComponentInParent<GridSlot>()
+                : null;
+            if (slot != null) return slot;
+        }
+
+        return null;
+    }
+
+    private void ClearPendingDirectionalImpact()
+    {
+        _previewSlot = null;
+        GridManager.Instance?.ClearPendingDirectionalImpact();
+    }
+
     private void CancelDrag()
     {
         _dragBlocked = true;
+        ClearPendingDirectionalImpact();
 
         if (_canvasGroup != null)
         {

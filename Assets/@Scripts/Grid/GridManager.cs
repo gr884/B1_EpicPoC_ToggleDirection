@@ -17,6 +17,7 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     private readonly Dictionary<Vector2Int, GridSlot> _slots = new();
     public IReadOnlyDictionary<Vector2Int, GridSlot> Slots => _slots;
+    private readonly List<GridSlot> _pendingDirectionalImpactSlots = new();
 
     public void Init()
     {
@@ -33,6 +34,7 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     public void BuildGrid()
     {
+        ClearPendingDirectionalImpact();
         ClearGrid();
 
         GridLayoutGroup layout = _gridRoot.GetComponent<GridLayoutGroup>();
@@ -124,7 +126,58 @@ public class GridManager : SingletonBehaviour<GridManager>
         return result;
     }
 
+    public List<GridSlot> GetDirectionalImpactSlots(CardView sourceCard, GridSlot attachSlot)
+    {
+        List<GridSlot> result = new();
+        if (sourceCard?.Data == null || attachSlot == null) return result;
+        if (sourceCard.Data.isRecaller) return result;
+
+        int range = Mathf.Max(1, sourceCard.Data.range);
+        foreach (CardDirection dir in sourceCard.Data.GetAllDirections())
+        {
+            GridSlot current = attachSlot;
+            for (int i = 0; i < range; i++)
+            {
+                GridSlot next = GetNeighbor(current, dir);
+                if (next == null) break;
+
+                if (!result.Contains(next))
+                    result.Add(next);
+                current = next;
+            }
+        }
+
+        return result;
+    }
+
+    public void ShowPendingDirectionalImpact(CardView sourceCard, GridSlot attachSlot)
+    {
+        ClearPendingDirectionalImpact();
+        if (sourceCard == null || attachSlot == null) return;
+        if (CardManager.Instance == null || !CardManager.Instance.CanPreviewPlaceCard(sourceCard, attachSlot)) return;
+
+        List<GridSlot> targets = GetDirectionalImpactSlots(sourceCard, attachSlot);
+        foreach (GridSlot target in targets)
+            CreatePendingDirectionalImpactEffect(target);
+    }
+
+    public void ClearPendingDirectionalImpact()
+    {
+        foreach (GridSlot slot in _pendingDirectionalImpactSlots)
+            if (slot != null)
+                slot.SetHighlight(false);
+        _pendingDirectionalImpactSlots.Clear();
+    }
+
     // ── 내부 ───────────────────────────────────────────────
+
+    private void CreatePendingDirectionalImpactEffect(GridSlot targetSlot)
+    {
+        if (targetSlot == null || _pendingDirectionalImpactSlots.Contains(targetSlot)) return;
+
+        targetSlot.SetHighlight(true);
+        _pendingDirectionalImpactSlots.Add(targetSlot);
+    }
 
     private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated)
     {

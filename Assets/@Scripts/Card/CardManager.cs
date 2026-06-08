@@ -336,6 +336,27 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     // ── 카드 배치 ──────────────────────────────────────────
 
+    public bool CanPreviewPlaceCard(CardView card, GridSlot targetSlot)
+    {
+        if (card == null || targetSlot == null) return false;
+        if (!CanAcceptPlayerCardInput) return false;
+        if (!_hand.Contains(card)) return false;
+        if (card.Instance == null || card.Data == null) return false;
+        if (card.Data.isUnplayable) return false;
+
+        bool isRecaller = card.Data.isRecaller;
+
+        // 일반 카드는 빈 슬롯만, 조작형은 점유 슬롯만 허용
+        if (!isRecaller && !targetSlot.IsEmpty) return false;
+        if (isRecaller && targetSlot.IsEmpty) return false;
+        // 조작형은 적 카드 회수 불가
+        if (isRecaller && targetSlot.OccupiedCard != null && targetSlot.OccupiedCard.IsEnemy) return false;
+        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
+            && !TutorialManager.Instance.CanPlaceCard(card, targetSlot)) return false;
+
+        return _player != null && _player.CanSpend(card.Data.cost);
+    }
+
     public bool TryPlaceCard(CardView card, GridSlot targetSlot)
     {
         if (card == null || targetSlot == null) return false;
