@@ -201,13 +201,26 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         if (!isdmg) continue;
                         float adjusted = GetTotemAdjustedValue(targetCard, e.effectType, e.value);
                         int targetBaseDamage = Mathf.Max(1, Mathf.RoundToInt(adjusted));
-                        // 카운트 기물이라면 적용될 카운트 횟수를 가져와 추가
-                        if (e.effectType == EffectType.CounterDamage)
-                            targetBaseDamage += _turnToggleCount;
-
                         int finalDamage = targetRuntime != null
                             ? targetRuntime.GetModifiedDamage(targetBaseDamage)
                             : targetBaseDamage;
+                        // 카운트 기물이라면 적용될 카운트 횟수를 가져와 추가
+                        if (e.effectType == EffectType.CounterDamage)
+                            targetBaseDamage += _turnToggleCount;
+                        // 인싸 기물이라면 증가된 횟수를 가져와 증가
+                        else if (e.effectType == EffectType.PopularityDamage)
+                        {
+                            // 인싸 주위 기물의 개수에 따라 계산
+                            int popCount = 0;
+                            foreach (CardDirection d in Enum.GetValues(typeof(CardDirection)))
+                            {
+                                if (d == CardDirection.None) continue;
+                                GridSlot popNeighbor = GridManager.Instance.GetNeighbor(targetCard.CurrentSlot, d);
+                                if (popNeighbor != null && !popNeighbor.IsEmpty) popCount++;
+                            }
+                            finalDamage *= popCount;
+                        }
+
                         totalDamage += finalDamage;
                     }
                 }
@@ -234,8 +247,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     runtime.DeductBonusDamage(Mathf.RoundToInt(value));
                 break;
             case EffectType.DefenseOnOff:
-                int reverseDamage = Mathf.Max(1, Mathf.RoundToInt(value));
-                BattleManager.Instance.Player.AddPendingAttack(reverseDamage);
+                // 기본 데미지 + 토템 데미지
+                int baseDualDamage = Mathf.Max(1, Mathf.RoundToInt(value));
+                // 최종 데미지
+                int modifiedDualDamage = runtime != null ?
+                    runtime.GetModifiedDamage(baseDualDamage) : baseDualDamage;
+                BattleManager.Instance.Player.AddPendingAttack(modifiedDualDamage);
                 break;
             case EffectType.CounterDamage:
                 // 토템 보너스가 합산된 데미지
@@ -280,7 +297,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     foreach (GridSlot s in GridManager.Instance.Slots.Values)
                         if (s.OccupiedCard != null && s.OccupiedCard.IsActivated)
                             onCount++;
-                    int finisherDamage = Mathf.RoundToInt(value) * onCount;
+                    // 기본 데미지
+                    int baseFinisher = Mathf.RoundToInt(value);
+                    // 런타임 값이 적용된 데미지
+                    int modifiedFinisher = runtime != null ?
+                        runtime.GetModifiedDamage(baseFinisher) : baseFinisher;
+                    // 모든 버프가 더해진 데미지 * 켜진 횟수를 합산 후 적용
+                    int finisherDamage = modifiedFinisher * onCount;
+
                     if (finisherDamage > 0)
                         BattleManager.Instance.Player.AddPendingAttack(finisherDamage);
                 }
@@ -804,6 +828,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         switch (effectType)
         {
             case EffectType.Damage:
+            case EffectType.DirectionalDamageBonus: // 흡수
+            case EffectType.CounterDamage:          // 카운터
+            case EffectType.PopularityDamage:       // 인싸
+            case EffectType.FinisherDamage:         // 마무리
+            case EffectType.DefenseOnOff:           // 쌍방 (ON일 때 공격력)
                 return true;
             default:
                 return false;
