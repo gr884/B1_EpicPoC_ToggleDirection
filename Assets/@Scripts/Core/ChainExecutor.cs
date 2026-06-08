@@ -34,6 +34,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     public int TurnToggleCount => _turnToggleCount;
 
     public event Action OnToggleCountChanged;
+    public event Action OnTotemAuraChanged;
+
+    private readonly Dictionary<CardView, int> _totemBonusByCard = new();
+    private readonly Dictionary<GridSlot, int> _totemOverlayStacks = new();
 
     public void ResetTurnToggleCount()
     {
@@ -46,6 +50,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     public void Init()
     {
         Debug.Log("[ChainExecutor] Init");
+        RefreshTotemAuras();
     }
 
     public void ExecuteFrom(CardView rootCard)
@@ -62,6 +67,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         IsExecuting = true;
         OnChainStarted?.Invoke();
         _activatedCards.Clear();
+        RefreshTotemAuras();
 
         SetAllCardsDraggable(false);
 
@@ -78,8 +84,28 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         // 자동 트리거: 체인 종료 후 조건 충족 카드 자동 ON
         yield return CheckAutoTriggers();
-
+        RefreshTotemAuras();
         OnChainFinished?.Invoke();
+    }
+
+    public int GetTotemBonus(CardView card)
+    {
+        if (card == null) return 0;
+        return _totemBonusByCard.TryGetValue(card, out int bonus) ? bonus : 0;
+    }
+
+    public float GetTotemAdjustedValue(CardView card, EffectType effectType, float baseValue)
+    {
+        if (!CanApplyTotemBonus(effectType)) return baseValue;
+        return baseValue + GetTotemBonus(card);
+    }
+
+    public void RefreshTotemAuras()
+    {
+        RebuildTotemAuraMaps();         // 범위 내 타겟 및 중첩수 연산
+        ApplyTotemOverlays();           // 그리드에 시각화
+        NotifyTotemBonusChanged();      // 타겟 카드들에 수치 적용 및 갱신
+        OnTotemAuraChanged?.Invoke();
     }
 
     // ── 효과 처리 ──────────────────────────────────────────
@@ -130,7 +156,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         CardView card,
         HashSet<EffectType> appliedTypes)
     {
-        ApplyEffect(type, value, card);
+        float resolvedValue = GetTotemAdjustedValue(card, type, value);
+        ApplyEffect(type, resolvedValue, card);
 
         if (TryGetActionBlockFlightEffectType(type, out EffectType flightEffectType))
         {
@@ -168,10 +195,16 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                     foreach (var e in targetCard.Data.effects)
                     {
-                        bool isdmg = (e.effectType == EffectType.Damage) ||
-                            (e.effectType == EffectType.DefenseOnOff);
+                        bool isdmg =    (e.effectType == EffectType.Damage) ||
+                                        (e.effectType == EffectType.DefenseOnOff) ||
+                                        (e.effectType == EffectType.CounterDamage);
                         if (!isdmg) continue;
-                        int targetBaseDamage = Mathf.Max(1, Mathf.RoundToInt(e.value));
+                        float adjusted = GetTotemAdjustedValue(targetCard, e.effectType, e.value);
+                        int targetBaseDamage = Mathf.Max(1, Mathf.RoundToInt(adjusted));
+                        // 카운트 기물이라면 적용될 카운트 횟수를 가져와 추가
+                        if (e.effectType == EffectType.CounterDamage)
+                            targetBaseDamage += _turnToggleCount;
+
                         int finalDamage = targetRuntime != null
                             ? targetRuntime.GetModifiedDamage(targetBaseDamage)
                             : targetBaseDamage;
@@ -205,8 +238,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 BattleManager.Instance.Player.AddPendingAttack(reverseDamage);
                 break;
             case EffectType.CounterDamage:
-                int counterDamage = Mathf.Max(1, Mathf.RoundToInt(value) + _turnToggleCount);
-                BattleManager.Instance.Player.AddPendingAttack(counterDamage);
+                // 토템 보너스가 합산된 데미지
+                int baseCounterDamage = Mathf.Max(1, Mathf.RoundToInt(value));
+                // 토글 횟수 추가
+                int finalCounterDamage = baseCounterDamage + _turnToggleCount;
+                BattleManager.Instance.Player.AddPendingAttack(finalCounterDamage);
                 break;
             case EffectType.Explode:
                 ApplyExplodeEffect(card);
@@ -215,14 +251,21 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 if (card.CurrentSlot != null)
                 {
                     int neighborCount = 0;
-                    foreach (CardDirection dir in System.Enum.GetValues(typeof(CardDirection)))
+                    foreach (CardDirection dir in Enum.GetValues(typeof(CardDirection)))
                     {
                         if (dir == CardDirection.None) continue;
                         GridSlot neighborSlot = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
                         if (neighborSlot != null && !neighborSlot.IsEmpty)
                             neighborCount++;
                     }
-                    int popularityDamage = Mathf.RoundToInt(value) * neighborCount;
+                    // 토템 데미지가 합산되어 들어온 데미지
+                    int basePopDamage = Mathf.Max(1, Mathf.RoundToInt(value));
+                    // 그를 기반으로 한 영구 누적 데미지 합산
+                    int modifiedPopDamage = runtime != null ?
+                        runtime.GetModifiedDamage(basePopDamage) : basePopDamage;
+                    // 주위 블럭들을 기반으로 한 총합 데미지
+                    int popularityDamage = modifiedPopDamage * neighborCount;
+                    
                     if (popularityDamage > 0)
                         BattleManager.Instance.Player.AddPendingAttack(popularityDamage);
                 }
@@ -242,6 +285,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         BattleManager.Instance.Player.AddPendingAttack(finisherDamage);
                 }
                 break;
+            case EffectType.TotemAura:
+                break;
         }
     }
 
@@ -251,7 +296,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         {
             if (effect.effectType != EffectType.DefenseOnOff) continue;
             // OFF될 때 → Defense (secondaryValue)
-            int defense = Mathf.Max(1, Mathf.RoundToInt(effect.secondaryValue));
+            float adjusted = GetTotemAdjustedValue(card, effect.effectType, effect.secondaryValue);
+            int defense = Mathf.Max(1, Mathf.RoundToInt(adjusted));
             BattleManager.Instance.Player.AddDefense(defense);
         }
     }
@@ -299,6 +345,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (card == null || card.CurrentSlot == null) continue;
             bool nextState = !card.IsActivated;
             card.SetActivated(nextState);
+            RefreshTotemAuras();
 
             if (nextState && !card.IsEnemy)
             {
@@ -344,6 +391,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
             if (wasOff)
                 neighbor.SetActivated(true);
+            RefreshTotemAuras();
 
             // ON 여부와 관계없이 효과 발동 + 카운트 증가 + 피드백
             _turnToggleCount++;
@@ -423,6 +471,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     break;
             }
         }
+
+        RefreshTotemAuras();
     }
 
     public void ApplyTurnEndEffects()
@@ -539,6 +589,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                 bool nextState = !current.IsActivated;
                 current.SetActivated(nextState);
+                RefreshTotemAuras();
 
                 step++;
                 if (step > _maxActivationSteps)
@@ -675,6 +726,118 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 flightEffectType = default;
                 return false;
         }
+    }
+
+    //* 토템 영역 계산
+    private void RebuildTotemAuraMaps()
+    {
+        _totemBonusByCard.Clear();
+        _totemOverlayStacks.Clear();
+
+        if (GridManager.Instance == null) return;
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            // 켜진 토템이 아니면 스킵
+            CardView source = slot.OccupiedCard;
+            if (source == null || source.IsEnemy || !source.IsActivated || source.CurrentSlot == null) continue;
+            if (!IsTotemCardData(source.Data)) continue;
+
+            int auraValue = GetTotemAuraValue(source.Data); // 토템 영역의 효과 수치
+            if (auraValue == 0) continue;
+
+            List<Vector2Int> offsets = source.Data.totemAuraOffsets;    // 해당 토템의 영역 오프셋을 가져옴
+            if (offsets == null || offsets.Count == 0) continue;
+
+            // 각 오프셋에 해당하는 그리드를 확인 및 계산
+            foreach (Vector2Int offset in offsets)
+            {
+                // 타겟 슬롯 지정 및 확인
+                GridSlot targetSlot = GridManager.Instance.GetSlot(source.CurrentSlot.Position + offset);
+                if (targetSlot == null) continue;
+
+                // 딕셔너리에서 해당 targetSlot을 확인하고 있으면 +1, 없으면 1로 지정
+                if (_totemOverlayStacks.TryGetValue(targetSlot, out int stack))
+                    _totemOverlayStacks[targetSlot] = stack + 1;
+                else
+                    _totemOverlayStacks[targetSlot] = 1;
+
+                CardView target = targetSlot.OccupiedCard;
+                if (target == null || target.IsEnemy) continue;
+                if (IsTotemCardData(target.Data)) continue;
+
+                if (_totemBonusByCard.TryGetValue(target, out int bonus))
+                    _totemBonusByCard[target] = bonus + auraValue;
+                else
+                    _totemBonusByCard[target] = auraValue;
+            }
+        }
+    }
+
+    //* 토템의 영역 시각화
+    private void ApplyTotemOverlays()
+    {
+        if (GridManager.Instance == null) return;
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            if (slot == null) continue;
+            bool show = _totemOverlayStacks.TryGetValue(slot, out int stack) && stack > 0;
+            slot.SetTotemBorder(show);
+        }
+    }
+
+    private void NotifyTotemBonusChanged()
+    {
+        if (GridManager.Instance == null) return;
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            CardView card = slot.OccupiedCard;
+            if (card == null || card.IsEnemy) continue;
+            card.GetComponent<CardRuntimeState>()?.Refresh();
+        }
+    }
+
+    private static bool CanApplyTotemBonus(EffectType effectType)
+    {
+        switch (effectType)
+        {
+            case EffectType.Damage:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static int GetTotemAuraValue(CardData data)
+    {
+        if (data?.effects == null) return 0;
+
+        int total = 0;
+        foreach (CardEffect effect in data.effects)
+        {
+            if (effect.effectType != EffectType.TotemAura) continue;
+            total += Mathf.RoundToInt(effect.value);
+        }
+
+        return total;
+    }
+
+    private bool IsTotemCardData(CardData data)
+    {
+        return ContainsEffect(data, EffectType.TotemAura);
+    }
+
+    private bool ContainsEffect(CardData data, EffectType effectType)
+    {
+        if (data?.effects == null) return false;
+
+        foreach (CardEffect effect in data.effects)
+            if (effect.effectType == effectType)
+                return true;
+
+        return false;
     }
 
     private bool WouldCreateInfiniteLoop(CardView root)
@@ -928,6 +1091,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnChainStarted = null;
         OnChainFinished = null;
         OnToggleCountChanged = null;
+        OnTotemAuraChanged = null;
         base.Dispose();
     }
 }

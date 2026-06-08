@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -127,6 +127,7 @@ public class CardManager : SingletonBehaviour<CardManager>
 
         GridSlot slot = card.CurrentSlot;
         slot?.ClearCard();
+        ChainExecutor.Instance?.RefreshTotemAuras();
         PoolManager.Instance.Return(card.gameObject);
 
         Debug.Log($"[CardManager] 카드 소멸 — {card.Data?.displayName}");
@@ -276,6 +277,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (slot == null) return;
 
         slot.ClearCard();
+        ChainExecutor.Instance?.RefreshTotemAuras();
 
         CardInstance instance = card.Instance;
         CardData sourceData = card.Data;
@@ -331,6 +333,7 @@ public class CardManager : SingletonBehaviour<CardManager>
             PoolManager.Instance.Return(card.gameObject);
         }
 
+        ChainExecutor.Instance?.RefreshTotemAuras();
         Debug.Log("[CardManager] 그리드 플레이어 카드 → 버린 파일");
     }
 
@@ -397,6 +400,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         }
 
         targetSlot.AssignCard(card);
+        ChainExecutor.Instance?.RefreshTotemAuras();
         card.SetDraggable(false);
         _hand.Remove(card);
         OnHandChanged?.Invoke();
@@ -436,6 +440,7 @@ public class CardManager : SingletonBehaviour<CardManager>
 
         GridSlot slot = card.CurrentSlot;
         slot.ClearCard();
+        ChainExecutor.Instance?.RefreshTotemAuras();
 
         _flightEffectPlayer?.PlayRecallToHandFrom(card.transform);
         PoolManager.Instance.Return(card.gameObject);
