@@ -128,24 +128,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: ff95eaed71004935acefdcd436c38a46, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::CharacterMotionQueuePlayer
-  _animator: {fileID: 100000003}
-  _idleStateName: Idle
-  _runStateName: Run
-  _attackStateName: Attack
-  _defendStateName: Defend
-  _hurtStateName: Hurt
-  _runSpeed: 24
-  _attackStopOffsetX: 0.8
-  _attackTargetYOffset: 0
-  _returnDuration: 0.12
-  _arrivalSnapDistance: 0.02
-  _attackDuration: 0.75
-  _defendDuration: 0.75
-  _hurtDuration: 0.5
-  _minimumMotionDuration: 0.05
-  _enemyDamageNumberPrefab: {fileID: 4996161422809100937, guid: d357b174cb55db842ad5c77a9c0c41de, type: 3}
-  _enemyDamageNumberOffset: {x: 0, y: 1, z: 0}
-  _enemyDamageNumberScale: 0.5
+  _visualSettings: []
+  _defaultTarget: {fileID: 0}
+  _defaultProjectileSize: {x: 1, y: 1}
+  _defaultProjectileDuration: 0.28
+  _fallbackCardIconWaitsForImpact: 1
+  _projectileSortingOrder: 100
 --- !u!114 &100000005
 MonoBehaviour:
   m_ObjectHideFlags: 0

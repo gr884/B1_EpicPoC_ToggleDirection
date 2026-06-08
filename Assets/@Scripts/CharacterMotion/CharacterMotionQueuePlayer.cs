@@ -1,362 +1,378 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
-using DamageNumbersPro;
 using UnityEngine;
 
 public class CharacterMotionQueuePlayer : MonoBehaviour
 {
-    [Header("Refs")]
-    [SerializeField] private Animator _animator;
+    public enum QueuedEffectTiming
+    {
+        OnActivated,
+        OnTurnEnd,
+        OnTurnStart,
+        Direct,
+    }
 
-    [Header("State Names")]
-    [SerializeField] private string _idleStateName = "Idle";
-    [SerializeField] private string _runStateName = "Run";
-    [SerializeField] private string _attackStateName = "Attack";
-    [SerializeField] private string _defendStateName = "Defend";
-    [SerializeField] private string _hurtStateName = "Hurt";
+    [Serializable]
+    public sealed class CardEffectVisualSetting
+    {
+        public CardData card;
+        public bool matchAnyEffectType;
+        public EffectType effectType = EffectType.Damage;
+        public Sprite projectileSprite;
+        public GameObject vfxPrefab;
+        public Transform targetOverride;
+        public Vector2 spawnOffset;
+        public Vector2 targetOffset;
+        public Vector2 size = Vector2.one;
+        [Min(0f)] public float duration = 0.28f;
+        public bool waitForVisualImpact = true;
+    }
 
-    [Header("Attack Movement")]
-    [SerializeField] private float _runSpeed = 8f;
-    [SerializeField] private float _attackStopOffsetX = 0.8f;
-    [SerializeField] private float _attackTargetYOffset = 0f;
-    [SerializeField] private float _returnDuration = 0.12f;
-    [SerializeField] private float _arrivalSnapDistance = 0.02f;
+    public readonly struct QueuedEffectRequest
+    {
+        public QueuedEffectRequest(
+            CardView sourceCard,
+            CardData cardData,
+            EffectType effectType,
+            QueuedEffectTiming timing,
+            Action onImpact = null,
+            Transform targetOverride = null,
+            float value = 0f)
+        {
+            SourceCard = sourceCard;
+            CardData = cardData;
+            EffectType = effectType;
+            Timing = timing;
+            OnImpact = onImpact;
+            TargetOverride = targetOverride;
+            Value = value;
+        }
 
-    [Header("Fallback Durations")]
-    [SerializeField] private float _attackDuration = 0.75f;
-    [SerializeField] private float _defendDuration = 0.75f;
-    [SerializeField] private float _hurtDuration = 0.5f;
-    [SerializeField] private float _minimumMotionDuration = 0.05f;
+        public CardView SourceCard { get; }
+        public CardData CardData { get; }
+        public EffectType EffectType { get; }
+        public QueuedEffectTiming Timing { get; }
+        public Action OnImpact { get; }
+        public Transform TargetOverride { get; }
+        public float Value { get; }
+    }
 
-    [Header("Damage Number")]
-    [SerializeField] private DamageNumber _enemyDamageNumberPrefab;
-    [SerializeField] private Vector3 _enemyDamageNumberOffset = new(0f, 1f, 0f);
-    [SerializeField, Min(0f)] private float _enemyDamageNumberScale = 0.5f;
+    [Header("Effect Visuals")]
+    [SerializeField] private List<CardEffectVisualSetting> _visualSettings = new();
+    [SerializeField] private Transform _defaultTarget;
+    [SerializeField] private Vector2 _defaultProjectileSize = Vector2.one;
+    [SerializeField, Min(0f)] private float _defaultProjectileDuration = 0.28f;
+    [SerializeField] private bool _fallbackCardIconWaitsForImpact = true;
+    [SerializeField] private int _projectileSortingOrder = 100;
 
-    private readonly Queue<CharacterMotionRequest> _motionQueue = new();
+    private readonly Queue<QueuedEffectRequest> _effectQueue = new();
+    private readonly List<GameObject> _spawnedVisuals = new();
     private Coroutine _playRoutine;
-    private CharacterMotionRequest _activeAttackRequest;
-    private bool _hasActiveAttackRequest;
-    private bool _attackImpactApplied;
-    private Vector3 _restPosition;
-
-    private int _idleStateHash;
-    private int _runStateHash;
-    private int _attackStateHash;
-    private int _defendStateHash;
-    private int _hurtStateHash;
-
-    private void Awake()
-    {
-        if (_animator == null)
-            _animator = GetComponent<Animator>();
-
-        _restPosition = transform.position;
-        RefreshHashes();
-    }
-
-    private void OnEnable()
-    {
-        CharacterMotionEvents.CardMotionRequested += EnqueueMotion;
-        PlayIdle();
-    }
 
     private void OnDisable()
     {
-        CharacterMotionEvents.CardMotionRequested -= EnqueueMotion;
-        _motionQueue.Clear();
-
-        if (_playRoutine != null)
-        {
-            StopCoroutine(_playRoutine);
-            _playRoutine = null;
-        }
-
-        if (_animator != null)
-            _animator.enabled = true;
+        CancelQueuedEffects();
     }
 
-    public void CancelQueuedMotions()
+    public void EnqueueActivatedEffect(
+        CardView sourceCard,
+        EffectType effectType,
+        Action onImpact = null,
+        Transform targetOverride = null,
+        float value = 0f)
     {
-        _motionQueue.Clear();
-
-        if (_playRoutine != null)
-        {
-            StopCoroutine(_playRoutine);
-            _playRoutine = null;
-        }
-
-        _activeAttackRequest = default;
-        _hasActiveAttackRequest = false;
-        _attackImpactApplied = false;
-
-        transform.position = _restPosition;
-
-        if (_animator != null)
-            _animator.enabled = true;
-
-        PlayIdle();
+        EnqueueEffect(sourceCard, effectType, QueuedEffectTiming.OnActivated, onImpact, targetOverride, value);
     }
 
-    private void OnValidate()
+    public void EnqueueTurnEndEffect(
+        CardView sourceCard,
+        EffectType effectType,
+        Action onImpact = null,
+        Transform targetOverride = null,
+        float value = 0f)
     {
-        RefreshHashes();
+        EnqueueEffect(sourceCard, effectType, QueuedEffectTiming.OnTurnEnd, onImpact, targetOverride, value);
     }
 
-    public IEnumerator PlayAttackRoutine(int damageAmount)
+    public void EnqueueTurnStartEffect(
+        CardView sourceCard,
+        EffectType effectType,
+        Action onImpact = null,
+        Transform targetOverride = null,
+        float value = 0f)
     {
-        if (damageAmount <= 0)
-            yield break;
-
-        while (_playRoutine != null)
-            yield return null;
-
-        CharacterMotionRequest request = new CharacterMotionRequest(
-            CharacterMotionType.Attack,
-            null,
-            null,
-            EffectType.Damage,
-            Vector2Int.zero,
-            damageAmount);
-
-        yield return PlayAttackChain(request);
+        EnqueueEffect(sourceCard, effectType, QueuedEffectTiming.OnTurnStart, onImpact, targetOverride, value);
     }
 
-    private void EnqueueMotion(CharacterMotionRequest request)
+    public void EnqueueDirectEffect(
+        CardView sourceCard,
+        EffectType effectType,
+        Action onImpact = null,
+        Transform targetOverride = null,
+        float value = 0f)
     {
-        if (request.MotionType == CharacterMotionType.Idle)
-            return;
+        EnqueueEffect(sourceCard, effectType, QueuedEffectTiming.Direct, onImpact, targetOverride, value);
+    }
 
-        _motionQueue.Enqueue(request);
+    public void EnqueueEffect(QueuedEffectRequest request)
+    {
+        _effectQueue.Enqueue(request);
 
         if (_playRoutine == null && isActiveAndEnabled)
-            _playRoutine = StartCoroutine(PlayQueuedMotions());
+            _playRoutine = StartCoroutine(PlayQueuedEffects());
     }
 
-    private IEnumerator PlayQueuedMotions()
+    public void CancelQueuedEffects()
     {
-        while (_motionQueue.Count > 0)
+        _effectQueue.Clear();
+
+        if (_playRoutine != null)
         {
-            CharacterMotionRequest request = _motionQueue.Dequeue();
+            StopCoroutine(_playRoutine);
+            _playRoutine = null;
+        }
 
-            if (request.MotionType == CharacterMotionType.Attack)
-            {
-                yield return PlayAttackChain(request);
-                yield return null;
-                continue;
-            }
+        ClearSpawnedVisuals();
+    }
 
-            PlayMotion(request.MotionType);
+    private void EnqueueEffect(
+        CardView sourceCard,
+        EffectType effectType,
+        QueuedEffectTiming timing,
+        Action onImpact,
+        Transform targetOverride,
+        float value)
+    {
+        CardData cardData = sourceCard != null ? sourceCard.Data : null;
+        EnqueueEffect(new QueuedEffectRequest(
+            sourceCard,
+            cardData,
+            effectType,
+            timing,
+            onImpact,
+            targetOverride,
+            value));
+    }
 
-            float duration = GetMotionDuration(request.MotionType);
-            if (duration > 0f)
-                yield return new WaitForSeconds(duration);
-
-            PlayIdle();
-            yield return null;
+    private IEnumerator PlayQueuedEffects()
+    {
+        while (_effectQueue.Count > 0)
+        {
+            QueuedEffectRequest request = _effectQueue.Dequeue();
+            yield return PlayEffectRequest(request);
         }
 
         _playRoutine = null;
     }
 
-    private IEnumerator PlayAttackChain(CharacterMotionRequest firstRequest)
+    private IEnumerator PlayEffectRequest(QueuedEffectRequest request)
     {
-        Vector3 basePosition = transform.position;
-        _restPosition = basePosition;
+        CardEffectVisualSetting setting = FindVisualSetting(request.CardData, request.EffectType);
+        bool hasVisual = HasVisual(request, setting);
+        bool waitForImpact = setting != null
+            ? setting.waitForVisualImpact
+            : _fallbackCardIconWaitsForImpact;
 
-        if (TryGetAttackTargetPosition(out Vector3 attackPosition))
+        if (hasVisual && waitForImpact)
         {
-            PlayRun();
-
-            while (Vector3.Distance(transform.position, attackPosition) > _arrivalSnapDistance)
-            {
-                transform.position = Vector3.MoveTowards(
-                    transform.position,
-                    attackPosition,
-                    Mathf.Max(0.01f, _runSpeed) * Time.deltaTime);
-                yield return null;
-            }
-
-            transform.position = attackPosition;
+            yield return PlayVisual(request, setting);
+            request.OnImpact?.Invoke();
+            yield break;
         }
 
-        yield return PlayAttackOnce(firstRequest);
+        request.OnImpact?.Invoke();
 
-        while (true)
+        if (hasVisual)
+            yield return PlayVisual(request, setting);
+    }
+
+    private IEnumerator PlayVisual(QueuedEffectRequest request, CardEffectVisualSetting setting)
+    {
+        if (!TryCreateVisual(request, setting, out GameObject visualObject))
+            yield break;
+
+        if (!TryGetStartPosition(request, setting, out Vector3 startPosition) ||
+            !TryGetTargetPosition(request, setting, out Vector3 targetPosition))
         {
+            DestroyVisual(visualObject);
+            yield break;
+        }
+
+        visualObject.transform.position = startPosition;
+
+        float duration = GetDuration(setting);
+        if (duration <= 0f)
+        {
+            visualObject.transform.position = targetPosition;
+            DestroyVisual(visualObject);
+            yield break;
+        }
+
+        float elapsed = 0f;
+        while (elapsed < duration && visualObject != null)
+        {
+            float t = elapsed / duration;
+            visualObject.transform.position = Vector3.Lerp(startPosition, targetPosition, t);
+            elapsed += Time.deltaTime;
             yield return null;
-
-            if (_motionQueue.Count <= 0 || _motionQueue.Peek().MotionType != CharacterMotionType.Attack)
-                break;
-
-            CharacterMotionRequest nextAttackRequest = _motionQueue.Dequeue();
-            yield return PlayAttackOnce(nextAttackRequest);
         }
 
-        yield return ReturnToBasePosition(basePosition);
-        PlayIdle();
+        if (visualObject != null)
+            visualObject.transform.position = targetPosition;
+
+        DestroyVisual(visualObject);
     }
 
-    private IEnumerator PlayAttackOnce(CharacterMotionRequest request)
+    private bool TryCreateVisual(
+        QueuedEffectRequest request,
+        CardEffectVisualSetting setting,
+        out GameObject visualObject)
     {
-        _activeAttackRequest = request;
-        _hasActiveAttackRequest = true;
-        _attackImpactApplied = false;
+        visualObject = null;
 
-        PlayMotion(CharacterMotionType.Attack);
-
-        float attackDuration = GetMotionDuration(CharacterMotionType.Attack);
-        if (attackDuration > 0f)
-            yield return new WaitForSeconds(attackDuration);
-
-        ApplyAttackImpact();
-    }
-
-    private IEnumerator ReturnToBasePosition(Vector3 basePosition)
-    {
-        bool disabledAnimator = false;
-        if (_animator != null && _animator.enabled)
+        if (setting != null && setting.vfxPrefab != null)
         {
-            _animator.enabled = false;
-            disabledAnimator = true;
+            visualObject = Instantiate(setting.vfxPrefab);
+            ApplyVisualScale(visualObject, GetSize(setting));
+            _spawnedVisuals.Add(visualObject);
+            return true;
         }
 
-        if (_returnDuration > 0f)
-        {
-            Vector3 returnStart = transform.position;
-            float elapsed = 0f;
+        Sprite projectileSprite = GetProjectileSprite(request, setting);
+        if (projectileSprite == null)
+            return false;
 
-            while (elapsed < _returnDuration)
-            {
-                float t = elapsed / _returnDuration;
-                transform.position = Vector3.Lerp(returnStart, basePosition, t);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-        }
-
-        transform.position = basePosition;
-
-        if (disabledAnimator)
-            _animator.enabled = true;
-    }
-
-    public void OnAttackImpact()
-    {
-        ApplyAttackImpact();
-    }
-
-    private void ApplyAttackImpact()
-    {
-        if (!_hasActiveAttackRequest || _attackImpactApplied)
-            return;
-
-        _attackImpactApplied = true;
-
-        if (_activeAttackRequest.DamageAmount > 0 && BattleManager.Instance != null)
-        {
-            int dealtDamage = BattleManager.Instance.DealDamageToEnemy(_activeAttackRequest.DamageAmount);
-            ShowEnemyDamageNumber(dealtDamage);
-        }
-
-        _activeAttackRequest = default;
-        _hasActiveAttackRequest = false;
-    }
-
-    private void ShowEnemyDamageNumber(int damageAmount)
-    {
-        if (_enemyDamageNumberPrefab == null || damageAmount <= 0)
-            return;
-
-        Enemy enemy = BattleManager.Instance != null ? BattleManager.Instance.Enemy : null;
-        Transform target = enemy != null ? enemy.ViewTransform : null;
-        Vector3 position = (target != null ? target.position : transform.position) + _enemyDamageNumberOffset;
-
-        DamageNumber damageNumber = _enemyDamageNumberPrefab.Spawn(position, damageAmount);
-        if (damageNumber != null)
-            damageNumber.transform.localScale = Vector3.one * _enemyDamageNumberScale;
-    }
-
-    private bool TryGetAttackTargetPosition(out Vector3 attackPosition)
-    {
-        attackPosition = transform.position;
-
-        BattleManager battleManager = BattleManager.Instance;
-        Enemy enemy = battleManager != null ? battleManager.Enemy : null;
-        Transform target = enemy != null ? enemy.transform : null;
-        if (target == null) return false;
-
-        Vector3 targetPosition = target.position;
-        attackPosition = new Vector3(
-            targetPosition.x - _attackStopOffsetX,
-            targetPosition.y + _attackTargetYOffset,
-            transform.position.z);
+        visualObject = new GameObject($"CardEffectProjectile_{request.EffectType}");
+        SpriteRenderer renderer = visualObject.AddComponent<SpriteRenderer>();
+        renderer.sprite = projectileSprite;
+        renderer.sortingOrder = _projectileSortingOrder;
+        ApplyVisualScale(visualObject, GetSize(setting));
+        _spawnedVisuals.Add(visualObject);
         return true;
     }
 
-    private void PlayMotion(CharacterMotionType motionType)
+    private bool TryGetStartPosition(
+        QueuedEffectRequest request,
+        CardEffectVisualSetting setting,
+        out Vector3 position)
     {
-        if (_animator == null) return;
-
-        int stateHash = motionType switch
-        {
-            CharacterMotionType.Attack => _attackStateHash,
-            CharacterMotionType.Defend => _defendStateHash,
-            CharacterMotionType.Hurt => _hurtStateHash,
-            _ => _idleStateHash
-        };
-
-        _animator.Play(stateHash, 0, 0f);
+        Transform source = request.SourceCard != null ? request.SourceCard.transform : transform;
+        Vector2 offset = setting != null ? setting.spawnOffset : Vector2.zero;
+        position = GetOffsetWorldPosition(source, offset);
+        return source != null;
     }
 
-    private void PlayRun()
+    private bool TryGetTargetPosition(
+        QueuedEffectRequest request,
+        CardEffectVisualSetting setting,
+        out Vector3 position)
     {
-        if (_animator == null) return;
-        _animator.Play(_runStateHash, 0, 0f);
+        Transform target = request.TargetOverride != null
+            ? request.TargetOverride
+            : setting != null && setting.targetOverride != null
+                ? setting.targetOverride
+                : _defaultTarget != null
+                    ? _defaultTarget
+                    : transform;
+
+        Vector2 offset = setting != null ? setting.targetOffset : Vector2.zero;
+        position = GetOffsetWorldPosition(target, offset);
+        return target != null;
     }
 
-    private void PlayIdle()
+    private CardEffectVisualSetting FindVisualSetting(CardData cardData, EffectType effectType)
     {
-        if (_animator == null) return;
-        _animator.Play(_idleStateHash, 0, 0f);
-    }
+        CardEffectVisualSetting cardDefault = null;
+        CardEffectVisualSetting effectDefault = null;
 
-    private float GetMotionDuration(CharacterMotionType motionType)
-    {
-        string clipName = motionType switch
+        for (int i = 0; i < _visualSettings.Count; i++)
         {
-            CharacterMotionType.Attack => "Knight_Attack",
-            CharacterMotionType.Defend => "Knight_Defend",
-            CharacterMotionType.Hurt => "Knight_Hurt",
-            _ => "Knight_Idle"
-        };
+            CardEffectVisualSetting setting = _visualSettings[i];
+            if (setting == null)
+                continue;
 
-        if (_animator != null && _animator.runtimeAnimatorController != null)
-        {
-            foreach (AnimationClip clip in _animator.runtimeAnimatorController.animationClips)
-            {
-                if (clip != null && clip.name == clipName)
-                    return Mathf.Max(_minimumMotionDuration, clip.length);
-            }
+            bool matchesCard = setting.card != null && setting.card == cardData;
+            bool matchesEffect = !setting.matchAnyEffectType && setting.effectType == effectType;
+
+            if (matchesCard && matchesEffect)
+                return setting;
+
+            if (matchesCard && setting.matchAnyEffectType && cardDefault == null)
+                cardDefault = setting;
+
+            if (setting.card == null && matchesEffect && effectDefault == null)
+                effectDefault = setting;
         }
 
-        float fallback = motionType switch
-        {
-            CharacterMotionType.Attack => _attackDuration,
-            CharacterMotionType.Defend => _defendDuration,
-            CharacterMotionType.Hurt => _hurtDuration,
-            _ => 0f
-        };
-
-        return Mathf.Max(_minimumMotionDuration, fallback);
+        return cardDefault != null ? cardDefault : effectDefault;
     }
 
-    private void RefreshHashes()
+    private bool HasVisual(QueuedEffectRequest request, CardEffectVisualSetting setting)
     {
-        _idleStateHash = Animator.StringToHash(_idleStateName);
-        _runStateHash = Animator.StringToHash(_runStateName);
-        _attackStateHash = Animator.StringToHash(_attackStateName);
-        _defendStateHash = Animator.StringToHash(_defendStateName);
-        _hurtStateHash = Animator.StringToHash(_hurtStateName);
+        return (setting != null && setting.vfxPrefab != null)
+            || GetProjectileSprite(request, setting) != null;
+    }
+
+    private Sprite GetProjectileSprite(QueuedEffectRequest request, CardEffectVisualSetting setting)
+    {
+        if (setting != null && setting.projectileSprite != null)
+            return setting.projectileSprite;
+
+        return request.CardData != null ? request.CardData.icon : null;
+    }
+
+    private float GetDuration(CardEffectVisualSetting setting)
+    {
+        if (setting != null)
+            return Mathf.Max(0f, setting.duration);
+
+        return Mathf.Max(0f, _defaultProjectileDuration);
+    }
+
+    private Vector2 GetSize(CardEffectVisualSetting setting)
+    {
+        if (setting != null)
+            return setting.size;
+
+        return _defaultProjectileSize;
+    }
+
+    private void ApplyVisualScale(GameObject visualObject, Vector2 size)
+    {
+        if (visualObject == null)
+            return;
+
+        float x = size.x > 0f ? size.x : 1f;
+        float y = size.y > 0f ? size.y : 1f;
+        visualObject.transform.localScale = new Vector3(x, y, 1f);
+    }
+
+    private static Vector3 GetOffsetWorldPosition(Transform source, Vector2 offset)
+    {
+        if (source == null)
+            return Vector3.zero;
+
+        return source.position + source.right * offset.x + source.up * offset.y;
+    }
+
+    private void DestroyVisual(GameObject visualObject)
+    {
+        if (visualObject == null)
+            return;
+
+        _spawnedVisuals.Remove(visualObject);
+        Destroy(visualObject);
+    }
+
+    private void ClearSpawnedVisuals()
+    {
+        for (int i = _spawnedVisuals.Count - 1; i >= 0; i--)
+        {
+            if (_spawnedVisuals[i] != null)
+                Destroy(_spawnedVisuals[i]);
+        }
+
+        _spawnedVisuals.Clear();
     }
 }

@@ -560,14 +560,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         _turnToggleCount++;
                         OnToggleCountChanged?.Invoke();
 
-                        bool hasMotionRequest = TryCreateMotionRequest(current, out CharacterMotionRequest motionRequest);
                         HashSet<EffectType> appliedTypes = ApplyEffects(current);
                         PlayActionBlockFlightEffect(current, appliedTypes);
-
-                        if (hasMotionRequest)
-                        {
-                            CharacterMotionEvents.RequestCardMotion(motionRequest);
-                        }
 
                         // Replay 이펙트: 체인 흐름 안에서 처리
                         if (current.Data?.effects != null)
@@ -652,36 +646,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
     }
 
-    private bool TryCreateMotionRequest(CardView card, out CharacterMotionRequest request)
-    {
-        request = default;
-        if (card?.Data?.effects == null || card.CurrentSlot == null) return false;
-
-        if (ContainsEffect(card.Data, EffectType.Defense))
-        {
-            request = new CharacterMotionRequest(
-                CharacterMotionType.Defend,
-                card,
-                card.Data,
-                EffectType.Defense,
-                card.CurrentSlot.Position);
-            return true;
-        }
-
-        if (ContainsEffect(card.Data, EffectType.Preserve))
-        {
-            request = new CharacterMotionRequest(
-                CharacterMotionType.Defend,
-                card,
-                card.Data,
-                EffectType.Preserve,
-                card.CurrentSlot.Position);
-            return true;
-        }
-
-        return false;
-    }
-
     private void PlayActionBlockFlightEffect(CardView card, HashSet<EffectType> appliedTypes)
     {
         if (_actionBlockFlightEffectPlayer == null || card == null || appliedTypes == null) return;
@@ -711,17 +675,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 flightEffectType = default;
                 return false;
         }
-    }
-
-    private bool ContainsEffect(CardData data, EffectType effectType)
-    {
-        if (data?.effects == null) return false;
-
-        foreach (CardEffect effect in data.effects)
-            if (effect.effectType == effectType)
-                return true;
-
-        return false;
     }
 
     private bool WouldCreateInfiniteLoop(CardView root)
@@ -819,7 +772,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         if (IsEnemyDead())
             yield break;
 
-        ClearPlayerMotionQueues();
+        ClearEffectQueues();
         yield return ExecuteInfiniteLoopFinishRoutine();
     }
 
@@ -907,7 +860,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
     }
 
-    private static void ClearPlayerMotionQueues()
+    private static void ClearEffectQueues()
     {
         CharacterMotionQueuePlayer[] queuePlayers = FindObjectsByType<CharacterMotionQueuePlayer>(
             FindObjectsInactive.Include,
@@ -915,7 +868,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         foreach (CharacterMotionQueuePlayer queuePlayer in queuePlayers)
             if (queuePlayer != null)
-                queuePlayer.CancelQueuedMotions();
+                queuePlayer.CancelQueuedEffects();
     }
 
     private static bool IsEnemyDead()
