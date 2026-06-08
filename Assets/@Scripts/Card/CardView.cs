@@ -589,6 +589,30 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                     int baseVal = Mathf.RoundToInt(effect.secondaryValue);
                     return totemDefenseBonus > 0 ? $"{baseVal + totemDefenseBonus}" : $"{baseVal}";
                 }
+                case EffectType.Devour:
+                {
+                    int targetCount = 0;
+                    if (CurrentSlot != null && GridManager.Instance != null)
+                    {
+                        foreach (CardDirection dir in Data.GetAllDirections())
+                        {
+                            GridSlot current = CurrentSlot;
+                            for (int i = 0; i < Data.range; i++)
+                            {
+                                GridSlot n = GridManager.Instance.GetNeighbor(current, dir);
+                                if (n == null) break;
+                                
+                                if (n.OccupiedCard != null && !n.OccupiedCard.IsEnemy)
+                                    targetCount++;
+                                    
+                                current = n;
+                            }
+                        }
+                    }
+                    
+                    int gain = Mathf.RoundToInt(effect.value) * targetCount;
+                    return gain > 0 ? $"{gain}" : ""; 
+                }
             default:
                 return "";
         }

@@ -61,7 +61,9 @@ public enum EffectType
     // 소진형 초기화: 배치 시 BonusDamage를 value로 세팅 (누적 아닌 덮어쓰기)
     InitDamage,
     TotemAura,
-    TotemAura_Defense
+    TotemAura_Defense,
+
+    Devour  // 포식
 }
 
 public enum CountScope

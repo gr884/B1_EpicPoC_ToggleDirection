@@ -270,9 +270,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 CardManager.Instance.DrawToHand(drawCount);
                 break;
             case EffectType.GainCost:
-                int gainAmount = Mathf.Max(1, Mathf.RoundToInt(value));
-                BattleManager.Instance.Player.GainCost(gainAmount);
-                break;
+                {
+                    int gainAmount = Mathf.Max(1, Mathf.RoundToInt(value));
+                    BattleManager.Instance.Player.GainCost(gainAmount);
+                    break;
+                }
             case EffectType.Preserve:
                 int preserveAmount = Mathf.Max(1, Mathf.RoundToInt(value));
                 ApplyPreserveToNeighbors(card, preserveAmount);
@@ -350,6 +352,51 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 break;
             case EffectType.TotemAura:
                 break;
+            case EffectType.Devour:
+            {
+                if (card.CurrentSlot == null) break;
+
+                int devourCount = 0;
+                List<CardView> targetsToDevour = new(); // 루프 도중 파괴로 인한 에러 방지용 리스트
+
+                // 범위 내의 먹잇감 스캔
+                foreach (CardDirection dir in card.Data.GetAllDirections())
+                {
+                    GridSlot current = card.CurrentSlot;
+                    for (int i = 0; i < card.Data.range; i++)
+                    {
+                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                        if (neighbor == null) break;
+
+                        CardView targetCard = neighbor.OccupiedCard;
+                        
+                        // 적이 아니고, 빈 칸이 아니며, 아직 먹기로 예약되지 않은 아군/특수 기물이라면!
+                        if (targetCard != null && !targetCard.IsEnemy && !targetsToDevour.Contains(targetCard))
+                        {
+                            targetsToDevour.Add(targetCard);
+                        }
+                        current = neighbor;
+                    }
+                }
+
+                // 일괄 포식
+                foreach (CardView target in targetsToDevour)
+                {
+                    devourCount++;
+                    CardManager.Instance.ExileCard(target); // 알아서 토템 장판 등도 갱신해줌
+                }
+
+                // 먹은 개수만큼 스탯 상승 (이번 전투 내내 유지)
+                if (devourCount > 0)
+                {
+                    int gainAmount = Mathf.Max(1, Mathf.RoundToInt(value)) * devourCount;
+                    if (runtime != null)
+                    {
+                        runtime.AddBonusDamage(gainAmount); // 영구 공격력 증가
+                    }
+                }
+                break;
+            }
         }
 
         yield break;
