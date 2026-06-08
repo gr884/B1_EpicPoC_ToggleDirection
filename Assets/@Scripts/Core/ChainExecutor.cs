@@ -247,8 +247,12 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     runtime.DeductBonusDamage(Mathf.RoundToInt(value));
                 break;
             case EffectType.DefenseOnOff:
-                int reverseDamage = Mathf.Max(1, Mathf.RoundToInt(value));
-                BattleManager.Instance.Player.AddPendingAttack(reverseDamage);
+                // 기본 데미지 + 토템 데미지
+                int baseDualDamage = Mathf.Max(1, Mathf.RoundToInt(value));
+                // 최종 데미지
+                int modifiedDualDamage = runtime != null ?
+                    runtime.GetModifiedDamage(baseDualDamage) : baseDualDamage;
+                BattleManager.Instance.Player.AddPendingAttack(modifiedDualDamage);
                 break;
             case EffectType.CounterDamage:
                 // 토템 보너스가 합산된 데미지
@@ -860,6 +864,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         switch (effectType)
         {
             case EffectType.Damage:
+            case EffectType.DirectionalDamageBonus: // 흡수
+            case EffectType.CounterDamage:          // 카운터
+            case EffectType.PopularityDamage:       // 인싸
+            case EffectType.FinisherDamage:         // 마무리
+            case EffectType.DefenseOnOff:           // 쌍방 (ON일 때 공격력)
                 return true;
             default:
                 return false;

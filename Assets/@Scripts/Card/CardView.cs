@@ -476,7 +476,8 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                 {
                     if (e.effectType != EffectType.Damage && 
                         e.effectType != EffectType.CounterDamage && 
-                        e.effectType != EffectType.PopularityDamage)
+                        e.effectType != EffectType.PopularityDamage &&
+                        e.effectType != EffectType.DefenseOnOff)
                         continue;
 
                     // 해당 효과의 기본 데미지
@@ -572,9 +573,14 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             case EffectType.Heal:
                 return $"{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
             case EffectType.DefenseOnOff:
-                return IsActivated
-                    ? $"{Mathf.RoundToInt(effect.value)}"
-                    : $"{Mathf.RoundToInt(effect.secondaryValue)}";
+                if (IsActivated)
+                {
+                    int baseVal = Mathf.RoundToInt(effect.value);
+                    int totalBonus = bonusDamage + totemBonus;
+                    return totalBonus > 0 ? $"{baseVal + totalBonus}" : $"{baseVal}";
+                }
+                else
+                    return $"{Mathf.RoundToInt(effect.secondaryValue)}";
             default:
                 return "";
         }
