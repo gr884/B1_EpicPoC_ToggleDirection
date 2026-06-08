@@ -36,8 +36,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     public event Action OnToggleCountChanged;
     public event Action OnTotemAuraChanged;
 
-    private readonly Dictionary<CardView, int> _totemBonusByCard = new();
-    private readonly Dictionary<GridSlot, int> _totemOverlayStacks = new();
+    private readonly Dictionary<CardView, int> _totemDamageBonusByCard = new();
+    private readonly Dictionary<CardView, int> _totemDefenseBonusByCard = new();
+    private readonly Dictionary<GridSlot, int> _damageTotemOverlayStacks = new();
+    private readonly Dictionary<GridSlot, int> _defenseTotemOverlayStacks = new();
+
+    public int GetTotemDamageBonus(CardView card) => (card != null && _totemDamageBonusByCard.TryGetValue(card, out int b)) ? b : 0;
+    public int GetTotemDefenseBonus(CardView card) => (card != null && _totemDefenseBonusByCard.TryGetValue(card, out int b)) ? b : 0;
 
     public void ResetTurnToggleCount()
     {
@@ -88,16 +93,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnChainFinished?.Invoke();
     }
 
-    public int GetTotemBonus(CardView card)
-    {
-        if (card == null) return 0;
-        return _totemBonusByCard.TryGetValue(card, out int bonus) ? bonus : 0;
-    }
-
     public float GetTotemAdjustedValue(CardView card, EffectType effectType, float baseValue)
     {
         if (!CanApplyTotemBonus(effectType)) return baseValue;
-        return baseValue + GetTotemBonus(card);
+
+        int bonus = (effectType == EffectType.Defense) ? 
+            GetTotemDefenseBonus(card) : GetTotemDamageBonus(card);
+        return baseValue + bonus;
     }
 
     public void RefreshTotemAuras()
@@ -320,7 +322,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         {
             if (effect.effectType != EffectType.DefenseOnOff) continue;
             // OFF될 때 → Defense (secondaryValue)
-            float adjusted = GetTotemAdjustedValue(card, effect.effectType, effect.secondaryValue);
+            float adjusted = GetTotemAdjustedValue(card, EffectType.Defense, effect.secondaryValue);
             int defense = Mathf.Max(1, Mathf.RoundToInt(adjusted));
             BattleManager.Instance.Player.AddDefense(defense);
         }
@@ -791,20 +793,23 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     //* 토템 영역 계산
     private void RebuildTotemAuraMaps()
     {
-        _totemBonusByCard.Clear();
-        _totemOverlayStacks.Clear();
+        _totemDamageBonusByCard.Clear();
+        _totemDefenseBonusByCard.Clear();
+        _damageTotemOverlayStacks.Clear();
+        _defenseTotemOverlayStacks.Clear();
 
         if (GridManager.Instance == null) return;
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
-            // 켜진 토템이 아니면 스킵
+            // 켜진 기물이 아니면 스킵
             CardView source = slot.OccupiedCard;
             if (source == null || source.IsEnemy || !source.IsActivated || source.CurrentSlot == null) continue;
-            if (!IsTotemCardData(source.Data)) continue;
 
-            int auraValue = GetTotemAuraValue(source.Data); // 토템 영역의 효과 수치
-            if (auraValue == 0) continue;
+            // 공/수 토템 확인
+            bool isDmgTotem = ContainsEffect(source.Data, EffectType.TotemAura);
+            bool isDefTotem = ContainsEffect(source.Data, EffectType.TotemAura_Defense);
+            if (!isDmgTotem && !isDefTotem) continue;
 
             List<Vector2Int> offsets = source.Data.totemAuraOffsets;    // 해당 토템의 영역 오프셋을 가져옴
             if (offsets == null || offsets.Count == 0) continue;
@@ -816,20 +821,32 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 GridSlot targetSlot = GridManager.Instance.GetSlot(source.CurrentSlot.Position + offset);
                 if (targetSlot == null) continue;
 
-                // 딕셔너리에서 해당 targetSlot을 확인하고 있으면 +1, 없으면 1로 지정
-                if (_totemOverlayStacks.TryGetValue(targetSlot, out int stack))
-                    _totemOverlayStacks[targetSlot] = stack + 1;
-                else
-                    _totemOverlayStacks[targetSlot] = 1;
+                if (isDmgTotem)
+                    _damageTotemOverlayStacks[targetSlot] = _damageTotemOverlayStacks.GetValueOrDefault(targetSlot, 0) + 1;
+                if (isDefTotem)
+                    _defenseTotemOverlayStacks[targetSlot] = _defenseTotemOverlayStacks.GetValueOrDefault(targetSlot, 0) + 1;
 
                 CardView target = targetSlot.OccupiedCard;
                 if (target == null || target.IsEnemy) continue;
                 if (IsTotemCardData(target.Data)) continue;
 
-                if (_totemBonusByCard.TryGetValue(target, out int bonus))
-                    _totemBonusByCard[target] = bonus + auraValue;
-                else
-                    _totemBonusByCard[target] = auraValue;
+                if (isDmgTotem)
+                {
+                    int auraValue = GetTotemAuraValue(source.Data, EffectType.TotemAura);
+                    if (_totemDamageBonusByCard.TryGetValue(target, out int bonus))
+                        _totemDamageBonusByCard[target] = bonus + auraValue;
+                    else
+                        _totemDamageBonusByCard[target] = auraValue;
+                }
+                
+                if (isDefTotem)
+                {
+                    int auraValue = GetTotemAuraValue(source.Data, EffectType.TotemAura_Defense);
+                    if (_totemDefenseBonusByCard.TryGetValue(target, out int bonus))
+                        _totemDefenseBonusByCard[target] = bonus + auraValue;
+                    else
+                        _totemDefenseBonusByCard[target] = auraValue;
+                }
             }
         }
     }
@@ -842,8 +859,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             if (slot == null) continue;
-            bool show = _totemOverlayStacks.TryGetValue(slot, out int stack) && stack > 0;
-            slot.SetTotemBorder(show);
+            bool showDmg = _damageTotemOverlayStacks.ContainsKey(slot);
+            bool showDef = _defenseTotemOverlayStacks.ContainsKey(slot);
+
+            slot.SetTotemBorder(showDmg, showDef);
         }
     }
 
@@ -863,7 +882,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         switch (effectType)
         {
-            case EffectType.Damage:
+            case EffectType.Damage:                 // 공격
+            case EffectType.Defense:                // 수비
             case EffectType.DirectionalDamageBonus: // 흡수
             case EffectType.CounterDamage:          // 카운터
             case EffectType.PopularityDamage:       // 인싸
@@ -875,23 +895,25 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
     }
 
-    private static int GetTotemAuraValue(CardData data)
+    private static int GetTotemAuraValue(CardData data, EffectType auraType)
     {
         if (data?.effects == null) return 0;
 
         int total = 0;
         foreach (CardEffect effect in data.effects)
         {
-            if (effect.effectType != EffectType.TotemAura) continue;
+            if (effect.effectType != auraType) continue;
             total += Mathf.RoundToInt(effect.value);
         }
 
         return total;
     }
 
+    private static int GetTotemAuraValue(CardData data) => GetTotemAuraValue(data, EffectType.TotemAura);
+
     private bool IsTotemCardData(CardData data)
     {
-        return ContainsEffect(data, EffectType.TotemAura);
+        return ContainsEffect(data, EffectType.TotemAura) || ContainsEffect(data, EffectType.TotemAura_Defense);
     }
 
     private bool ContainsEffect(CardData data, EffectType effectType)

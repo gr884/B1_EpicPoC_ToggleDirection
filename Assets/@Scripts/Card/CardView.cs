@@ -409,8 +409,10 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         if (_previewText == null || Data == null || CurrentSlot == null) return;
 
         int bonusDamage = _runtimeState != null ? _runtimeState.BonusDamage : 0;
-        int totemBonus = ChainExecutor.Instance != null ? 
-            ChainExecutor.Instance.GetTotemBonus(this) : 0;
+        int totemDamageBonus = ChainExecutor.Instance != null ? 
+            ChainExecutor.Instance.GetTotemDamageBonus(this) : 0;
+        int totemDefenseBonus = ChainExecutor.Instance != null ?
+            ChainExecutor.Instance.GetTotemDefenseBonus(this) : 0;
         var lines = new System.Text.StringBuilder();
 
         // Damage + DirectionalDamageBonus가 같이 있으면 한 줄로 합산
@@ -435,7 +437,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             {
                 if (!damageLineWritten)
                 {
-                    string line = BuildDirectionalPreviewLine(baseDamageTotal, bonusDamage + totemBonus);
+                    string line = BuildDirectionalPreviewLine(baseDamageTotal, bonusDamage + totemDamageBonus);
                     if (lines.Length > 0) lines.Append("\n");
                     lines.Append(line);
                     damageLineWritten = true;
@@ -445,7 +447,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
             if (effect.effectType == EffectType.DirectionalDamageBonus) continue;
 
-            string l = BuildPreviewLine(effect, bonusDamage, totemBonus);
+            string l = BuildPreviewLine(effect, bonusDamage, totemDamageBonus, totemDefenseBonus);
             if (!string.IsNullOrEmpty(l))
             {
                 if (lines.Length > 0) lines.Append("\n");
@@ -469,7 +471,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                 var neighborRuntime = n.OccupiedCard.GetComponent<CardRuntimeState>();
                 
                 int neighborTotemBonus = ChainExecutor.Instance != null ? 
-                    ChainExecutor.Instance.GetTotemBonus(n.OccupiedCard) : 0;
+                    ChainExecutor.Instance.GetTotemDamageBonus(n.OccupiedCard) : 0;
 
                 // 해당 방향의 기물이 가지는 효과 확인
                 foreach (CardEffect e in n.OccupiedCard.Data.effects)
@@ -521,14 +523,14 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         return $"({neighborDamage})";
     }
 
-    private string BuildPreviewLine(CardEffect effect, int bonusDamage, int totemBonus)
+    private string BuildPreviewLine(CardEffect effect, int bonusDamage, int totemDamageBonus, int totemDefenseBonus)
     {
         switch (effect.effectType)
         {
             case EffectType.Damage:
                 {
                     int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
-                    int totalBonus = bonusDamage + totemBonus;
+                    int totalBonus = bonusDamage + totemDamageBonus;
                     return totalBonus > 0 ? $"{baseVal + totalBonus}" : $"{baseVal}";
                 }
             case EffectType.FinisherDamage:
@@ -541,14 +543,14 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                     
                     // (기본 값 + 추가되는 값) * 켜진 카운트 를 합산해 리턴
                     int baseVal = Mathf.RoundToInt(effect.value);
-                    int totalBonus = bonusDamage + totemBonus;
+                    int totalBonus = bonusDamage + totemDamageBonus;
                     return $"{baseVal + totalBonus} × {onCount}";
                 }
             case EffectType.CounterDamage:
                 {
                     int toggleCount = ChainExecutor.Instance != null ? ChainExecutor.Instance.TurnToggleCount : 0;
                     int baseVal = Mathf.RoundToInt(effect.value);
-                    int totalBonus = bonusDamage + totemBonus;
+                    int totalBonus = bonusDamage + totemDamageBonus;
                     return $"{baseVal + totalBonus} + {toggleCount}";
                 }
             case EffectType.PopularityDamage:
@@ -564,23 +566,29 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
                     // 기본 데미지 + 토템 버프 + 보너스 데미지 합산
                     int baseVal = Mathf.RoundToInt(effect.value);
-                    int totalBonus = bonusDamage + totemBonus;
+                    int totalBonus = bonusDamage + totemDamageBonus;
 
                     return $"{baseVal + totalBonus} × {neighborCount}";
                 }
             case EffectType.Defense:
-                return $"{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
+                {
+                    int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
+                    return totemDefenseBonus > 0 ? $"{baseVal + totemDefenseBonus}" : $"{baseVal}";
+                }
             case EffectType.Heal:
                 return $"{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
             case EffectType.DefenseOnOff:
                 if (IsActivated)
                 {
                     int baseVal = Mathf.RoundToInt(effect.value);
-                    int totalBonus = bonusDamage + totemBonus;
+                    int totalBonus = bonusDamage + totemDamageBonus;
                     return totalBonus > 0 ? $"{baseVal + totalBonus}" : $"{baseVal}";
                 }
                 else
-                    return $"{Mathf.RoundToInt(effect.secondaryValue)}";
+                {
+                    int baseVal = Mathf.RoundToInt(effect.secondaryValue);
+                    return totemDefenseBonus > 0 ? $"{baseVal + totemDefenseBonus}" : $"{baseVal}";
+                }
             default:
                 return "";
         }
