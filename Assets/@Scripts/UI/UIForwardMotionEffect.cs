@@ -111,6 +111,7 @@ public class UIForwardMotionEffect : MonoBehaviour
                 ResetFadeGroups();
                 SetBlur(0f);
                 motionTween = null;
+                gameObject.SetActive(false);
             });
 
         return sequence;
