@@ -123,7 +123,8 @@ public class GridManager : SingletonBehaviour<GridManager>
     {
         List<GridSlot> result = new();
         foreach (GridSlot slot in _slots.Values)
-            if (slot.IsEmpty) result.Add(slot);
+            if (slot.IsEmpty && (CardManager.Instance == null || !CardManager.Instance.IsSlotReserved(slot)))
+                result.Add(slot);
         return result;
     }
 

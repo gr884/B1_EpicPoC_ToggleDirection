@@ -70,6 +70,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     private IEnumerator ExecutePlacedCardRoutine(CardView card)
     {
+        if (card == null) yield break;
+
+        IsExecuting = true;
         yield return ApplyOnPlacedEffects(card);
         ExecuteFrom(card);
     }
@@ -96,11 +99,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (slot.OccupiedCard != null)
                 slot.OccupiedCard.SetDraggable(false);
 
-        IsExecuting = false;
-
         // 자동 트리거: 체인 종료 후 조건 충족 카드 자동 ON
         yield return CheckAutoTriggers();
         RefreshTotemAuras();
+        IsExecuting = false;
         OnChainFinished?.Invoke();
     }
 
@@ -1152,12 +1154,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     slot.OccupiedCard.SetDraggable(draggable);
         }
 
-        if (CardManager.Instance != null)
-        {
+        if (CardManager.Instance != null && draggable)
             foreach (CardView card in CardManager.Instance.Hand)
                 if (card != null)
-                    card.SetDraggable(draggable);
-        }
+                    card.SetDraggable(true);
     }
 
     private static void ClearEffectQueues()
