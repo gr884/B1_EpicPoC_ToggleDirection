@@ -2724,17 +2724,6 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &1141992323 stripped
-MonoBehaviour:
-  m_CorrespondingSourceObject: {fileID: 100000004, guid: 20391276273849449704fa53f2a0edd2, type: 3}
-  m_PrefabInstance: {fileID: 1896555591}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 0}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: ff95eaed71004935acefdcd436c38a46, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::CharacterMotionQueuePlayer
 --- !u!1 &1311918260
 GameObject:
   m_ObjectHideFlags: 0
@@ -3939,6 +3928,11 @@ MonoBehaviour:
     size: {x: 1, y: 1}
     duration: 0.28
     waitForVisualImpact: 1
+    movementMode: 0
+    projectileForce: 1000
+    forwardSpawnOffset: 0.3
+    impactDistance: 0.35
+    maxFlightDuration: 5
   - card: {fileID: 0}
     matchAnyEffectType: 0
     effectType: 1
@@ -3950,6 +3944,11 @@ MonoBehaviour:
     size: {x: 1, y: 1}
     duration: 0.28
     waitForVisualImpact: 1
+    movementMode: 0
+    projectileForce: 1000
+    forwardSpawnOffset: 0.3
+    impactDistance: 0.35
+    maxFlightDuration: 5
   _defaultTarget: {fileID: 743872838}
   _defaultProjectileSize: {x: 1, y: 1}
   _defaultProjectileDuration: 0.28
@@ -4379,10 +4378,21 @@ MonoBehaviour:
   _player: {fileID: 1113997785}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
-  - {fileID: 11400000, guid: 06f9f3b9cfca9a7498cd07412cdae102, type: 2}
-  - {fileID: 11400000, guid: 629694bd7af8cda468c7002136d064bc, type: 2}
-  - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
-  - {fileID: 11400000, guid: da334d31e0718974c8bf5f193401a0c8, type: 2}
+  - {fileID: 11400000, guid: ee8dedd4c4ae40249aa7e67445b4d0c6, type: 2}
+  - {fileID: 11400000, guid: f2731ebeb8713fd46b1ac83a04c4a0c3, type: 2}
+  - {fileID: 11400000, guid: 56196f99e7094734e9d91b2f542ba20e, type: 2}
+  - {fileID: 11400000, guid: 9d92f6f486d79f749887aa2e578e1026, type: 2}
+  - {fileID: 11400000, guid: b8db3e133ee658d4e8a2a3e156e0fca0, type: 2}
+  - {fileID: 11400000, guid: ffed454794872ea4f92382ec55acc7ff, type: 2}
+  - {fileID: 11400000, guid: d79924df479bcdb4e8b7fec5e092e6b7, type: 2}
+  - {fileID: 11400000, guid: d6f980084f16fac46993768853261a0b, type: 2}
+  - {fileID: 11400000, guid: dcf9fa1a678c6c64b8d4ef953fb527ee, type: 2}
+  - {fileID: 11400000, guid: 4d1b4a62d80e0244ab24fd82c449b28b, type: 2}
+  - {fileID: 11400000, guid: 798a22ad3abf2b0488dd34271ff15e02, type: 2}
+  - {fileID: 11400000, guid: 0c02203e954e53148b769b4583b0d072, type: 2}
+  - {fileID: 11400000, guid: 5161a9f3a4b44184b844d21da1ed090a, type: 2}
+  - {fileID: 11400000, guid: 68c778b0ec856e54caccc834a34b39fe, type: 2}
+  - {fileID: 11400000, guid: 19353ae0deab16a409a0e010dcbdc5fa, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &1926050208
 MonoBehaviour:
@@ -7421,6 +7431,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GridManager
   _gridRoot: {fileID: 6772309790853338454}
   _slotPrefab: {fileID: 6841558488037871595, guid: 25d0d4d51bd985343a2adb238c9c7db9, type: 3}
+  _directionalImpactEffectPlayer: {fileID: 0}
   _rows: 5
   _columns: 5
 --- !u!1 &2803243701059742374
@@ -11660,7 +11671,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleManager
   _player: {fileID: 1113997785}
   _enemy: {fileID: 743872837}
-  _playerMotionPlayer: {fileID: 1141992323}
   _enemyList:
   - {fileID: 11400000, guid: e97fea7291b1df1489114efc8e808f25, type: 2}
   - {fileID: 11400000, guid: a781314443e24d046bfaf7a0b8a29d45, type: 2}

@@ -63,7 +63,10 @@ public enum EffectType
     TotemAura,
     TotemAura_Defense,
 
-    Devour  // 포식
+    Devour,  // 포식
+
+    CastingDamage,  // 캐스팅 - 공격
+    CastingDefense, // 캐스팅 - 수비
 }
 
 public enum CountScope
@@ -130,6 +133,10 @@ public class CardData : ScriptableObject
     [Header("Auto Trigger")]
     public bool hasAutoTrigger = false;          // 체인 종료 후 조건 충족 시 자동 ON
     public int autoTriggerThreshold = 1;         // 그리드 ON 카드 수 기준
+
+    [Header("Casting")]
+    public bool isCastingCard = false;
+    public int castingRequiredCount = 3;
 
     [Header("Range")]
     [Min(1)] public int range = 1;

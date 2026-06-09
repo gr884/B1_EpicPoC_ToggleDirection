@@ -76,10 +76,19 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private void RefreshPreserveUI()
     {
+        int displayCount = PreserveStack;
+        bool showRoot = PreserveStack > 0;
+
+        if (Data != null && Data.isCastingCard && IsActivated)
+        {
+            displayCount = _runtimeState != null ? _runtimeState.CurrentCastingCount : Data.castingRequiredCount;
+            showRoot = true;
+        }
+
         if (_preserveRoot != null)
-            _preserveRoot.SetActive(PreserveStack > 0);
+            _preserveRoot.SetActive(showRoot);
         if (_preserveText != null)
-            _preserveText.text = PreserveStack.ToString();
+            _preserveText.text = displayCount.ToString();
     }
 
     private RectTransform _rectTransform;
@@ -102,6 +111,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         {
             _runtimeState.OnChanged += RefreshRuntimeText;
             _runtimeState.OnChanged += RefreshPreviewText;
+            _runtimeState.OnChanged += RefreshPreserveUI;
         }
         CaptureHandLayout();
     }
@@ -112,6 +122,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         {
             _runtimeState.OnChanged -= RefreshRuntimeText;
             _runtimeState.OnChanged -= RefreshPreviewText;
+            _runtimeState.OnChanged -= RefreshPreserveUI;
         }
         UnsubscribeChainFinished();
     }
@@ -612,6 +623,25 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                     
                     int gain = Mathf.RoundToInt(effect.value) * targetCount;
                     return gain > 0 ? $"{gain}" : ""; 
+                }
+                case EffectType.CastingDamage:
+                {
+                    int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
+                    int totalBonus = bonusDamage + totemDamageBonus;
+
+                    int displayCount = (IsActivated && _runtimeState != null) ?
+                        _runtimeState.CurrentCastingCount : Data.castingRequiredCount;
+                    return totalBonus > 0 ? $"{baseVal + totalBonus} ({displayCount})" :
+                                            $"{baseVal} ({displayCount})";
+                }
+                case EffectType.CastingDefense:
+                {
+                    int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
+                    int displayCount = (IsActivated && _runtimeState != null) ?
+                        _runtimeState.CurrentCastingCount : Data.castingRequiredCount;
+                    int finalDef = baseVal + totemDefenseBonus;
+                    return totemDefenseBonus > 0 ?  $"{finalDef} ({displayCount})" : 
+                                                    $"{baseVal} ({displayCount})";
                 }
             default:
                 return "";
