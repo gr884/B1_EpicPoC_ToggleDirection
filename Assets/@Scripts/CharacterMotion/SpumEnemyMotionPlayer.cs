@@ -11,17 +11,9 @@ public class SpumEnemyMotionPlayer : MonoBehaviour
 
     [Header("Animation Indices")]
     [SerializeField] private int _idleIndex = 0;
-    [SerializeField] private int _moveIndex = 0;
     [SerializeField] private int _attackIndex = 0;
     [SerializeField] private int _damagedIndex = 0;
     [SerializeField] private int _deathIndex = 0;
-
-    [Header("Attack Movement")]
-    [SerializeField] private float _runSpeed = 7f;
-    [SerializeField] private float _attackStopOffsetX = 0.8f;
-    [SerializeField] private float _attackTargetYOffset = 0f;
-    [SerializeField] private float _returnDuration = 0.12f;
-    [SerializeField] private float _arrivalSnapDistance = 0.02f;
 
     [Header("Fallback Durations")]
     [SerializeField] private float _attackDuration = 0.42f;
@@ -163,32 +155,13 @@ public class SpumEnemyMotionPlayer : MonoBehaviour
 
     private IEnumerator PlayAttackChain(SpumEnemyMotionRequest request)
     {
-        Vector3 basePosition = transform.position;
-
-        if (TryGetAttackTargetPosition(out Vector3 attackPosition))
-        {
-            PlayMove();
-            FacePosition(attackPosition);
-
-            while (Vector3.Distance(transform.position, attackPosition) > _arrivalSnapDistance)
-            {
-                transform.position = Vector3.MoveTowards(
-                    transform.position,
-                    attackPosition,
-                    Mathf.Max(0.01f, _runSpeed) * Time.deltaTime);
-                yield return null;
-            }
-
-            transform.position = attackPosition;
-        }
+        FacePlayer();
 
         for (int i = 0; i < request.HitCount && !_isDying; i++)
             yield return PlayAttackOnce(request);
 
         if (!_isDying)
         {
-            yield return ReturnToBasePosition(basePosition);
-            FacePlayer();
             PlayIdle();
         }
     }
@@ -206,35 +179,6 @@ public class SpumEnemyMotionPlayer : MonoBehaviour
 
         ApplyAttackImpact();
         _activeAttackRequest = null;
-    }
-
-    private IEnumerator ReturnToBasePosition(Vector3 basePosition)
-    {
-        bool disabledAnimator = false;
-        if (_animator != null && _animator.enabled)
-        {
-            _animator.enabled = false;
-            disabledAnimator = true;
-        }
-
-        if (_returnDuration > 0f)
-        {
-            Vector3 returnStart = transform.position;
-            float elapsed = 0f;
-
-            while (elapsed < _returnDuration)
-            {
-                float t = elapsed / _returnDuration;
-                transform.position = Vector3.Lerp(returnStart, basePosition, t);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-        }
-
-        transform.position = basePosition;
-
-        if (disabledAnimator)
-            _animator.enabled = true;
     }
 
     private IEnumerator PlayHitRoutine()
@@ -268,35 +212,9 @@ public class SpumEnemyMotionPlayer : MonoBehaviour
         _activeAttackRequest.OnAttackImpact?.Invoke();
     }
 
-    private bool TryGetAttackTargetPosition(out Vector3 attackPosition)
-    {
-        attackPosition = transform.position;
-
-        BattleManager battleManager = BattleManager.Instance;
-        Player player = battleManager != null ? battleManager.Player : null;
-        Transform target = player != null ? player.transform : null;
-        if (target == null) return false;
-
-        Vector3 targetPosition = target.position;
-        float side = Mathf.Approximately(transform.position.x, targetPosition.x)
-            ? 1f
-            : Mathf.Sign(transform.position.x - targetPosition.x);
-
-        attackPosition = new Vector3(
-            targetPosition.x + side * _attackStopOffsetX,
-            targetPosition.y + _attackTargetYOffset,
-            transform.position.z);
-        return true;
-    }
-
     private void PlayIdle()
     {
         PlaySpum(PlayerState.IDLE, _idleIndex);
-    }
-
-    private void PlayMove()
-    {
-        PlaySpum(PlayerState.MOVE, _moveIndex);
     }
 
     private void PlaySpum(PlayerState state, int index)

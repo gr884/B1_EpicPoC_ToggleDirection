@@ -9,17 +9,9 @@ public class EnemyCharacterMotionPlayer : MonoBehaviour
 
     [Header("State Names")]
     [SerializeField] private string _idleStateName = "Idle";
-    [SerializeField] private string _runStateName = "Run";
     [SerializeField] private string _attackStateName = "Attack";
     [SerializeField] private string _hitStateName = "Hit";
     [SerializeField] private string _dieStateName = "Die";
-
-    [Header("Attack Movement")]
-    [SerializeField] private float _runSpeed = 7f;
-    [SerializeField] private float _attackStopOffsetX = 0.8f;
-    [SerializeField] private float _attackTargetYOffset = 0f;
-    [SerializeField] private float _returnDuration = 0.12f;
-    [SerializeField] private float _arrivalSnapDistance = 0.02f;
 
     [Header("Fallback Durations")]
     [SerializeField] private float _attackDuration = 0.84f;
@@ -32,7 +24,6 @@ public class EnemyCharacterMotionPlayer : MonoBehaviour
     private bool _isDying;
 
     private int _idleStateHash;
-    private int _runStateHash;
     private int _attackStateHash;
     private int _hitStateHash;
     private int _dieStateHash;
@@ -84,31 +75,12 @@ public class EnemyCharacterMotionPlayer : MonoBehaviour
         if (_isDying) yield break;
 
         int attackCount = Mathf.Max(1, hitCount);
-        Vector3 basePosition = transform.position;
-
-        if (TryGetAttackTargetPosition(out Vector3 attackPosition))
-        {
-            PlayRun();
-
-            while (Vector3.Distance(transform.position, attackPosition) > _arrivalSnapDistance)
-            {
-                transform.position = Vector3.MoveTowards(
-                    transform.position,
-                    attackPosition,
-                    Mathf.Max(0.01f, _runSpeed) * Time.deltaTime);
-                yield return null;
-            }
-
-            transform.position = attackPosition;
-        }
 
         for (int i = 0; i < attackCount; i++)
         {
             yield return PlayAttackOnce();
             onAttackFinished?.Invoke();
         }
-
-        yield return ReturnToBasePosition(basePosition);
 
         if (!_isDying)
             PlayIdle();
@@ -121,35 +93,6 @@ public class EnemyCharacterMotionPlayer : MonoBehaviour
         float attackDuration = GetMotionDuration("Mushroom_Attack", _attackDuration);
         if (attackDuration > 0f)
             yield return new WaitForSeconds(attackDuration);
-    }
-
-    private IEnumerator ReturnToBasePosition(Vector3 basePosition)
-    {
-        bool disabledAnimator = false;
-        if (_animator != null && _animator.enabled)
-        {
-            _animator.enabled = false;
-            disabledAnimator = true;
-        }
-
-        if (_returnDuration > 0f)
-        {
-            Vector3 returnStart = transform.position;
-            float elapsed = 0f;
-
-            while (elapsed < _returnDuration)
-            {
-                float t = elapsed / _returnDuration;
-                transform.position = Vector3.Lerp(returnStart, basePosition, t);
-                elapsed += Time.deltaTime;
-                yield return null;
-            }
-        }
-
-        transform.position = basePosition;
-
-        if (disabledAnimator)
-            _animator.enabled = true;
     }
 
     public void PlayHit()
@@ -212,32 +155,6 @@ public class EnemyCharacterMotionPlayer : MonoBehaviour
         _dieRoutine = null;
     }
 
-    private bool TryGetAttackTargetPosition(out Vector3 attackPosition)
-    {
-        attackPosition = transform.position;
-
-        BattleManager battleManager = BattleManager.Instance;
-        Player player = battleManager != null ? battleManager.Player : null;
-        Transform target = player != null ? player.transform : null;
-        if (target == null) return false;
-
-        Vector3 targetPosition = target.position;
-        float side = Mathf.Approximately(transform.position.x, targetPosition.x)
-            ? 1f
-            : Mathf.Sign(transform.position.x - targetPosition.x);
-
-        attackPosition = new Vector3(
-            targetPosition.x + side * _attackStopOffsetX,
-            targetPosition.y + _attackTargetYOffset,
-            transform.position.z);
-        return true;
-    }
-
-    private void PlayRun()
-    {
-        PlayState(_runStateHash);
-    }
-
     private void PlayIdle()
     {
         PlayState(_idleStateHash);
@@ -266,7 +183,6 @@ public class EnemyCharacterMotionPlayer : MonoBehaviour
     private void RefreshHashes()
     {
         _idleStateHash = Animator.StringToHash(_idleStateName);
-        _runStateHash = Animator.StringToHash(_runStateName);
         _attackStateHash = Animator.StringToHash(_attackStateName);
         _hitStateHash = Animator.StringToHash(_hitStateName);
         _dieStateHash = Animator.StringToHash(_dieStateName);
