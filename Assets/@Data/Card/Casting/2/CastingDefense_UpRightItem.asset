@@ -10,13 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: 22CardData
-  m_EditorClassIdentifier: Assembly-CSharp::CardData
+  m_Name: CastingDefense_UpRightItem
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uCE90\uC2A4\uD305\uBC29\uC5B4"
-  description: "\uC774 \uAE30\uBB3C\uC774 \uCF1C\uC9C4 \uC0C1\uD0DC\uC5D0\uC11C \uB2E4\uB978
-    \uAE30\uBB3C\uC774 5\uBC88 \uCF1C\uC9C0\uBA74 40\uC758 \uC2E4\uB4DC\uB97C \uC5BB\uACE0
-    \uAEBC\uC9D1\uB2C8\uB2E4."
+  displayName: "\uCE90\uC2A4\uD305 \uACF5\uACA9"
+  description: "\uC774 \uAE30\uBB3C\uC774 \uCF1C\uC9C4\n\uC0C1\uD0DC\uC5D0\uC11C
+    \uB2E4\uB978 \uAE30\uBB3C\uC774\n5\uBC88 \uCF1C\uC9C0\uBA74\n40\uC758 \uB370\uBBF8\uC9C0\uB97C
+    \uC8FC\uACE0\n\uAEBC\uC9D1\uB2C8\uB2E4."
   cost: 1
   isUnplayable: 0
   isCurseCard: 0
@@ -28,14 +28,14 @@ MonoBehaviour:
   castingRequiredCount: 5
   range: 1
   recallDestination: 0
-  directions: 03000000
+  directions: 0100000003000000
   effects:
   - trigger: 0
     scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 20
+    effectType: 19
     value: 40
     secondaryValue: 0
   totemAuraOffsets: []
-  icon: {fileID: -3517679940079250449, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  icon: {fileID: 7354227415694319090, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
