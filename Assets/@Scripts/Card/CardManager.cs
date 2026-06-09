@@ -47,10 +47,28 @@ public class CardManager : SingletonBehaviour<CardManager>
     private readonly List<CardView> _hand = new();
     public IReadOnlyList<CardView> Hand => _hand;
     public int HandCount => _hand.Count;
+    private readonly List<PendingPlacement> _pendingPlacements = new();
 
     public event Action OnHandChanged;
 
+    private class PendingPlacement
+    {
+        public CardView Card;
+        public GridSlot TargetSlot;
+    }
+
     public bool CanAcceptPlayerCardInput
+    {
+        get
+        {
+            ChainExecutor chain = ChainExecutor.Instance;
+            if (chain == null || chain.IsExecuting) return false;
+
+            return CanDragHandCardInput;
+        }
+    }
+
+    public bool CanDragHandCardInput
     {
         get
         {
@@ -62,10 +80,7 @@ public class CardManager : SingletonBehaviour<CardManager>
             if (battle.IsProcessing) return false;
             if (battle.CurrentPhase != BattleManager.BattlePhase.PlayerTurn) return false;
 
-            ChainExecutor chain = ChainExecutor.Instance;
-            if (chain == null || chain.IsExecuting) return false;
-
-            return true;
+            return ChainExecutor.Instance != null;
         }
     }
 
@@ -80,6 +95,8 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     private void OnChainFinished()
     {
+        ResolveNextPendingPlacement();
+
         foreach (CardView card in _hand)
             if (card != null) card.SetDraggable(true);
         RefreshHandAffordability();
@@ -245,6 +262,8 @@ public class CardManager : SingletonBehaviour<CardManager>
 
     public void DiscardHand()
     {
+        _pendingPlacements.Clear();
+
         foreach (CardView card in _hand)
         {
             if (card == null) continue;
@@ -342,12 +361,15 @@ public class CardManager : SingletonBehaviour<CardManager>
     public bool CanPreviewPlaceCard(CardView card, GridSlot targetSlot)
     {
         if (card == null || targetSlot == null) return false;
-        if (!CanAcceptPlayerCardInput) return false;
+        if (!CanDragHandCardInput) return false;
         if (!_hand.Contains(card)) return false;
         if (card.Instance == null || card.Data == null) return false;
         if (card.Data.isUnplayable) return false;
+        if (IsSlotReserved(targetSlot)) return false;
 
         bool isRecaller = card.Data.isRecaller;
+        bool isChainExecuting = ChainExecutor.Instance != null && ChainExecutor.Instance.IsExecuting;
+        if (isChainExecuting && isRecaller) return false;
 
         // 일반 카드는 빈 슬롯만, 조작형은 점유 슬롯만 허용
         if (!isRecaller && !targetSlot.IsEmpty) return false;
@@ -363,12 +385,15 @@ public class CardManager : SingletonBehaviour<CardManager>
     public bool TryPlaceCard(CardView card, GridSlot targetSlot)
     {
         if (card == null || targetSlot == null) return false;
-        if (!CanAcceptPlayerCardInput) return false;
+        if (!CanDragHandCardInput) return false;
         if (!_hand.Contains(card)) return false;
         if (card.Instance == null || card.Data == null) return false;
         if (card.Data.isUnplayable) return false;
+        if (IsSlotReserved(targetSlot)) return false;
 
         bool isRecaller = card.Data.isRecaller;
+        bool isChainExecuting = ChainExecutor.Instance != null && ChainExecutor.Instance.IsExecuting;
+        if (isChainExecuting && isRecaller) return false;
 
         // 일반 카드는 빈 슬롯만, 조작형은 점유 슬롯만 허용
         if (!isRecaller && !targetSlot.IsEmpty) return false;
@@ -378,6 +403,12 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
             && !TutorialManager.Instance.CanPlaceCard(card, targetSlot)) return false;
         if (!_player.SpendCost(card.Data.cost)) return false;
+
+        if (isChainExecuting)
+        {
+            QueuePendingPlacement(card, targetSlot);
+            return true;
+        }
 
         // 조작형: 대상 카드 손패로 회수 후 자신 소멸
         if (isRecaller)
@@ -412,6 +443,76 @@ public class CardManager : SingletonBehaviour<CardManager>
         TutorialManager.Instance?.OnCardPlaced(card);
         ChainExecutor.Instance.ExecutePlacedCard(card);
         return true;
+    }
+
+    public bool IsSlotReserved(GridSlot slot)
+    {
+        if (slot == null) return false;
+
+        foreach (PendingPlacement pending in _pendingPlacements)
+            if (pending != null && pending.TargetSlot == slot)
+                return true;
+
+        return false;
+    }
+
+    private void QueuePendingPlacement(CardView card, GridSlot targetSlot)
+    {
+        _pendingPlacements.Add(new PendingPlacement
+        {
+            Card = card,
+            TargetSlot = targetSlot
+        });
+
+        card.SetDraggable(false);
+        _hand.Remove(card);
+        OnHandChanged?.Invoke();
+        TutorialManager.Instance?.OnCardPlaced(card);
+    }
+
+    private void ResolveNextPendingPlacement()
+    {
+        if (_pendingPlacements.Count == 0) return;
+
+        while (_pendingPlacements.Count > 0)
+        {
+            PendingPlacement pending = _pendingPlacements[0];
+            _pendingPlacements.RemoveAt(0);
+
+            CardView card = pending.Card;
+            GridSlot targetSlot = pending.TargetSlot;
+            if (card == null)
+                continue;
+            if (targetSlot == null || !targetSlot.IsEmpty)
+            {
+                ReturnPendingCardToHand(card);
+                continue;
+            }
+
+            targetSlot.AssignCard(card);
+            card.ApplyGridLayout();
+            ChainExecutor.Instance?.RefreshTotemAuras();
+            card.SetDraggable(false);
+
+            // 재발동형: 이번 턴 첫 번째 카드 기록
+            if (_firstPlacedCard == null)
+                _firstPlacedCard = card;
+
+            ChainExecutor.Instance.ExecutePlacedCard(card);
+            return;
+        }
+    }
+
+    private void ReturnPendingCardToHand(CardView card)
+    {
+        if (card == null || _hand.Contains(card)) return;
+
+        card.transform.SetParent(_handRoot, false);
+        card.ApplyHandLayout();
+        card.SetDraggable(true);
+        card.SetAffordable(card.Data != null && _player.CanSpend(card.Data.cost));
+        _hand.Add(card);
+        OnHandChanged?.Invoke();
     }
 
     /// <summary>튜토리얼 전용 고정 덱을 세팅합니다.</summary>

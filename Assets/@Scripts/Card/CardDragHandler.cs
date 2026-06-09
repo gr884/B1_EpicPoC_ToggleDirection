@@ -13,6 +13,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     private Vector2 _startAnchoredPosition;
     private int _startSiblingIndex;
     private bool _dropAccepted;
+    private bool _pendingDropAccepted;
     private bool _dragBlocked;
     private bool _isDraggable = true;
     private GridSlot _previewSlot;
@@ -38,7 +39,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         if (!enabled || Card == null) return;
         if (!_isDraggable) return;
         if (Card.CurrentSlot != null) return;
-        if (!CanAcceptPlayerCardInput()) return;
+        if (!CanDragHandCardInput()) return;
 
         // 튜토리얼에서 막힌 카드면 드래그 차단
         if (TutorialManager.Instance != null && !TutorialManager.Instance.CanDragCard(Card))
@@ -49,6 +50,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
 
         _dragBlocked = false; // 여기까지 왔으면 정상 드래그
         _dropAccepted = false;
+        _pendingDropAccepted = false;
         _previewSlot = null;
         _startAnchoredPosition = _rectTransform.anchoredPosition;
         _startParent = transform.parent;
@@ -64,7 +66,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public void OnDrag(PointerEventData eventData)
     {
         if (!enabled || _dragBlocked || _rootCanvas == null || Card.CurrentSlot != null) return;
-        if (!CanAcceptPlayerCardInput())
+        if (!CanDragHandCardInput())
         {
             ClearPendingDirectionalImpact();
             CancelDrag();
@@ -79,7 +81,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     {
         if (!enabled || _dragBlocked) return;
 
-        _canvasGroup.blocksRaycasts = true;
+        _canvasGroup.blocksRaycasts = !_pendingDropAccepted;
         _canvasGroup.alpha = 1f;
         ClearPendingDirectionalImpact();
 
@@ -92,6 +94,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
     public void CommitDrop(Transform newParent)
     {
         _dropAccepted = true;
+        _pendingDropAccepted = false;
         ClearPendingDirectionalImpact();
 
         _rectTransform.SetParent(newParent, false);
@@ -101,15 +104,30 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         _canvasGroup.alpha = 1f;
     }
 
+    public void CommitPendingDrop(Transform newParent)
+    {
+        _dropAccepted = true;
+        _pendingDropAccepted = true;
+        ClearPendingDirectionalImpact();
+
+        _rectTransform.SetParent(newParent, false);
+        FitToParent();
+
+        // 정식 부착 전까지 플레이어 입력과 슬롯 판정을 가로막지 않는다.
+        _canvasGroup.blocksRaycasts = false;
+        _canvasGroup.alpha = 1f;
+        _rootCanvas = null;
+    }
+
     private void FitToParent()
     {
         if (Card != null)
             Card.ApplyGridLayout();
     }
 
-    private bool CanAcceptPlayerCardInput()
+    private bool CanDragHandCardInput()
     {
-        return CardManager.Instance != null && CardManager.Instance.CanAcceptPlayerCardInput;
+        return CardManager.Instance != null && CardManager.Instance.CanDragHandCardInput;
     }
 
     private void RefreshPendingDirectionalImpact(PointerEventData eventData)
