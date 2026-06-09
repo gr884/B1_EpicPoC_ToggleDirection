@@ -397,6 +397,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 }
                 break;
             }
+            case EffectType.CastingDamage:
+            case EffectType.CastingDefense:
+                break;
         }
 
         yield break;
@@ -464,6 +467,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (card == null || card.CurrentSlot == null) continue;
             bool nextState = !card.IsActivated;
             card.SetActivated(nextState);
+            HandleCastingStateChange(card, nextState);
             RefreshTotemAuras();
 
             if (nextState && !card.IsEnemy)
@@ -471,6 +475,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 _turnToggleCount++;
                 OnToggleCountChanged?.Invoke();
                 card.Instance?.PersistentState.IncrementTurnOnCount();
+                ProcessCastingTriggers(card);
                 yield return ApplyEffects(card, EffectTrigger.OnActivated);
             }
             else if (!nextState && !card.IsEnemy)
@@ -508,13 +513,17 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             bool wasOff = !neighbor.IsActivated;
 
             if (wasOff)
+            {
                 neighbor.SetActivated(true);
+                HandleCastingStateChange(neighbor, true);
+            }
             RefreshTotemAuras();
 
             // ON 여부와 관계없이 효과 발동 + 카운트 증가 + 피드백
             _turnToggleCount++;
             OnToggleCountChanged?.Invoke();
             neighbor.Instance?.PersistentState.IncrementTurnOnCount();
+            ProcessCastingTriggers(neighbor);
             yield return ApplyEffects(neighbor);
             StartCoroutine(neighbor.PlayActivationFeedback(_cardFeedbackDuration));
 
@@ -600,7 +609,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         {
             CardView card = slot.OccupiedCard;
             if (card == null || card.IsEnemy) continue;
-            if (!card.IsActivated) continue;
+            if (card.Data != null && card.Data.isCastingCard)
+                card.GetComponent<CardRuntimeState>()?.InitializeCasting(card.Data.castingRequiredCount);
             yield return ApplyEffects(card, EffectTrigger.OnTurnEnd);
         }
     }
@@ -719,6 +729,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                 bool nextState = !current.IsActivated;
                 current.SetActivated(nextState);
+                HandleCastingStateChange(current, nextState);
                 RefreshTotemAuras();
 
                 step++;
@@ -740,6 +751,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         // 카운터형: 그리드 전체 ON 횟수 누적
                         _turnToggleCount++;
                         OnToggleCountChanged?.Invoke();
+
+                        ProcessCastingTriggers(current);
 
                         yield return ApplyEffects(current);
 
@@ -925,6 +938,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             case EffectType.PopularityDamage:       // 인싸
             case EffectType.FinisherDamage:         // 마무리
             case EffectType.DefenseOnOff:           // 쌍방 (ON일 때 공격력)
+            case EffectType.CastingDamage:
                 return true;
             default:
                 return false;
@@ -1216,5 +1230,72 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnToggleCountChanged = null;
         OnTotemAuraChanged = null;
         base.Dispose();
+    }
+
+    //* ON/OFF 시 캐스팅 카운트를 리셋
+    private void HandleCastingStateChange(CardView card, bool isNowActivated)
+    {
+        if (card == null || card.IsEnemy || card.Data == null || !card.Data.isCastingCard) return;
+        var runtime = card.GetComponent<CardRuntimeState>();
+        if (runtime == null) return;
+
+        if (isNowActivated) runtime.InitializeCasting(card.Data.castingRequiredCount);
+        else runtime.ResetCasting();
+    }
+
+    //* 다른 카드가 켜질 때 맵을 싹 뒤져서 캐스팅 카운트를 깎음
+    private void ProcessCastingTriggers(CardView triggerCard)
+    {
+        if (GridManager.Instance == null) return;
+        List<CardView> cardsToExecute = new();
+
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            CardView card = slot.OccupiedCard;
+            // 켜져 있는 아군 캐스팅 카드만 찾음 (자기 자신 제외)
+            if (card == null || card.IsEnemy || !card.IsActivated) continue;
+            if (card == triggerCard) continue;
+            if (card.Data == null || !card.Data.isCastingCard) continue;
+
+            var runtime = card.GetComponent<CardRuntimeState>();
+            if (runtime != null && runtime.CurrentCastingCount > 0)
+            {
+                runtime.DecreaseCasting();
+                if (runtime.CurrentCastingCount <= 0) // 카운트가 0이 되면 발동 대기열에 추가
+                    cardsToExecute.Add(card);
+            }
+        }
+
+        foreach (CardView c in cardsToExecute) ExecuteCasting(c);
+    }
+
+    //* 캐스팅 완료 시 효과를 발동하고 꺼뜨림
+    private void ExecuteCasting(CardView card)
+    {
+        var runtime = card.GetComponent<CardRuntimeState>();
+        if (card.Data?.effects != null)
+        {
+            foreach (var effect in card.Data.effects)
+            {
+                if (effect.effectType == EffectType.CastingDamage)
+                {
+                    float adjusted = GetTotemAdjustedValue(card, EffectType.CastingDamage, effect.value);
+                    int baseDmg = Mathf.Max(1, Mathf.RoundToInt(adjusted));
+                    int finalDmg = runtime != null ? runtime.GetModifiedDamage(baseDmg) : baseDmg;
+                    DealDamageToEnemy(finalDmg);
+                }
+                else if (effect.effectType == EffectType.CastingDefense)
+                {
+                    float adjusted = GetTotemAdjustedValue(card, EffectType.Defense, effect.value);
+                    int baseDef = Mathf.Max(1, Mathf.RoundToInt(adjusted));
+                    BattleManager.Instance.Player.AddDefense(baseDef);
+                }
+            }
+        }
+        // 딜을 넣고 스스로 꺼짐
+        card.SetActivated(false);
+        HandleCastingStateChange(card, false);
+        RefreshTotemAuras();
+        _activatedCards.Remove(card); // 체인 대기열에서 안전하게 제거
     }
 }

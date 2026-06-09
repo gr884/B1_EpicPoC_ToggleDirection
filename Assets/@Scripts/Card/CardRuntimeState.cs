@@ -9,6 +9,7 @@ public class CardRuntimeState : MonoBehaviour
 
     public CardInstance Instance => _instance;
     public int BonusDamage => !_isEnemy && _instance != null ? _instance.PersistentState.BonusDamage : 0;
+    public int CurrentCastingCount { get; private set; }
 
     public event Action OnChanged;
 
@@ -62,6 +63,27 @@ public class CardRuntimeState : MonoBehaviour
     {
         if (_instance == null) return;
         _instance.PersistentState.ClearCombatState();
+        OnChanged?.Invoke();
+    }
+
+    public void InitializeCasting(int count)
+    {
+        CurrentCastingCount = count;
+        OnChanged?.Invoke();
+    }
+
+    public void DecreaseCasting()
+    {
+        if (CurrentCastingCount > 0)
+        {
+            CurrentCastingCount--;
+            OnChanged?.Invoke();
+        }
+    }
+
+    public void ResetCasting()
+    {
+        CurrentCastingCount = 0;
         OnChanged?.Invoke();
     }
 }
