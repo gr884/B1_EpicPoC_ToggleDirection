@@ -28,6 +28,11 @@ MonoBehaviour:
   range: 1
   recallDestination: 0
   directions: 080000000700000006000000
+  remoteToggleOffsets:
+  - {x: -1, y: 0}
+  - {x: -2, y: 0}
+  - {x: -2, y: -1}
+  - {x: -2, y: 1}
   effects:
   - trigger: 0
     scope: 0

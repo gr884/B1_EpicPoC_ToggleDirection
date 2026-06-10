@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: ShotgunAttack_RightItem
+  m_Name: RangeAttack_RightItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uC0F7\uAC74"
-  description: "10\uC758 \uB370\uBBF8\uC9C0\uB97C \uC8FC\uACE0\n\uC624\uB978\uCABD
-    \uC77C\uB82C\uB85C \uACF5\uACA9\uD569\uB2C8\uB2E4."
+  displayName: "\uC6D0\uAC70\uB9AC\uACF5\uACA9"
+  description: "\uACF5\uACA9 + 5\n\uC624\uB978\uCABD\uC73C\uB85C \uD55C \uCE78 \uB5A8\uC5B4\uC9C4
+    \uAE30\uBB3C\uC744 \uD2B8\uB9AC\uAC70\uD569\uB2C8\uB2E4."
   cost: 1
   isUnplayable: 0
   isCurseCard: 0
@@ -27,19 +27,16 @@ MonoBehaviour:
   castingRequiredCount: 3
   range: 1
   recallDestination: 0
-  directions: 020000000300000004000000
+  directions: 03000000
   remoteToggleOffsets:
-  - {x: 1, y: 0}
   - {x: 2, y: 0}
-  - {x: 2, y: -1}
-  - {x: 2, y: 1}
   effects:
   - trigger: 0
     scope: 0
     thresholdType: 0
     threshold: 0
     effectType: 0
-    value: 10
+    value: 5
     secondaryValue: 0
   totemAuraOffsets: []
-  icon: {fileID: 8034864656527293546, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  icon: {fileID: 6837079935399249492, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

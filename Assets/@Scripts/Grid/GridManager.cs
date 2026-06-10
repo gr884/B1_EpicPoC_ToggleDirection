@@ -130,26 +130,10 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     public List<GridSlot> GetDirectionalImpactSlots(CardView sourceCard, GridSlot attachSlot)
     {
-        List<GridSlot> result = new();
-        if (sourceCard?.Data == null || attachSlot == null) return result;
-        if (sourceCard.Data.isRecaller) return result;
+        if (sourceCard?.Data == null || attachSlot == null || sourceCard.Data.isRecaller)
+            return new List<GridSlot>();
 
-        int range = Mathf.Max(1, sourceCard.Data.range);
-        foreach (CardDirection dir in sourceCard.Data.GetAllDirections())
-        {
-            GridSlot current = attachSlot;
-            for (int i = 0; i < range; i++)
-            {
-                GridSlot next = GetNeighbor(current, dir);
-                if (next == null) break;
-
-                if (!result.Contains(next))
-                    result.Add(next);
-                current = next;
-            }
-        }
-
-        return result;
+        return CardTargetResolver.ResolveToggleSlots(sourceCard.Data, attachSlot, this);
     }
 
     public void ShowPendingDirectionalImpact(CardView sourceCard, GridSlot attachSlot)

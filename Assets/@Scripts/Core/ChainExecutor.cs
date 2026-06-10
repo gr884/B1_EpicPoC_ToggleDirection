@@ -551,17 +551,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (emitter?.Data == null || emitter.CurrentSlot == null) continue;
             activatedCards.Add(emitter);
 
-            foreach (CardDirection dir in emitter.Data.GetAllDirections())
+            foreach (GridSlot targetSlot in CardTargetResolver.ResolveToggleSlots(emitter, GridManager.Instance))
             {
-                GridSlot current = emitter.CurrentSlot;
-                for (int i = 0; i < emitter.Data.range; i++)
-                {
-                    GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                    if (neighbor == null) break;
-                    if (neighbor.OccupiedCard != null)
-                        nextWaveSet.Add(neighbor.OccupiedCard);
-                    current = neighbor;
-                }
+                if (targetSlot.OccupiedCard != null)
+                    nextWaveSet.Add(targetSlot.OccupiedCard);
             }
         }
 
@@ -798,19 +791,10 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             {
                 if (emitter.Data == null) continue;
 
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
+                foreach (GridSlot targetSlot in CardTargetResolver.ResolveToggleSlots(emitter, GridManager.Instance))
                 {
-                    GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
-                    {
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                        if (neighbor == null) break;
-
-                        if (neighbor.OccupiedCard != null)
-                            nextWaveSet.Add(neighbor.OccupiedCard);
-
-                        current = neighbor;
-                    }
+                    if (targetSlot.OccupiedCard != null)
+                        nextWaveSet.Add(targetSlot.OccupiedCard);
                 }
             }
 
@@ -1056,20 +1040,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             {
                 if (emitter == null || emitter.Data == null) continue;
 
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
+                foreach (GridSlot targetSlot in CardTargetResolver.ResolveToggleSlots(emitter, GridManager.Instance))
                 {
-                    GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
-                    {
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                        if (neighbor == null) break;
-
-                        CardView target = neighbor.OccupiedCard;
-                        if (target != null && simulatedStates.ContainsKey(target))
-                            nextWaveSet.Add(target);
-
-                        current = neighbor;
-                    }
+                    CardView target = targetSlot.OccupiedCard;
+                    if (target != null && simulatedStates.ContainsKey(target))
+                        nextWaveSet.Add(target);
                 }
             }
 

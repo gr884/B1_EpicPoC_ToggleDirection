@@ -147,6 +147,10 @@ public class CardData : ScriptableObject
     [Header("Directions")]
     public List<CardDirection> directions = new();
 
+    [Header("Remote Toggle")]
+    [Tooltip("Relative grid coordinates toggled from this card's position. When empty, Directions and Range are used.")]
+    public List<Vector2Int> remoteToggleOffsets = new();
+
     [Header("Effects")]
     public List<CardEffect> effects = new();
 
