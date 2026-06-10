@@ -45,7 +45,9 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         if (TutorialManager.Instance != null && !TutorialManager.Instance.CanDragCard(Card))
             return;
 
-        _rootCanvas = FindFirstObjectByType<Canvas>();
+        _rootCanvas = GetComponentInParent<Canvas>();
+        if (_rootCanvas != null && _rootCanvas.rootCanvas != null)
+            _rootCanvas = _rootCanvas.rootCanvas;
         if (_rootCanvas == null) return;
 
         _dragBlocked = false; // 여기까지 왔으면 정상 드래그
