@@ -200,15 +200,16 @@ public class CardEffectPlaySystem : MonoBehaviour
             yield return null;
     }
 
-    public void PlayAssignedEffectDetached(
+    public bool PlayAssignedEffectDetached(
         CardView sourceCard,
         EffectType effectType,
         QueuedEffectTiming timing,
+        Action onImpact = null,
         Transform targetOverride = null,
         float value = 0f)
     {
         if (!isActiveAndEnabled || !HasAssignedVisual(sourceCard, effectType))
-            return;
+            return false;
 
         CardData cardData = sourceCard != null ? sourceCard.Data : null;
         QueuedEffectRequest request = new(
@@ -216,12 +217,13 @@ public class CardEffectPlaySystem : MonoBehaviour
             cardData,
             effectType,
             timing,
-            null,
+            onImpact,
             targetOverride,
             value);
 
         // 체인 진행과 무관하게 비주얼만 독립 실행한다.
         StartCoroutine(PlayDetachedEffect(request));
+        return true;
     }
 
     public void EnqueueEffect(QueuedEffectRequest request)
@@ -291,6 +293,8 @@ public class CardEffectPlaySystem : MonoBehaviour
         CardEffectVisualSetting setting = FindVisualSetting(request.CardData, request.EffectType);
         if (HasVisual(request, setting))
             yield return PlayVisual(request, setting);
+
+        request.OnImpact?.Invoke();
     }
 
     private IEnumerator PlayEffectRequest(QueuedEffectRequest request)

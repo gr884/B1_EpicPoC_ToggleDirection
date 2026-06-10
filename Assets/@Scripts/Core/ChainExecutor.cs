@@ -179,11 +179,15 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         if (_cardEffectPlaySystem != null && _cardEffectPlaySystem.HasAssignedVisual(card, type))
         {
-            _cardEffectPlaySystem.PlayAssignedEffectDetached(
+            bool scheduledOnImpact = _cardEffectPlaySystem.PlayAssignedEffectDetached(
                 card,
                 type,
                 ToQueuedEffectTiming(trigger),
+                () => StartCoroutine(ApplyEffect(type, resolvedValue, card)),
                 value: resolvedValue);
+
+            if (scheduledOnImpact)
+                yield break;
         }
 
         yield return ApplyEffect(type, resolvedValue, card);
