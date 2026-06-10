@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
 
-public class GridSlot : MonoBehaviour, IDropHandler
+public class GridSlot : MonoBehaviour, IDropHandler, IPointerEnterHandler, IPointerClickHandler
 {
     [Header("Highlight")]
     [SerializeField] private GameObject _highlightOverlay;
@@ -10,12 +10,18 @@ public class GridSlot : MonoBehaviour, IDropHandler
 
     public Vector2Int Position { get; private set; }
     public CardView OccupiedCard { get; private set; }
+    public RelicView OccupiedRelic { get; private set; }
     public bool IsEmpty => OccupiedCard == null;
+    public bool HasAnyOccupant => OccupiedCard != null || OccupiedRelic != null;
+    public bool CanPlaceCardAt() => OccupiedCard == null && OccupiedRelic == null;
+    public bool CanPlaceRelicAt() => OccupiedCard == null && OccupiedRelic == null;
+    public IGridChainNode GetChainNodeAt() => OccupiedCard != null ? OccupiedCard : OccupiedRelic;
 
     public void Setup(Vector2Int position)
     {
         Position = position;
         OccupiedCard = null;
+        OccupiedRelic = null;
         SetHighlight(false);
         SetTotemBorder(false, false);
     }
@@ -34,6 +40,17 @@ public class GridSlot : MonoBehaviour, IDropHandler
         if (OccupiedCard != null)
             OccupiedCard.SetPlaced(null);
         OccupiedCard = null;
+    }
+
+    public void AssignRelic(RelicView relic)
+    {
+        OccupiedRelic = relic;
+        SetHighlight(false);
+    }
+
+    public void ClearRelic()
+    {
+        OccupiedRelic = null;
     }
 
     public void SetHighlight(bool highlight)
@@ -73,5 +90,16 @@ public class GridSlot : MonoBehaviour, IDropHandler
             else
                 drag.CommitDrop(transform);
         }
+    }
+
+    public void OnPointerEnter(PointerEventData eventData)
+    {
+        RelicPlacementController.Instance?.HandleSlotHovered(this);
+    }
+
+    public void OnPointerClick(PointerEventData eventData)
+    {
+        if (eventData.button != PointerEventData.InputButton.Left) return;
+        RelicPlacementController.Instance?.HandleSlotClicked(this);
     }
 }

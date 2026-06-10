@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
@@ -15,6 +16,7 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     public int Rows => _rows;
     public int Columns => _columns;
+    public event Action OnGridBuilt;
 
     private readonly Dictionary<Vector2Int, GridSlot> _slots = new();
     public IReadOnlyDictionary<Vector2Int, GridSlot> Slots => _slots;
@@ -59,6 +61,7 @@ public class GridManager : SingletonBehaviour<GridManager>
         }
 
         Debug.Log($"[GridManager] 그리드 생성 완료 ({_rows}x{_columns})");
+        OnGridBuilt?.Invoke();
     }
 
     // ── 리셋 ───────────────────────────────────────────────
@@ -80,7 +83,7 @@ public class GridManager : SingletonBehaviour<GridManager>
     public CardView PlaceEnemyCard(CardData data, GameObject cardPrefab, Vector2Int position, bool startsActivated = true)
     {
         GridSlot slot = GetSlot(position);
-        if (slot == null || !slot.IsEmpty) return null;
+        if (slot == null || !slot.CanPlaceCardAt()) return null;
         return SpawnEnemyCard(data, cardPrefab, slot, startsActivated);
     }
 
@@ -116,14 +119,14 @@ public class GridManager : SingletonBehaviour<GridManager>
     public GridSlot GetNeighbor(GridSlot origin, CardDirection direction)
     {
         if (origin == null || direction == CardDirection.None) return null;
-        return GetSlot(origin.Position + DirectionToDelta(direction));
+        return GetSlot(origin.Position + RelicShapeUtility.DirectionToDelta(direction));
     }
 
     public List<GridSlot> GetEmptySlots()
     {
         List<GridSlot> result = new();
         foreach (GridSlot slot in _slots.Values)
-            if (slot.IsEmpty && (CardManager.Instance == null || !CardManager.Instance.IsSlotReserved(slot)))
+            if (slot.CanPlaceCardAt() && (CardManager.Instance == null || !CardManager.Instance.IsSlotReserved(slot)))
                 result.Add(slot);
         return result;
     }
@@ -171,6 +174,43 @@ public class GridManager : SingletonBehaviour<GridManager>
                 slot.SetHighlight(false);
         _pendingDirectionalImpactSlots.Clear();
         _directionalImpactEffectPlayer?.Clear();
+    }
+
+    public void ShowPendingRelicPlacement(RelicData relic, GridSlot originSlot, int rotationSteps)
+    {
+        ClearPendingDirectionalImpact();
+        if (relic == null || originSlot == null) return;
+
+        bool canPlace = RelicManager.Instance != null
+            && RelicManager.Instance.CanPlaceRelic(relic, originSlot.Position, rotationSteps);
+
+        foreach (Vector2Int local in relic.GetOccupiedCells(rotationSteps))
+        {
+            GridSlot slot = GetSlot(originSlot.Position + local);
+            if (slot == null) continue;
+            slot.SetHighlight(canPlace);
+            _pendingDirectionalImpactSlots.Add(slot);
+        }
+
+        if (!canPlace) return;
+
+        List<GridSlot> targets = new();
+        foreach (RelicDirectionRay ray in relic.GetDirectionRays(rotationSteps))
+        {
+            GridSlot current = GetSlot(originSlot.Position + ray.LocalCell);
+            if (current == null) continue;
+
+            for (int i = 0; i < ray.Range; i++)
+            {
+                GridSlot next = GetNeighbor(current, ray.Direction);
+                if (next == null) break;
+                if (!targets.Contains(next))
+                    targets.Add(next);
+                current = next;
+            }
+        }
+
+        ResolveDirectionalImpactEffectPlayer()?.Show(targets);
     }
 
     // ── 내부 ───────────────────────────────────────────────
@@ -225,19 +265,6 @@ public class GridManager : SingletonBehaviour<GridManager>
             (list[i], list[j]) = (list[j], list[i]);
         }
     }
-
-    private static Vector2Int DirectionToDelta(CardDirection direction) => direction switch
-    {
-        CardDirection.Up => new Vector2Int(0, 1),
-        CardDirection.UpRight => new Vector2Int(1, 1),
-        CardDirection.Right => new Vector2Int(1, 0),
-        CardDirection.DownRight => new Vector2Int(1, -1),
-        CardDirection.Down => new Vector2Int(0, -1),
-        CardDirection.DownLeft => new Vector2Int(-1, -1),
-        CardDirection.Left => new Vector2Int(-1, 0),
-        CardDirection.UpLeft => new Vector2Int(-1, 1),
-        _ => Vector2Int.zero
-    };
 
     protected override void Dispose()
     {

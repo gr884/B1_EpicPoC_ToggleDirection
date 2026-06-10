@@ -27,8 +27,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     public event Action OnChainStarted;
     public event Action OnChainFinished;
 
-    private readonly HashSet<CardView> _activatedCards = new();
-    public IReadOnlyCollection<CardView> ActivatedCards => _activatedCards;
+    private readonly HashSet<IGridChainNode> _activatedCards = new();
+    public IReadOnlyCollection<IGridChainNode> ActivatedCards => _activatedCards;
 
     // 카운터형: 이번 턴 그리드 전체 ON 횟수
     private int _turnToggleCount;
@@ -64,6 +64,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         StartCoroutine(ExecuteChain(rootCard));
     }
 
+    public void ExecuteFrom(RelicView rootRelic)
+    {
+        StartCoroutine(ExecuteChain(rootRelic));
+    }
+
     public void ExecutePlacedCard(CardView card)
     {
         StartCoroutine(ExecutePlacedCardRoutine(card));
@@ -78,11 +83,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         ExecuteFrom(card);
     }
 
-    private IEnumerator ExecuteChain(CardView rootCard)
+    private IEnumerator ExecuteChain(IGridChainNode rootNode)
     {
-        if (rootCard == null) yield break;
+        if (rootNode == null) yield break;
 
-        bool willCreateInfiniteLoop = WouldCreateInfiniteLoop(rootCard);
+        bool willCreateInfiniteLoop = WouldCreateInfiniteLoop(rootNode);
 
         IsExecuting = true;
         OnChainStarted?.Invoke();
@@ -92,9 +97,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         SetAllCardsDraggable(false);
 
         if (willCreateInfiniteLoop)
-            yield return ExecutePredictedInfiniteLoopRoutine(rootCard, _activatedCards);
+            yield return ExecutePredictedInfiniteLoopRoutine(rootNode, _activatedCards);
         else
-            yield return ActivateChainFrom(rootCard, _activatedCards);
+            yield return ActivateChainFrom(rootNode, _activatedCards);
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
             if (slot.OccupiedCard != null)
@@ -435,7 +440,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         if (target.CurrentSlot == null) yield break;
 
         // 독립적인 activatedCards로 실행 (기존 체인과 충돌 방지)
-        yield return ActivateChainFrom(target, new HashSet<CardView>());
+        yield return ActivateChainFrom(target, new HashSet<IGridChainNode>());
     }
 
     // ── 자동 트리거 ───────────────────────────────────────
@@ -491,7 +496,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         // 새로 ON된 카드들로 체인 전파
         yield return ActivateChainFromWave(
-            toTrigger.FindAll(c => c != null && c.IsActivated),
+            new List<IGridChainNode>(toTrigger.FindAll(c => c != null && c.IsActivated)),
             _activatedCards);
     }
 
@@ -539,27 +544,28 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         // 새로 ON된 카드들의 이웃부터 체인 시작 (카드 자체는 이미 ON 상태)
         if (nextWave.Count > 0)
-            StartCoroutine(ActivateChainFromWave(new List<CardView>(nextWave), _activatedCards));
+            StartCoroutine(ActivateChainFromWave(new List<IGridChainNode>(nextWave), _activatedCards));
     }
 
-    private IEnumerator ActivateChainFromWave(List<CardView> emitters, HashSet<CardView> activatedCards)
+    private IEnumerator ActivateChainFromWave(List<IGridChainNode> emitters, HashSet<IGridChainNode> activatedCards)
     {
         // emitters는 이미 ON 상태 — 이웃으로만 전파
-        HashSet<CardView> nextWaveSet = new();
-        foreach (CardView emitter in emitters)
+        HashSet<IGridChainNode> nextWaveSet = new();
+        foreach (IGridChainNode emitter in emitters)
         {
-            if (emitter?.Data == null || emitter.CurrentSlot == null) continue;
+            if (emitter == null || emitter.CurrentSlot == null) continue;
             activatedCards.Add(emitter);
 
-            foreach (CardDirection dir in emitter.Data.GetAllDirections())
+            foreach (GridDirectionRay ray in emitter.GetDirectionRays())
             {
-                GridSlot current = emitter.CurrentSlot;
-                for (int i = 0; i < emitter.Data.range; i++)
+                GridSlot current = ray.OriginSlot;
+                for (int i = 0; i < ray.Range; i++)
                 {
-                    GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                    GridSlot neighbor = GridManager.Instance.GetNeighbor(current, ray.Direction);
                     if (neighbor == null) break;
-                    if (neighbor.OccupiedCard != null)
-                        nextWaveSet.Add(neighbor.OccupiedCard);
+                    IGridChainNode node = neighbor.GetChainNodeAt();
+                    if (node != null)
+                        nextWaveSet.Add(node);
                     current = neighbor;
                 }
             }
@@ -571,7 +577,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         {
             // 다음 웨이브 카드들을 ActivateChainFrom에 순차 처리
             // 웨이브 내 카드가 여러 개일 때 각각 독립 체인으로 시작
-            foreach (CardView next in nextWaveSet)
+            foreach (IGridChainNode next in nextWaveSet)
                 yield return ActivateChainFrom(next, activatedCards);
         }
     }
@@ -606,28 +612,45 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     public IEnumerator ApplyTurnEndEffects()
     {
         if (GridManager.Instance == null) yield break;
+        HashSet<RelicView> relics = new();
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy) continue;
-            if (card.Data != null && card.Data.isCastingCard)
-                card.GetComponent<CardRuntimeState>()?.InitializeCasting(card.Data.castingRequiredCount);
-            yield return ApplyEffects(card, EffectTrigger.OnTurnEnd);
+            if (card != null && !card.IsEnemy)
+            {
+                if (card.Data != null && card.Data.isCastingCard)
+                    card.GetComponent<CardRuntimeState>()?.InitializeCasting(card.Data.castingRequiredCount);
+                yield return ApplyEffects(card, EffectTrigger.OnTurnEnd);
+            }
+
+            if (slot.OccupiedRelic != null)
+                relics.Add(slot.OccupiedRelic);
         }
+
+        if (RelicManager.Instance != null)
+            foreach (RelicView relic in relics)
+                yield return RelicManager.Instance.ApplyRelicEffects(relic, RelicEffectTiming.OnTurnEnd);
     }
 
     public IEnumerator ApplyTurnStartEffects()
     {
         if (GridManager.Instance == null) yield break;
+        HashSet<RelicView> relics = new();
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy) continue;
-            if (!card.IsActivated) continue;
-            yield return ApplyEffects(card, EffectTrigger.OnTurnStart);
+            if (card != null && !card.IsEnemy && card.IsActivated)
+                yield return ApplyEffects(card, EffectTrigger.OnTurnStart);
+
+            if (slot.OccupiedRelic != null)
+                relics.Add(slot.OccupiedRelic);
         }
+
+        if (RelicManager.Instance != null)
+            foreach (RelicView relic in relics)
+                yield return RelicManager.Instance.ApplyRelicEffects(relic, RelicEffectTiming.OnTurnStart);
     }
 
     private void ApplyPreserveToNeighbors(CardView card, int amount)
@@ -658,7 +681,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 _ => false
             };
 
-            if (inScope && (slot.IsEmpty || !slot.OccupiedCard.IsActivated))
+            IGridChainNode node = slot.GetChainNodeAt();
+            if (inScope && (node == null || !node.IsActivated))
                 return false;
         }
         return true;
@@ -674,7 +698,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             case CountScope.Row:
                 int rowCount = 0;
                 foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
+                    if (slot.GetChainNodeAt() != null && slot.GetChainNodeAt().IsActivated
                         && slot.Position.y == pos.y)
                         rowCount++;
                 return rowCount;
@@ -682,7 +706,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             case CountScope.Column:
                 int colCount = 0;
                 foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
+                    if (slot.GetChainNodeAt() != null && slot.GetChainNodeAt().IsActivated
                         && slot.Position.x == pos.x)
                         colCount++;
                 return colCount;
@@ -690,7 +714,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             case CountScope.Cross:
                 int crossCount = 0;
                 foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
+                    if (slot.GetChainNodeAt() != null && slot.GetChainNodeAt().IsActivated
                         && (slot.Position.y == pos.y || slot.Position.x == pos.x))
                         crossCount++;
                 return crossCount;
@@ -698,7 +722,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             case CountScope.Total:
                 int total = 0;
                 foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
+                    if (slot.GetChainNodeAt() != null && slot.GetChainNodeAt().IsActivated)
                         total++;
                 return total;
 
@@ -713,25 +737,26 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
     }
 
-    private IEnumerator ActivateChainFrom(CardView root, HashSet<CardView> activatedCards)
+    private IEnumerator ActivateChainFrom(IGridChainNode root, HashSet<IGridChainNode> activatedCards)
     {
-        List<CardView> currentWave = new() { root };
+        List<IGridChainNode> currentWave = new() { root };
         int step = 0;
 
-        List<HashSet<CardView>> waveHistory = new();
+        List<HashSet<IGridChainNode>> waveHistory = new();
         int loopCount = 0;
 
         while (currentWave.Count > 0)
         {
-            List<CardView> emitters = new();
+            List<IGridChainNode> emitters = new();
 
-            foreach (CardView current in currentWave)
+            foreach (IGridChainNode current in currentWave)
             {
                 if (current == null || current.CurrentSlot == null) continue;
 
                 bool nextState = !current.IsActivated;
                 current.SetActivated(nextState);
-                HandleCastingStateChange(current, nextState);
+                if (current is CardView currentCard)
+                    HandleCastingStateChange(currentCard, nextState);
                 RefreshTotemAuras();
 
                 step++;
@@ -743,30 +768,31 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                 if (nextState)
                 {
-                    PlayTriggerDirectionLine(current);
+                    if (current is CardView triggerCard)
+                        PlayTriggerDirectionLine(triggerCard);
                     emitters.Add(current);
                     activatedCards.Add(current);
 
                     if (!current.IsEnemy)
                     {
-                        // 임계 활성화: ON 횟수 누적
-                        current.Instance?.PersistentState.IncrementTurnOnCount();
+                        if (current is CardView activatedCard)
+                            activatedCard.Instance?.PersistentState.IncrementTurnOnCount();
                         // 카운터형: 그리드 전체 ON 횟수 누적
                         _turnToggleCount++;
                         OnToggleCountChanged?.Invoke();
 
                         ProcessCastingTriggers(current);
 
-                        yield return ApplyEffects(current);
+                        yield return ApplyActivatedNodeEffects(current);
 
                         // Replay 이펙트: 체인 흐름 안에서 처리
-                        if (current.Data?.effects != null)
+                        if (current is CardView replayCard && replayCard.Data?.effects != null)
                         {
-                            foreach (CardEffect effect in current.Data.effects)
+                            foreach (CardEffect effect in replayCard.Data.effects)
                             {
                                 if (effect.trigger != EffectTrigger.OnActivated) continue;
                                 if (effect.effectType != EffectType.Replay) continue;
-                                yield return ApplyReplayEffect(current);
+                                yield return ApplyReplayEffect(replayCard);
                             }
                         }
                     }
@@ -782,32 +808,31 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     activatedCards.Remove(current);
 
                     // 반전형: OFF될 때 방어 발동
-                    if (!current.IsEnemy && current.Data?.effects != null)
-                        yield return ApplyDefenseOnOffEffects(current);
+                    if (!current.IsEnemy)
+                        yield return ApplyDeactivatedNodeEffects(current);
                 }
             }
 
-            foreach (CardView current in currentWave)
+            foreach (IGridChainNode current in currentWave)
                 if (current != null)
                     StartCoroutine(current.PlayActivationFeedback(_cardFeedbackDuration));
 
             yield return new WaitForSeconds(_cardFeedbackDuration);
 
-            HashSet<CardView> nextWaveSet = new();
-            foreach (CardView emitter in emitters)
+            HashSet<IGridChainNode> nextWaveSet = new();
+            foreach (IGridChainNode emitter in emitters)
             {
-                if (emitter.Data == null) continue;
-
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
+                foreach (GridDirectionRay ray in emitter.GetDirectionRays())
                 {
-                    GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
+                    GridSlot current = ray.OriginSlot;
+                    for (int i = 0; i < ray.Range; i++)
                     {
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, ray.Direction);
                         if (neighbor == null) break;
 
-                        if (neighbor.OccupiedCard != null)
-                            nextWaveSet.Add(neighbor.OccupiedCard);
+                        IGridChainNode node = neighbor.GetChainNodeAt();
+                        if (node != null)
+                            nextWaveSet.Add(node);
 
                         current = neighbor;
                     }
@@ -816,7 +841,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
             if (nextWaveSet.Count > 0)
             {
-                foreach (HashSet<CardView> pastWave in waveHistory)
+                foreach (HashSet<IGridChainNode> pastWave in waveHistory)
                 {
                     if (pastWave.SetEquals(nextWaveSet))
                     {
@@ -838,7 +863,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 waveHistory.Add(nextWaveSet);
             }
 
-            currentWave = new List<CardView>(nextWaveSet);
+            currentWave = new List<IGridChainNode>(nextWaveSet);
         }
     }
 
@@ -863,6 +888,31 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         obj.transform.SetParent(transform, false);
         _triggerDirectionLineEffectPlayer = obj.AddComponent<TriggerDirectionLineEffectPlayer>();
         return _triggerDirectionLineEffectPlayer;
+    }
+
+    private IEnumerator ApplyActivatedNodeEffects(IGridChainNode node)
+    {
+        if (node is CardView card)
+        {
+            yield return ApplyEffects(card);
+            yield break;
+        }
+
+        if (node is RelicView relic && RelicManager.Instance != null)
+            yield return RelicManager.Instance.ApplyRelicEffects(relic, RelicEffectTiming.OnActivated);
+    }
+
+    private IEnumerator ApplyDeactivatedNodeEffects(IGridChainNode node)
+    {
+        if (node is CardView card)
+        {
+            if (card.Data?.effects != null)
+                yield return ApplyDefenseOnOffEffects(card);
+            yield break;
+        }
+
+        if (node is RelicView relic && RelicManager.Instance != null)
+            yield return RelicManager.Instance.ApplyRelicEffects(relic, RelicEffectTiming.OnDeactivated);
     }
 
     //* 토템 영역 계산
@@ -1003,36 +1053,36 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         return false;
     }
 
-    private bool WouldCreateInfiniteLoop(CardView root)
+    private bool WouldCreateInfiniteLoop(IGridChainNode root)
     {
         if (root == null || root.CurrentSlot == null || GridManager.Instance == null)
             return false;
 
-        List<CardView> placedCards = GetPlacedCards();
-        if (!placedCards.Contains(root))
-            placedCards.Add(root);
-        SortCardsByGridPosition(placedCards);
+        List<IGridChainNode> placedNodes = GetPlacedNodes();
+        if (!placedNodes.Contains(root))
+            placedNodes.Add(root);
+        SortNodesByGridPosition(placedNodes);
 
-        Dictionary<CardView, bool> simulatedStates = new();
-        foreach (CardView card in placedCards)
-            if (card != null)
-                simulatedStates[card] = card.IsActivated;
+        Dictionary<IGridChainNode, bool> simulatedStates = new();
+        foreach (IGridChainNode node in placedNodes)
+            if (node != null)
+                simulatedStates[node] = node.IsActivated;
 
-        List<CardView> currentWave = new() { root };
+        List<IGridChainNode> currentWave = new() { root };
         HashSet<string> visitedStates = new();
         int step = 0;
 
         while (currentWave.Count > 0)
         {
-            string stateKey = BuildLoopStateKey(currentWave, placedCards, simulatedStates);
+            string stateKey = BuildLoopStateKey(currentWave, placedNodes, simulatedStates);
             if (!visitedStates.Add(stateKey))
             {
                 Debug.Log("[ChainExecutor] 사전 시뮬레이션에서 무한 루프 감지.");
                 return true;
             }
 
-            List<CardView> emitters = new();
-            foreach (CardView current in currentWave)
+            List<IGridChainNode> emitters = new();
+            foreach (IGridChainNode current in currentWave)
             {
                 if (current == null || current.CurrentSlot == null) continue;
                 if (!simulatedStates.TryGetValue(current, out bool currentState)) continue;
@@ -1051,20 +1101,20 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     emitters.Add(current);
             }
 
-            HashSet<CardView> nextWaveSet = new();
-            foreach (CardView emitter in emitters)
+            HashSet<IGridChainNode> nextWaveSet = new();
+            foreach (IGridChainNode emitter in emitters)
             {
-                if (emitter == null || emitter.Data == null) continue;
+                if (emitter == null) continue;
 
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
+                foreach (GridDirectionRay ray in emitter.GetDirectionRays())
                 {
-                    GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
+                    GridSlot current = ray.OriginSlot;
+                    for (int i = 0; i < ray.Range; i++)
                     {
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, ray.Direction);
                         if (neighbor == null) break;
 
-                        CardView target = neighbor.OccupiedCard;
+                        IGridChainNode target = neighbor.GetChainNodeAt();
                         if (target != null && simulatedStates.ContainsKey(target))
                             nextWaveSet.Add(target);
 
@@ -1073,13 +1123,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                 }
             }
 
-            currentWave = new List<CardView>(nextWaveSet);
+            currentWave = new List<IGridChainNode>(nextWaveSet);
         }
 
         return false;
     }
 
-    private IEnumerator ExecutePredictedInfiniteLoopRoutine(CardView root, HashSet<CardView> activatedCards)
+    private IEnumerator ExecutePredictedInfiniteLoopRoutine(IGridChainNode root, HashSet<IGridChainNode> activatedCards)
     {
         bool chainFinished = false;
         Coroutine chainRoutine = StartCoroutine(ActivateChainAndMarkFinished(root, activatedCards, () => chainFinished = true));
@@ -1103,8 +1153,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     }
 
     private IEnumerator ActivateChainAndMarkFinished(
-        CardView root,
-        HashSet<CardView> activatedCards,
+        IGridChainNode root,
+        HashSet<IGridChainNode> activatedCards,
         Action onFinished)
     {
         yield return ActivateChainFrom(root, activatedCards);
@@ -1202,18 +1252,21 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             && BattleManager.Instance.Enemy.IsDead;
     }
 
-    private List<CardView> GetPlacedCards()
+    private List<IGridChainNode> GetPlacedNodes()
     {
-        List<CardView> result = new();
+        List<IGridChainNode> result = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-            if (slot.OccupiedCard != null)
-                result.Add(slot.OccupiedCard);
+        {
+            IGridChainNode node = slot.GetChainNodeAt();
+            if (node != null && !result.Contains(node))
+                result.Add(node);
+        }
         return result;
     }
 
-    private static void SortCardsByGridPosition(List<CardView> cards)
+    private static void SortNodesByGridPosition(List<IGridChainNode> nodes)
     {
-        cards.Sort((a, b) =>
+        nodes.Sort((a, b) =>
         {
             Vector2Int aPosition = a != null && a.CurrentSlot != null ? a.CurrentSlot.Position : Vector2Int.zero;
             Vector2Int bPosition = b != null && b.CurrentSlot != null ? b.CurrentSlot.Position : Vector2Int.zero;
@@ -1223,20 +1276,20 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     }
 
     private static string BuildLoopStateKey(
-        List<CardView> currentWave,
-        List<CardView> placedCards,
-        Dictionary<CardView, bool> simulatedStates)
+        List<IGridChainNode> currentWave,
+        List<IGridChainNode> placedNodes,
+        Dictionary<IGridChainNode, bool> simulatedStates)
     {
-        HashSet<CardView> waveSet = new(currentWave);
+        HashSet<IGridChainNode> waveSet = new(currentWave);
         StringBuilder builder = new();
 
-        foreach (CardView card in placedCards)
-            builder.Append(waveSet.Contains(card) ? '1' : '0');
+        foreach (IGridChainNode node in placedNodes)
+            builder.Append(waveSet.Contains(node) ? '1' : '0');
 
         builder.Append('|');
 
-        foreach (CardView card in placedCards)
-            builder.Append(simulatedStates.TryGetValue(card, out bool active) && active ? '1' : '0');
+        foreach (IGridChainNode node in placedNodes)
+            builder.Append(simulatedStates.TryGetValue(node, out bool active) && active ? '1' : '0');
 
         return builder.ToString();
     }
@@ -1268,7 +1321,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     }
 
     //* 다른 카드가 켜질 때 맵을 싹 뒤져서 캐스팅 카운트를 깎음
-    private void ProcessCastingTriggers(CardView triggerCard)
+    private void ProcessCastingTriggers(IGridChainNode triggerNode)
     {
         if (GridManager.Instance == null) return;
         List<CardView> cardsToExecute = new();
@@ -1278,7 +1331,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             CardView card = slot.OccupiedCard;
             // 켜져 있는 아군 캐스팅 카드만 찾음 (자기 자신 제외)
             if (card == null || card.IsEnemy || !card.IsActivated) continue;
-            if (card == triggerCard) continue;
+            if (ReferenceEquals(card, triggerNode)) continue;
             if (card.Data == null || !card.Data.isCastingCard) continue;
 
             var runtime = card.GetComponent<CardRuntimeState>();

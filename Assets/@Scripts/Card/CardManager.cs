@@ -372,8 +372,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (isChainExecuting && isRecaller) return false;
 
         // 일반 카드는 빈 슬롯만, 조작형은 점유 슬롯만 허용
-        if (!isRecaller && !targetSlot.IsEmpty) return false;
-        if (isRecaller && targetSlot.IsEmpty) return false;
+        if (!isRecaller && !targetSlot.CanPlaceCardAt()) return false;
+        if (isRecaller && (targetSlot.IsEmpty || targetSlot.OccupiedRelic != null)) return false;
         // 조작형은 적 카드 회수 불가
         if (isRecaller && targetSlot.OccupiedCard != null && targetSlot.OccupiedCard.IsEnemy) return false;
         if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
@@ -396,8 +396,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (isChainExecuting && isRecaller) return false;
 
         // 일반 카드는 빈 슬롯만, 조작형은 점유 슬롯만 허용
-        if (!isRecaller && !targetSlot.IsEmpty) return false;
-        if (isRecaller && targetSlot.IsEmpty) return false;
+        if (!isRecaller && !targetSlot.CanPlaceCardAt()) return false;
+        if (isRecaller && (targetSlot.IsEmpty || targetSlot.OccupiedRelic != null)) return false;
         // 조작형은 적 카드 회수 불가
         if (isRecaller && targetSlot.OccupiedCard != null && targetSlot.OccupiedCard.IsEnemy) return false;
         if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
@@ -483,7 +483,7 @@ public class CardManager : SingletonBehaviour<CardManager>
             GridSlot targetSlot = pending.TargetSlot;
             if (card == null)
                 continue;
-            if (targetSlot == null || !targetSlot.IsEmpty)
+            if (targetSlot == null || !targetSlot.CanPlaceCardAt())
             {
                 ReturnPendingCardToHand(card);
                 continue;

@@ -33,8 +33,13 @@ public class UI_Tooltip : SingletonBehaviour<UI_Tooltip>
     {
         if (data == null) return;
 
-        _nameText.text = data.displayName;
-        _descriptionText.text = data.description;
+        Show(data.displayName, data.description, screenPosition);
+    }
+
+    public void Show(string displayName, string description, Vector2 screenPosition)
+    {
+        _nameText.text = displayName;
+        _descriptionText.text = description;
 
         _canvasGroup.alpha = 1f;
         _canvasGroup.blocksRaycasts = false;

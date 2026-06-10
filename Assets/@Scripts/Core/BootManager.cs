@@ -7,6 +7,7 @@ public class BootManager : MonoBehaviour
     {
         PoolManager.Instance.Init();
         GridManager.Instance.Init();
+        RelicManager.Instance?.Init();
         CardManager.Instance.Init();
         ChainExecutor.Instance.Init();
         BattleManager.Instance.Init();

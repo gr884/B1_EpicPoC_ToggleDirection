@@ -1,11 +1,12 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 using System;
 
-public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
+public class CardView : MonoBehaviour, IGridChainNode, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
     private CardRuntimeState _runtimeState;
 
@@ -46,6 +47,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public bool IsActivated { get; private set; }
     public bool IsEnemy { get; private set; }
     public GridSlot CurrentSlot { get; private set; }
+    public string ChainDisplayName => Data != null ? Data.displayName : name;
     public int PreserveStack { get; private set; }
     public int ContaminateCurseCount { get; private set; }
 
@@ -253,6 +255,15 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         IsActivated = activated;
         RefreshVisual();
         RefreshPreviewText();
+    }
+
+    public IEnumerable<GridDirectionRay> GetDirectionRays()
+    {
+        if (Data == null || CurrentSlot == null) yield break;
+
+        int range = Mathf.Max(1, Data.range);
+        foreach (CardDirection direction in Data.GetAllDirections())
+            yield return new GridDirectionRay(CurrentSlot, direction, range);
     }
 
     public void SetDraggable(bool draggable)
