@@ -15,6 +15,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     [Header("Card Effect Visual")]
     [SerializeField] private CardEffectPlaySystem _cardEffectPlaySystem;
+    [SerializeField] private TriggerDirectionLineEffectPlayer _triggerDirectionLineEffectPlayer;
 
     [Header("Infinite Loop Finish")]
     [SerializeField] private TMP_Text _infiniteLoopText;
@@ -178,18 +179,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         if (_cardEffectPlaySystem != null && _cardEffectPlaySystem.HasAssignedVisual(card, type))
         {
-            bool impacted = false;
-            bool completedNormally = false;
-            yield return _cardEffectPlaySystem.PlayAssignedEffectAndWait(
+            _cardEffectPlaySystem.PlayAssignedEffectDetached(
                 card,
                 type,
                 ToQueuedEffectTiming(trigger),
-                () => impacted = true,
-                value: resolvedValue,
-                onComplete: completed => completedNormally = completed);
-
-            if (!completedNormally || !impacted)
-                yield break;
+                value: resolvedValue);
         }
 
         yield return ApplyEffect(type, resolvedValue, card);
@@ -474,6 +468,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
             if (nextState && !card.IsEnemy)
             {
+                PlayTriggerDirectionLine(card);
                 _turnToggleCount++;
                 OnToggleCountChanged?.Invoke();
                 card.Instance?.PersistentState.IncrementTurnOnCount();
@@ -518,6 +513,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             {
                 neighbor.SetActivated(true);
                 HandleCastingStateChange(neighbor, true);
+                PlayTriggerDirectionLine(neighbor);
             }
             RefreshTotemAuras();
 
@@ -743,6 +739,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                 if (nextState)
                 {
+                    PlayTriggerDirectionLine(current);
                     emitters.Add(current);
                     activatedCards.Add(current);
 
@@ -839,6 +836,29 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
             currentWave = new List<CardView>(nextWaveSet);
         }
+    }
+
+    private void PlayTriggerDirectionLine(CardView card)
+    {
+        if (card == null || card.IsEnemy || card.Data == null) return;
+
+        TriggerDirectionLineEffectPlayer player = ResolveTriggerDirectionLineEffectPlayer();
+        player?.Play(card);
+    }
+
+    private TriggerDirectionLineEffectPlayer ResolveTriggerDirectionLineEffectPlayer()
+    {
+        if (_triggerDirectionLineEffectPlayer != null)
+            return _triggerDirectionLineEffectPlayer;
+
+        _triggerDirectionLineEffectPlayer = FindFirstObjectByType<TriggerDirectionLineEffectPlayer>(FindObjectsInactive.Include);
+        if (_triggerDirectionLineEffectPlayer != null)
+            return _triggerDirectionLineEffectPlayer;
+
+        GameObject obj = new("TriggerDirectionLineEffectPlayer");
+        obj.transform.SetParent(transform, false);
+        _triggerDirectionLineEffectPlayer = obj.AddComponent<TriggerDirectionLineEffectPlayer>();
+        return _triggerDirectionLineEffectPlayer;
     }
 
     //* 토템 영역 계산
