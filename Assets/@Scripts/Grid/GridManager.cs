@@ -15,6 +15,7 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     public int Rows => _rows;
     public int Columns => _columns;
+    public RectTransform GridRoot => _gridRoot;
 
     private readonly Dictionary<Vector2Int, GridSlot> _slots = new();
     public IReadOnlyDictionary<Vector2Int, GridSlot> Slots => _slots;
@@ -65,9 +66,12 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     public void ResetCards()
     {
+        HashSet<CardView> cards = new();
         foreach (GridSlot slot in _slots.Values)
-            if (!slot.IsEmpty)
-                slot.ClearCard();
+            if (slot.OccupiedCard != null)
+                cards.Add(slot.OccupiedCard);
+        foreach (CardView card in cards)
+            RemoveCard(card);
 
         Debug.Log("[GridManager] 그리드 카드 리셋");
     }
@@ -98,11 +102,11 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     public int GetEnemyCardCount()
     {
-        int count = 0;
+        HashSet<CardView> enemies = new();
         foreach (GridSlot slot in _slots.Values)
             if (!slot.IsEmpty && slot.OccupiedCard.IsEnemy)
-                count++;
-        return count;
+                enemies.Add(slot.OccupiedCard);
+        return enemies.Count;
     }
 
     // ── 조회 ───────────────────────────────────────────────
@@ -134,6 +138,66 @@ public class GridManager : SingletonBehaviour<GridManager>
             return new List<GridSlot>();
 
         return CardTargetResolver.ResolveToggleSlots(sourceCard.Data, attachSlot, this);
+    }
+
+    public bool TryGetPlacementSlots(CardData data, GridSlot anchorSlot, out List<GridSlot> placementSlots)
+    {
+        placementSlots = new List<GridSlot>();
+        if (data == null || anchorSlot == null) return false;
+
+        HashSet<GridSlot> uniqueSlots = new();
+        foreach (Vector2Int offset in data.GetOccupiedOffsets())
+        {
+            GridSlot slot = GetSlot(anchorSlot.Position + offset);
+            if (slot == null || !uniqueSlots.Add(slot))
+                return false;
+            placementSlots.Add(slot);
+        }
+
+        return placementSlots.Count > 0;
+    }
+
+    public bool CanPlaceCard(CardData data, GridSlot anchorSlot, CardView ignoredCard = null)
+    {
+        if (!TryGetPlacementSlots(data, anchorSlot, out List<GridSlot> slots))
+            return false;
+
+        foreach (GridSlot slot in slots)
+            if (slot.OccupiedCard != null && slot.OccupiedCard != ignoredCard)
+                return false;
+        return true;
+    }
+
+    public bool PlaceCard(CardView card, GridSlot anchorSlot)
+    {
+        if (card?.Data == null || !CanPlaceCard(card.Data, anchorSlot, card))
+            return false;
+        if (!TryGetPlacementSlots(card.Data, anchorSlot, out List<GridSlot> slots))
+            return false;
+
+        RemoveCard(card);
+        foreach (GridSlot slot in slots)
+            slot.SetOccupant(card);
+
+        card.SetPlaced(anchorSlot, slots);
+        LayoutPlacedCard(card);
+        return true;
+    }
+
+    public void RemoveCard(CardView card)
+    {
+        if (card == null) return;
+
+        foreach (GridSlot slot in _slots.Values)
+            if (slot.OccupiedCard == card)
+                slot.SetOccupant(null);
+        card.SetPlaced(null, null);
+    }
+
+    public void LayoutPlacedCard(CardView card)
+    {
+        if (card == null || card.CurrentSlot == null) return;
+        card.ApplyGridLayout(_gridRoot, card.OccupiedSlots);
     }
 
     public void ShowPendingDirectionalImpact(CardView sourceCard, GridSlot attachSlot)
@@ -177,15 +241,17 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated)
     {
-        GameObject obj = PoolManager.Instance.Get(cardPrefab, slot.transform);
+        GameObject obj = PoolManager.Instance.Get(cardPrefab, _gridRoot);
         CardView card = obj.GetComponent<CardView>();
         if (card == null) return null;
 
         card.Initialize(data, isEnemy: true, startsActivated: startsActivated);
         card.SetDraggable(false);
-        card.ApplyGridLayout();
-
-        slot.AssignCard(card);
+        if (!PlaceCard(card, slot))
+        {
+            PoolManager.Instance.Return(obj);
+            return null;
+        }
         return card;
     }
 

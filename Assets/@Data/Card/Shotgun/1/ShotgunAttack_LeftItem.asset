@@ -28,6 +28,11 @@ MonoBehaviour:
   range: 1
   recallDestination: 0
   directions: 080000000700000006000000
+  pieceCells:
+  - offset: {x: 0, y: 0}
+    directions: 
+  - offset: {x: 1, y: 0}
+    directions: 
   remoteToggleOffsets:
   - {x: -1, y: 0}
   - {x: -2, y: 0}
@@ -39,7 +44,7 @@ MonoBehaviour:
     thresholdType: 0
     threshold: 0
     effectType: 0
-    value: 10
+    value: 1
     secondaryValue: 0
   totemAuraOffsets: []
   icon: {fileID: 8034864656527293546, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

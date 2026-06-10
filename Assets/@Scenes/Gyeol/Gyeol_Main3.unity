@@ -5218,20 +5218,13 @@ MonoBehaviour:
   _player: {fileID: 82675637}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
-  - {fileID: 11400000, guid: 91b910a75c65d77419eaf6747fe9b2ea, type: 2}
-  - {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
-  - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
   - {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
   - {fileID: 11400000, guid: 612445577a5007943ae9638866b316ec, type: 2}
   - {fileID: 11400000, guid: 7651bbda5845f9344b096e73d3da8979, type: 2}
   - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
-  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
   - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
-  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
-  - {fileID: 11400000, guid: 94fc21356a7d0d14597708bc243f4f71, type: 2}
-  - {fileID: 11400000, guid: 94fc21356a7d0d14597708bc243f4f71, type: 2}
-  - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
-  - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
+  - {fileID: 11400000, guid: 6c5ff3461e3a7c64fb7a46735e174aef, type: 2}
+  - {fileID: 11400000, guid: a6ecaa1504750e14882060029ad02830, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &1926050208
 MonoBehaviour:
@@ -10633,7 +10626,7 @@ MonoBehaviour:
   _triggerDirectionLineEffectPlayer: {fileID: 284845913}
   _infiniteLoopText: {fileID: 1924988237}
   _loopSlashDirector: {fileID: 1389832506}
-  _infiniteLoopGraceDuration: 2
+  _infiniteLoopGraceDuration: 4
   _infiniteLoopTextDuration: 1.2
   _infiniteLoopFinishDamage: 999
 --- !u!1 &5021724786616653723

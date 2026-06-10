@@ -444,15 +444,15 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (GridManager.Instance == null) yield break;
 
+        List<CardView> placedCards = GetPlacedCards();
         int onCount = 0;
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-            if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
+        foreach (CardView placedCard in placedCards)
+            if (placedCard.IsActivated)
                 onCount++;
 
         List<CardView> toTrigger = new();
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        foreach (CardView card in placedCards)
         {
-            CardView card = slot.OccupiedCard;
             if (card == null || card.IsEnemy) continue;
             if (card.Data == null || !card.Data.hasAutoTrigger) continue;
             if (onCount >= card.Data.autoTriggerThreshold)
@@ -600,9 +600,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (GridManager.Instance == null) yield break;
 
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        foreach (CardView card in GetPlacedCards())
         {
-            CardView card = slot.OccupiedCard;
             if (card == null || card.IsEnemy) continue;
             if (card.Data != null && card.Data.isCastingCard)
                 card.GetComponent<CardRuntimeState>()?.InitializeCasting(card.Data.castingRequiredCount);
@@ -614,9 +613,8 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (GridManager.Instance == null) yield break;
 
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        foreach (CardView card in GetPlacedCards())
         {
-            CardView card = slot.OccupiedCard;
             if (card == null || card.IsEnemy) continue;
             if (!card.IsActivated) continue;
             yield return ApplyEffects(card, EffectTrigger.OnTurnStart);
@@ -665,35 +663,17 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         switch (scope)
         {
             case CountScope.Row:
-                int rowCount = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
-                        && slot.Position.y == pos.y)
-                        rowCount++;
-                return rowCount;
+                return CountUniqueActivatedCards(slot => slot.Position.y == pos.y);
 
             case CountScope.Column:
-                int colCount = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
-                        && slot.Position.x == pos.x)
-                        colCount++;
-                return colCount;
+                return CountUniqueActivatedCards(slot => slot.Position.x == pos.x);
 
             case CountScope.Cross:
-                int crossCount = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
-                        && (slot.Position.y == pos.y || slot.Position.x == pos.x))
-                        crossCount++;
-                return crossCount;
+                return CountUniqueActivatedCards(slot =>
+                    slot.Position.y == pos.y || slot.Position.x == pos.x);
 
             case CountScope.Total:
-                int total = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
-                        total++;
-                return total;
+                return CountUniqueActivatedCards(_ => true);
 
             case CountScope.Self:
                 return card.Instance?.PersistentState.TurnOnCount ?? 0;
@@ -704,6 +684,18 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             default:
                 return 0;
         }
+    }
+
+    private int CountUniqueActivatedCards(System.Predicate<GridSlot> isInScope)
+    {
+        HashSet<CardView> cards = new();
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            CardView card = slot.OccupiedCard;
+            if (card != null && card.IsActivated && isInScope(slot))
+                cards.Add(card);
+        }
+        return cards.Count;
     }
 
     private IEnumerator ActivateChainFrom(CardView root, HashSet<CardView> activatedCards)
@@ -859,11 +851,13 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         if (GridManager.Instance == null) return;
 
+        HashSet<CardView> processedTotems = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             // 켜진 기물이 아니면 스킵
             CardView source = slot.OccupiedCard;
             if (source == null || source.IsEnemy || !source.IsActivated || source.CurrentSlot == null) continue;
+            if (!processedTotems.Add(source)) continue;
 
             // 공/수 토템 확인
             bool isDmgTotem = ContainsEffect(source.Data, EffectType.TotemAura);
@@ -929,10 +923,11 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (GridManager.Instance == null) return;
 
+        HashSet<CardView> refreshedCards = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy) continue;
+            if (card == null || card.IsEnemy || !refreshedCards.Add(card)) continue;
             card.GetComponent<CardRuntimeState>()?.Refresh();
         }
     }
@@ -1180,8 +1175,9 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     private List<CardView> GetPlacedCards()
     {
         List<CardView> result = new();
+        HashSet<CardView> uniqueCards = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-            if (slot.OccupiedCard != null)
+            if (slot.OccupiedCard != null && uniqueCards.Add(slot.OccupiedCard))
                 result.Add(slot.OccupiedCard);
         return result;
     }
@@ -1247,6 +1243,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (GridManager.Instance == null) return;
         List<CardView> cardsToExecute = new();
+        HashSet<CardView> processedCards = new();
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
@@ -1255,6 +1252,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (card == null || card.IsEnemy || !card.IsActivated) continue;
             if (card == triggerCard) continue;
             if (card.Data == null || !card.Data.isCastingCard) continue;
+            if (!processedCards.Add(card)) continue;
 
             var runtime = card.GetComponent<CardRuntimeState>();
             if (runtime != null && runtime.CurrentCastingCount > 0)

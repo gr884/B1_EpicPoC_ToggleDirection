@@ -27,15 +27,21 @@ public static class CardTargetResolver
         }
 
         int range = Mathf.Max(1, data.range);
-        foreach (CardDirection direction in data.GetAllDirections())
+        foreach (Vector2Int cellOffset in data.GetOccupiedOffsets())
         {
-            GridSlot current = origin;
-            for (int i = 0; i < range; i++)
-            {
-                current = grid.GetNeighbor(current, direction);
-                if (current == null) break;
+            GridSlot cellSlot = grid.GetSlot(origin.Position + cellOffset);
+            if (cellSlot == null) continue;
 
-                AddUnique(result, current);
+            foreach (CardDirection direction in data.GetDirectionsAt(cellOffset))
+            {
+                GridSlot current = cellSlot;
+                for (int i = 0; i < range; i++)
+                {
+                    current = grid.GetNeighbor(current, direction);
+                    if (current == null) break;
+
+                    AddUnique(result, current);
+                }
             }
         }
 
