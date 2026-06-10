@@ -1,12 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Text;
 using DG.Tweening;
 using TMPro;
 using UnityEngine;
 
-public class ChainExecutor : SingletonBehaviour<ChainExecutor>
+public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
 {
     [Header("Chain Settings")]
     [SerializeField] private int _maxActivationSteps = 2048;
@@ -37,30 +36,33 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     public event Action OnToggleCountChanged;
     public event Action OnTotemAuraChanged;
 
-    private readonly Dictionary<CardView, int> _totemDamageBonusByCard = new();
-    private readonly Dictionary<CardView, int> _totemDefenseBonusByCard = new();
-    private readonly Dictionary<GridSlot, int> _damageTotemOverlayStacks = new();
-    private readonly Dictionary<GridSlot, int> _defenseTotemOverlayStacks = new();
+    private TotemAuraSystem _totemSystem;
+    private readonly InfiniteLoopDetector _loopDetector = new();
 
-    public int GetTotemDamageBonus(CardView card) => (card != null && _totemDamageBonusByCard.TryGetValue(card, out int b)) ? b : 0;
-    public int GetTotemDefenseBonus(CardView card) => (card != null && _totemDefenseBonusByCard.TryGetValue(card, out int b)) ? b : 0;
+    public int GetTotemDamageBonus(CardView card) => _totemSystem != null ? _totemSystem.GetDamageBonus(card) : 0;
+    public int GetTotemDefenseBonus(CardView card) => _totemSystem != null ? _totemSystem.GetDefenseBonus(card) : 0;
 
     public void ResetTurnToggleCount()
     {
         _turnToggleCount = 0;
-        _onLockedCards.Clear();
         OnToggleCountChanged?.Invoke();
     }
 
     public bool IsExecuting { get; private set; }
 
-    // ON 상태에서 꺼지지 않아야 하는 카드 집합 (축전기 방전 중 등)
-    private readonly HashSet<CardView> _onLockedCards = new();
-
     public void Init()
     {
         Debug.Log("[ChainExecutor] Init");
+        EnsureTotemSystem();
         RefreshTotemAuras();
+    }
+
+    private void EnsureTotemSystem()
+    {
+        if (_totemSystem != null) return;
+        _totemSystem = GetComponent<TotemAuraSystem>();
+        if (_totemSystem == null)
+            _totemSystem = gameObject.AddComponent<TotemAuraSystem>();
     }
 
     public void ExecuteFrom(CardView rootCard)
@@ -86,7 +88,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (rootCard == null) yield break;
 
-        bool willCreateInfiniteLoop = WouldCreateInfiniteLoop(rootCard);
+        bool willCreateInfiniteLoop = _loopDetector.WouldCreateInfiniteLoop(rootCard, _maxActivationSteps);
 
         IsExecuting = true;
         OnChainStarted?.Invoke();
@@ -113,319 +115,15 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     public float GetTotemAdjustedValue(CardView card, EffectType effectType, float baseValue)
     {
-        if (!CanApplyTotemBonus(effectType)) return baseValue;
-
-        int bonus = (effectType == EffectType.Defense) ?
-            GetTotemDefenseBonus(card) : GetTotemDamageBonus(card);
-        return baseValue + bonus;
+        EnsureTotemSystem();
+        return _totemSystem.GetAdjustedValue(card, effectType, baseValue);
     }
 
     public void RefreshTotemAuras()
     {
-        RebuildTotemAuraMaps();         // 범위 내 타겟 및 중첩수 연산
-        ApplyTotemOverlays();           // 그리드에 시각화
-        NotifyTotemBonusChanged();      // 타겟 카드들에 수치 적용 및 갱신
+        EnsureTotemSystem();
+        _totemSystem.Refresh();
         OnTotemAuraChanged?.Invoke();
-    }
-
-    // ── 효과 처리 ──────────────────────────────────────────
-
-    private IEnumerator ApplyEffects(CardView card, EffectTrigger trigger = EffectTrigger.OnActivated)
-    {
-        if (card?.Data?.effects == null) yield break;
-
-        var atLeastBest = new Dictionary<EffectType, (int threshold, float value)>();
-
-        foreach (CardEffect effect in card.Data.effects)
-        {
-            if (effect.trigger != trigger) continue;
-
-            if (effect.thresholdType == ThresholdType.Full)
-            {
-                if (IsFullActivated(effect.scope, card))
-                    yield return ApplyEffectWithVisual(effect.effectType, effect.value, card, trigger);
-                continue;
-            }
-
-            if (effect.scope == CountScope.None)
-            {
-                yield return ApplyEffectWithVisual(effect.effectType, effect.value, card, trigger);
-                continue;
-            }
-
-            int count = CountByScope(effect.scope, card);
-            if (count < effect.threshold) continue;
-
-            if (!atLeastBest.ContainsKey(effect.effectType) ||
-                effect.threshold > atLeastBest[effect.effectType].threshold)
-            {
-                atLeastBest[effect.effectType] = (effect.threshold, effect.value);
-            }
-        }
-
-        foreach (var kv in atLeastBest)
-            yield return ApplyEffectWithVisual(kv.Key, kv.Value.value, card, trigger);
-    }
-
-    private IEnumerator ApplyEffectWithVisual(
-        EffectType type,
-        float value,
-        CardView card,
-        EffectTrigger trigger)
-    {
-        float resolvedValue = GetTotemAdjustedValue(card, type, value);
-
-        if (type == EffectType.InitDamage)
-        {
-            yield return ApplyEffect(type, resolvedValue, card);
-            yield break;
-        }
-
-        if (_cardEffectPlaySystem != null && _cardEffectPlaySystem.HasAssignedVisual(card, type))
-        {
-            bool scheduledOnImpact = _cardEffectPlaySystem.PlayAssignedEffectDetached(
-                card,
-                type,
-                ToQueuedEffectTiming(trigger),
-                () => StartCoroutine(ApplyEffect(type, resolvedValue, card)),
-                value: resolvedValue);
-
-            if (scheduledOnImpact)
-                yield break;
-        }
-
-        yield return ApplyEffect(type, resolvedValue, card);
-    }
-
-    private static CardEffectPlaySystem.QueuedEffectTiming ToQueuedEffectTiming(EffectTrigger trigger)
-    {
-        return trigger switch
-        {
-            EffectTrigger.OnActivated => CardEffectPlaySystem.QueuedEffectTiming.OnActivated,
-            EffectTrigger.OnTurnEnd => CardEffectPlaySystem.QueuedEffectTiming.OnTurnEnd,
-            EffectTrigger.OnTurnStart => CardEffectPlaySystem.QueuedEffectTiming.OnTurnStart,
-            _ => CardEffectPlaySystem.QueuedEffectTiming.Direct,
-        };
-    }
-
-    private IEnumerator ApplyEffect(EffectType type, float value, CardView card)
-    {
-        var runtime = card != null ? card.GetComponent<CardRuntimeState>() : null;
-        switch (type)
-        {
-            case EffectType.Damage:
-                int baseDamage = Mathf.Max(1, Mathf.RoundToInt(value));
-                int damage = runtime != null ? runtime.GetModifiedDamage(baseDamage) : baseDamage;
-                DealDamageToEnemy(damage);
-                break;
-            case EffectType.Defense:
-                int defense = Mathf.Max(1, Mathf.RoundToInt(value));
-                BattleManager.Instance.Player.AddDefense(defense);
-                break;
-            case EffectType.Heal:
-                int heal = Mathf.Max(1, Mathf.RoundToInt(value));
-                BattleManager.Instance.Player.Heal(heal);
-                break;
-            case EffectType.DirectionalDamageBonus:
-                int totalDamage = 0;
-                foreach (var dir in card.Data.GetAllDirections())
-                {
-                    GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
-                    if (neighbor == null) continue;
-                    var targetCard = neighbor.OccupiedCard;
-                    if (targetCard == null || targetCard.Data == null) continue;
-                    var targetRuntime = targetCard.GetComponent<CardRuntimeState>();
-
-                    foreach (var e in targetCard.Data.effects)
-                    {
-                        bool isdmg = (e.effectType == EffectType.Damage) ||
-                                        (e.effectType == EffectType.DefenseOnOff) ||
-                                        (e.effectType == EffectType.CounterDamage);
-                        if (!isdmg) continue;
-                        float adjusted = GetTotemAdjustedValue(targetCard, e.effectType, e.value);
-                        int targetBaseDamage = Mathf.Max(1, Mathf.RoundToInt(adjusted));
-                        int finalDamage = targetRuntime != null
-                            ? targetRuntime.GetModifiedDamage(targetBaseDamage)
-                            : targetBaseDamage;
-                        // 카운트 기물이라면 적용될 카운트 횟수를 가져와 추가
-                        if (e.effectType == EffectType.CounterDamage)
-                            targetBaseDamage += _turnToggleCount;
-                        // 인싸 기물이라면 증가된 횟수를 가져와 증가
-                        else if (e.effectType == EffectType.PopularityDamage)
-                        {
-                            // 인싸 주위 기물의 개수에 따라 계산
-                            int popCount = 0;
-                            foreach (CardDirection d in Enum.GetValues(typeof(CardDirection)))
-                            {
-                                if (d == CardDirection.None) continue;
-                                GridSlot popNeighbor = GridManager.Instance.GetNeighbor(targetCard.CurrentSlot, d);
-                                if (popNeighbor != null && !popNeighbor.IsEmpty) popCount++;
-                            }
-                            finalDamage *= popCount;
-                        }
-
-                        totalDamage += finalDamage;
-                    }
-                }
-                DealDamageToEnemy(totalDamage);
-                break;
-            case EffectType.Draw:
-                int drawCount = Mathf.Max(1, Mathf.RoundToInt(value));
-                CardManager.Instance.DrawToHand(drawCount);
-                break;
-            case EffectType.GainCost:
-                {
-                    int gainAmount = Mathf.Max(1, Mathf.RoundToInt(value));
-                    BattleManager.Instance.Player.GainCost(gainAmount);
-                    break;
-                }
-            case EffectType.Preserve:
-                int preserveAmount = Mathf.Max(1, Mathf.RoundToInt(value));
-                ApplyPreserveToNeighbors(card, preserveAmount);
-                break;
-            case EffectType.GainDamage:
-                if (runtime != null)
-                    runtime.AddBonusDamage(Mathf.RoundToInt(value));
-                break;
-            case EffectType.DecayDamage:
-                if (runtime != null)
-                    runtime.DeductBonusDamage(Mathf.RoundToInt(value));
-                break;
-            case EffectType.DefenseOnOff:
-                // 기본 데미지 + 토템 데미지
-                int baseDualDamage = Mathf.Max(1, Mathf.RoundToInt(value));
-                // 최종 데미지
-                int modifiedDualDamage = runtime != null ?
-                    runtime.GetModifiedDamage(baseDualDamage) : baseDualDamage;
-                DealDamageToEnemy(modifiedDualDamage);
-                break;
-            case EffectType.CounterDamage:
-                // 토템 보너스가 합산된 데미지
-                int baseCounterDamage = Mathf.Max(1, Mathf.RoundToInt(value));
-                // 토글 횟수 추가
-                int finalCounterDamage = baseCounterDamage + _turnToggleCount;
-                DealDamageToEnemy(finalCounterDamage);
-                break;
-            case EffectType.Explode:
-                yield return ApplyExplodeEffect(card);
-                break;
-            case EffectType.PopularityDamage:
-                if (card.CurrentSlot != null)
-                {
-                    int neighborCount = 0;
-                    foreach (CardDirection dir in Enum.GetValues(typeof(CardDirection)))
-                    {
-                        if (dir == CardDirection.None) continue;
-                        GridSlot neighborSlot = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
-                        if (neighborSlot != null && !neighborSlot.IsEmpty)
-                            neighborCount++;
-                    }
-                    // 토템 데미지가 합산되어 들어온 데미지
-                    int basePopDamage = Mathf.Max(1, Mathf.RoundToInt(value));
-                    // 그를 기반으로 한 영구 누적 데미지 합산
-                    int modifiedPopDamage = runtime != null ?
-                        runtime.GetModifiedDamage(basePopDamage) : basePopDamage;
-                    // 주위 블럭들을 기반으로 한 총합 데미지
-                    int popularityDamage = modifiedPopDamage * neighborCount;
-
-                    if (popularityDamage > 0)
-                        DealDamageToEnemy(popularityDamage);
-                }
-                break;
-            case EffectType.Replay:
-                // ActivateChainFrom에서 직접 처리 — 여기선 무시
-                break;
-            case EffectType.FinisherDamage:
-                if (GridManager.Instance != null)
-                {
-                    int onCount = 0;
-                    foreach (GridSlot s in GridManager.Instance.Slots.Values)
-                        if (s.OccupiedCard != null && s.OccupiedCard.IsActivated)
-                            onCount++;
-                    // 기본 데미지
-                    int baseFinisher = Mathf.RoundToInt(value);
-                    // 런타임 값이 적용된 데미지
-                    int modifiedFinisher = runtime != null ?
-                        runtime.GetModifiedDamage(baseFinisher) : baseFinisher;
-                    // 모든 버프가 더해진 데미지 * 켜진 횟수를 합산 후 적용
-                    int finisherDamage = modifiedFinisher * onCount;
-
-                    if (finisherDamage > 0)
-                        DealDamageToEnemy(finisherDamage);
-                }
-                break;
-            case EffectType.TotemAura:
-                break;
-            case EffectType.Devour:
-                {
-                    if (card.CurrentSlot == null) break;
-
-                    int devourCount = 0;
-                    List<CardView> targetsToDevour = new(); // 루프 도중 파괴로 인한 에러 방지용 리스트
-
-                    // 범위 내의 먹잇감 스캔
-                    foreach (CardDirection dir in card.Data.GetAllDirections())
-                    {
-                        GridSlot current = card.CurrentSlot;
-                        for (int i = 0; i < card.Data.range; i++)
-                        {
-                            GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                            if (neighbor == null) break;
-
-                            CardView targetCard = neighbor.OccupiedCard;
-
-                            // 적이 아니고, 빈 칸이 아니며, 아직 먹기로 예약되지 않은 아군/특수 기물이라면!
-                            if (targetCard != null && !targetCard.IsEnemy && !targetsToDevour.Contains(targetCard))
-                            {
-                                targetsToDevour.Add(targetCard);
-                            }
-                            current = neighbor;
-                        }
-                    }
-
-                    // 일괄 포식
-                    foreach (CardView target in targetsToDevour)
-                    {
-                        devourCount++;
-                        CardManager.Instance.ExileCard(target); // 알아서 토템 장판 등도 갱신해줌
-                    }
-
-                    // 먹은 개수만큼 스탯 상승 (이번 전투 내내 유지)
-                    if (devourCount > 0)
-                    {
-                        int gainAmount = Mathf.Max(1, Mathf.RoundToInt(value)) * devourCount;
-                        if (runtime != null)
-                        {
-                            runtime.AddBonusDamage(gainAmount); // 영구 공격력 증가
-                        }
-                    }
-                    break;
-                }
-            case EffectType.CastingDamage:
-            case EffectType.CastingDefense:
-                break;
-        }
-
-        yield break;
-    }
-
-    private static int DealDamageToEnemy(int damage)
-    {
-        if (damage <= 0 || BattleManager.Instance == null)
-            return 0;
-
-        return BattleManager.Instance.DealDamageToEnemy(damage);
-    }
-
-    private IEnumerator ApplyDefenseOnOffEffects(CardView card)
-    {
-        if (card?.Data?.effects == null) yield break;
-
-        foreach (CardEffect effect in card.Data.effects)
-        {
-            if (effect.effectType != EffectType.DefenseOnOff) continue;
-            yield return ApplyEffectWithVisual(EffectType.Defense, effect.secondaryValue, card, EffectTrigger.OnActivated);
-        }
     }
 
     // ── 재발동형 ──────────────────────────────────────────
@@ -580,143 +278,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         }
     }
 
-    // ── 배치 시 이펙트 ────────────────────────────────────
-
-    private IEnumerator ApplyOnPlacedEffects(CardView card)
-    {
-        if (card?.Data?.effects == null || card.IsEnemy) yield break;
-
-        var runtime = card.GetComponent<CardRuntimeState>();
-        foreach (CardEffect effect in card.Data.effects)
-        {
-            if (effect.trigger != EffectTrigger.OnPlaced) continue;
-
-            switch (effect.effectType)
-            {
-                case EffectType.InitDamage:
-                    // 배치 시 초기값 세팅 — 누적이 아닌 덮어쓰기
-                    if (runtime != null)
-                        runtime.SetBonusDamage(Mathf.RoundToInt(effect.value));
-                    break;
-                default:
-                    yield return ApplyEffectWithVisual(effect.effectType, effect.value, card, EffectTrigger.OnPlaced);
-                    break;
-            }
-        }
-
-        RefreshTotemAuras();
-    }
-
-    public IEnumerator ApplyTurnEndEffects()
-    {
-        if (GridManager.Instance == null) yield break;
-
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-        {
-            CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy) continue;
-            if (card.Data != null && card.Data.isCastingCard)
-                card.GetComponent<CardRuntimeState>()?.InitializeCasting(card.Data.castingRequiredCount);
-            yield return ApplyEffects(card, EffectTrigger.OnTurnEnd);
-        }
-    }
-
-    public IEnumerator ApplyTurnStartEffects()
-    {
-        if (GridManager.Instance == null) yield break;
-
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-        {
-            CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy) continue;
-            if (!card.IsActivated) continue;
-            yield return ApplyEffects(card, EffectTrigger.OnTurnStart);
-        }
-    }
-
-    private void ApplyPreserveToNeighbors(CardView card, int amount)
-    {
-        if (card?.Data == null || card.CurrentSlot == null) return;
-
-        foreach (CardDirection dir in card.Data.GetAllDirections())
-        {
-            GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
-            if (neighbor != null && neighbor.OccupiedCard != null && !neighbor.OccupiedCard.IsEnemy)
-                neighbor.OccupiedCard.AddPreserve(amount);
-        }
-    }
-
-    private bool IsFullActivated(CountScope scope, CardView card)
-    {
-        if (card?.CurrentSlot == null) return false;
-        Vector2Int pos = card.CurrentSlot.Position;
-
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-        {
-            bool inScope = scope switch
-            {
-                CountScope.Row => slot.Position.y == pos.y,
-                CountScope.Column => slot.Position.x == pos.x,
-                CountScope.Cross => slot.Position.y == pos.y || slot.Position.x == pos.x,
-                CountScope.Total => true,
-                _ => false
-            };
-
-            if (inScope && (slot.IsEmpty || !slot.OccupiedCard.IsActivated))
-                return false;
-        }
-        return true;
-    }
-
-    private int CountByScope(CountScope scope, CardView card)
-    {
-        if (card?.CurrentSlot == null) return 0;
-        Vector2Int pos = card.CurrentSlot.Position;
-
-        switch (scope)
-        {
-            case CountScope.Row:
-                int rowCount = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
-                        && slot.Position.y == pos.y)
-                        rowCount++;
-                return rowCount;
-
-            case CountScope.Column:
-                int colCount = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
-                        && slot.Position.x == pos.x)
-                        colCount++;
-                return colCount;
-
-            case CountScope.Cross:
-                int crossCount = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
-                        && (slot.Position.y == pos.y || slot.Position.x == pos.x))
-                        crossCount++;
-                return crossCount;
-
-            case CountScope.Total:
-                int total = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
-                        total++;
-                return total;
-
-            case CountScope.Self:
-                return card.Instance?.PersistentState.TurnOnCount ?? 0;
-
-            case CountScope.GridTotal:
-                return _turnToggleCount;
-
-            default:
-                return 0;
-        }
-    }
-
     private IEnumerator ActivateChainFrom(CardView root, HashSet<CardView> activatedCards)
     {
         List<CardView> currentWave = new() { root };
@@ -732,34 +293,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             foreach (CardView current in currentWave)
             {
                 if (current == null || current.CurrentSlot == null) continue;
-
-                // 축전기 카드 처리: 일반 토글 대신 충전/방전 로직으로 분기
-                if (!current.IsEnemy && current.Data != null && current.Data.isCapacitorCard)
-                {
-                    var capRuntime = current.GetComponent<CardRuntimeState>();
-                    if (current.IsActivated && _onLockedCards.Contains(current))
-                    {
-                        // 방전 중 — 토글 무시
-                    }
-                    else if (!current.IsActivated)
-                    {
-                        // OFF 상태 — 충전 카운트 증가
-                        capRuntime?.IncrementCharge();
-                        StartCoroutine(current.PlayActivationFeedback(_cardFeedbackDuration));
-
-                        int chargeCount = capRuntime?.CurrentChargeCount ?? 0;
-                        int required = current.Data.capacitorChargeRequired;
-                        if (chargeCount >= required)
-                        {
-                            // 충전 완료 → ON 전환 후 방전 시작
-                            current.SetActivated(true);
-                            RefreshTotemAuras();
-                            _onLockedCards.Add(current);
-                            StartCoroutine(DischargeCapacitor(current, activatedCards));
-                        }
-                    }
-                    continue;
-                }
 
                 bool nextState = !current.IsActivated;
                 current.SetActivated(nextState);
@@ -897,220 +430,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         return _triggerDirectionLineEffectPlayer;
     }
 
-    //* 토템 영역 계산
-    private void RebuildTotemAuraMaps()
-    {
-        _totemDamageBonusByCard.Clear();
-        _totemDefenseBonusByCard.Clear();
-        _damageTotemOverlayStacks.Clear();
-        _defenseTotemOverlayStacks.Clear();
-
-        if (GridManager.Instance == null) return;
-
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-        {
-            // 켜진 기물이 아니면 스킵
-            CardView source = slot.OccupiedCard;
-            if (source == null || source.IsEnemy || !source.IsActivated || source.CurrentSlot == null) continue;
-
-            // 공/수 토템 확인
-            bool isDmgTotem = ContainsEffect(source.Data, EffectType.TotemAura);
-            bool isDefTotem = ContainsEffect(source.Data, EffectType.TotemAura_Defense);
-            if (!isDmgTotem && !isDefTotem) continue;
-
-            List<Vector2Int> offsets = source.Data.totemAuraOffsets;    // 해당 토템의 영역 오프셋을 가져옴
-            if (offsets == null || offsets.Count == 0) continue;
-
-            // 각 오프셋에 해당하는 그리드를 확인 및 계산
-            foreach (Vector2Int offset in offsets)
-            {
-                // 타겟 슬롯 지정 및 확인
-                GridSlot targetSlot = GridManager.Instance.GetSlot(source.CurrentSlot.Position + offset);
-                if (targetSlot == null) continue;
-
-                if (isDmgTotem)
-                    _damageTotemOverlayStacks[targetSlot] = _damageTotemOverlayStacks.GetValueOrDefault(targetSlot, 0) + 1;
-                if (isDefTotem)
-                    _defenseTotemOverlayStacks[targetSlot] = _defenseTotemOverlayStacks.GetValueOrDefault(targetSlot, 0) + 1;
-
-                CardView target = targetSlot.OccupiedCard;
-                if (target == null || target.IsEnemy) continue;
-                if (IsTotemCardData(target.Data)) continue;
-
-                if (isDmgTotem)
-                {
-                    int auraValue = GetTotemAuraValue(source.Data, EffectType.TotemAura);
-                    if (_totemDamageBonusByCard.TryGetValue(target, out int bonus))
-                        _totemDamageBonusByCard[target] = bonus + auraValue;
-                    else
-                        _totemDamageBonusByCard[target] = auraValue;
-                }
-
-                if (isDefTotem)
-                {
-                    int auraValue = GetTotemAuraValue(source.Data, EffectType.TotemAura_Defense);
-                    if (_totemDefenseBonusByCard.TryGetValue(target, out int bonus))
-                        _totemDefenseBonusByCard[target] = bonus + auraValue;
-                    else
-                        _totemDefenseBonusByCard[target] = auraValue;
-                }
-            }
-        }
-    }
-
-    //* 토템의 영역 시각화
-    private void ApplyTotemOverlays()
-    {
-        if (GridManager.Instance == null) return;
-
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-        {
-            if (slot == null) continue;
-            bool showDmg = _damageTotemOverlayStacks.ContainsKey(slot);
-            bool showDef = _defenseTotemOverlayStacks.ContainsKey(slot);
-
-            slot.SetTotemBorder(showDmg, showDef);
-        }
-    }
-
-    private void NotifyTotemBonusChanged()
-    {
-        if (GridManager.Instance == null) return;
-
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-        {
-            CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy) continue;
-            card.GetComponent<CardRuntimeState>()?.Refresh();
-        }
-    }
-
-    private static bool CanApplyTotemBonus(EffectType effectType)
-    {
-        switch (effectType)
-        {
-            case EffectType.Damage:                 // 공격
-            case EffectType.Defense:                // 수비
-            case EffectType.DirectionalDamageBonus: // 흡수
-            case EffectType.CounterDamage:          // 카운터
-            case EffectType.PopularityDamage:       // 인싸
-            case EffectType.FinisherDamage:         // 마무리
-            case EffectType.DefenseOnOff:           // 쌍방 (ON일 때 공격력)
-            case EffectType.CastingDamage:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static int GetTotemAuraValue(CardData data, EffectType auraType)
-    {
-        if (data?.effects == null) return 0;
-
-        int total = 0;
-        foreach (CardEffect effect in data.effects)
-        {
-            if (effect.effectType != auraType) continue;
-            total += Mathf.RoundToInt(effect.value);
-        }
-
-        return total;
-    }
-
-    private static int GetTotemAuraValue(CardData data) => GetTotemAuraValue(data, EffectType.TotemAura);
-
-    private bool IsTotemCardData(CardData data)
-    {
-        return ContainsEffect(data, EffectType.TotemAura) || ContainsEffect(data, EffectType.TotemAura_Defense);
-    }
-
-    private bool ContainsEffect(CardData data, EffectType effectType)
-    {
-        if (data?.effects == null) return false;
-
-        foreach (CardEffect effect in data.effects)
-            if (effect.effectType == effectType)
-                return true;
-
-        return false;
-    }
-
-    private bool WouldCreateInfiniteLoop(CardView root)
-    {
-        if (root == null || root.CurrentSlot == null || GridManager.Instance == null)
-            return false;
-
-        List<CardView> placedCards = GetPlacedCards();
-        if (!placedCards.Contains(root))
-            placedCards.Add(root);
-        SortCardsByGridPosition(placedCards);
-
-        Dictionary<CardView, bool> simulatedStates = new();
-        foreach (CardView card in placedCards)
-            if (card != null)
-                simulatedStates[card] = card.IsActivated;
-
-        List<CardView> currentWave = new() { root };
-        HashSet<string> visitedStates = new();
-        int step = 0;
-
-        while (currentWave.Count > 0)
-        {
-            string stateKey = BuildLoopStateKey(currentWave, placedCards, simulatedStates);
-            if (!visitedStates.Add(stateKey))
-            {
-                Debug.Log("[ChainExecutor] 사전 시뮬레이션에서 무한 루프 감지.");
-                return true;
-            }
-
-            List<CardView> emitters = new();
-            foreach (CardView current in currentWave)
-            {
-                if (current == null || current.CurrentSlot == null) continue;
-                if (!simulatedStates.TryGetValue(current, out bool currentState)) continue;
-
-                bool nextState = !currentState;
-                simulatedStates[current] = nextState;
-
-                step++;
-                if (step > _maxActivationSteps)
-                {
-                    Debug.LogWarning("[ChainExecutor] 사전 시뮬레이션 안전 한도 초과 — 무한 루프로 처리.");
-                    return true;
-                }
-
-                if (nextState)
-                    emitters.Add(current);
-            }
-
-            HashSet<CardView> nextWaveSet = new();
-            foreach (CardView emitter in emitters)
-            {
-                if (emitter == null || emitter.Data == null) continue;
-
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
-                {
-                    GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
-                    {
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                        if (neighbor == null) break;
-
-                        CardView target = neighbor.OccupiedCard;
-                        if (target != null && simulatedStates.ContainsKey(target))
-                            nextWaveSet.Add(target);
-
-                        current = neighbor;
-                    }
-                }
-            }
-
-            currentWave = new List<CardView>(nextWaveSet);
-        }
-
-        return false;
-    }
-
     private IEnumerator ExecutePredictedInfiniteLoopRoutine(CardView root, HashSet<CardView> activatedCards)
     {
         bool chainFinished = false;
@@ -1234,45 +553,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             && BattleManager.Instance.Enemy.IsDead;
     }
 
-    private List<CardView> GetPlacedCards()
-    {
-        List<CardView> result = new();
-        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-            if (slot.OccupiedCard != null)
-                result.Add(slot.OccupiedCard);
-        return result;
-    }
-
-    private static void SortCardsByGridPosition(List<CardView> cards)
-    {
-        cards.Sort((a, b) =>
-        {
-            Vector2Int aPosition = a != null && a.CurrentSlot != null ? a.CurrentSlot.Position : Vector2Int.zero;
-            Vector2Int bPosition = b != null && b.CurrentSlot != null ? b.CurrentSlot.Position : Vector2Int.zero;
-            int yCompare = aPosition.y.CompareTo(bPosition.y);
-            return yCompare != 0 ? yCompare : aPosition.x.CompareTo(bPosition.x);
-        });
-    }
-
-    private static string BuildLoopStateKey(
-        List<CardView> currentWave,
-        List<CardView> placedCards,
-        Dictionary<CardView, bool> simulatedStates)
-    {
-        HashSet<CardView> waveSet = new(currentWave);
-        StringBuilder builder = new();
-
-        foreach (CardView card in placedCards)
-            builder.Append(waveSet.Contains(card) ? '1' : '0');
-
-        builder.Append('|');
-
-        foreach (CardView card in placedCards)
-            builder.Append(simulatedStates.TryGetValue(card, out bool active) && active ? '1' : '0');
-
-        return builder.ToString();
-    }
-
     /// <summary>무한 루프가 감지됐을 때 호출됩니다. 처리 방식은 추후 결정.</summary>
     private void OnInfiniteLoopDetected()
     {
@@ -1286,41 +566,6 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnToggleCountChanged = null;
         OnTotemAuraChanged = null;
         base.Dispose();
-    }
-
-    // ── 축전기 방전 ───────────────────────────────────────
-
-    private IEnumerator DischargeCapacitor(CardView card, HashSet<CardView> activatedCards)
-    {
-        if (card?.Data == null || card.CurrentSlot == null) yield break;
-
-        int dischargeCount = card.Data.capacitorDischargeCount;
-        for (int i = 0; i < dischargeCount; i++)
-        {
-            if (card.CurrentSlot == null) break;
-
-            PlayTriggerDirectionLine(card);
-
-            // 화살표 방향 이웃 카드들을 체인 발동
-            foreach (CardDirection dir in card.Data.GetAllDirections())
-            {
-                GridSlot current = card.CurrentSlot;
-                for (int r = 0; r < card.Data.range; r++)
-                {
-                    GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                    if (neighbor == null) break;
-                    if (neighbor.OccupiedCard != null)
-                        yield return ActivateChainFrom(neighbor.OccupiedCard, activatedCards);
-                    current = neighbor;
-                }
-            }
-        }
-
-        // 방전 완료 — OFF로 전환 및 상태 리셋
-        _onLockedCards.Remove(card);
-        card.SetActivated(false);
-        RefreshTotemAuras();
-        card.GetComponent<CardRuntimeState>()?.ResetCharge();
     }
 
     //* ON/OFF 시 캐스팅 카운트를 리셋
