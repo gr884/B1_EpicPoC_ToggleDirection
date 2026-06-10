@@ -1326,7 +1326,6 @@ MonoBehaviour:
     targetOffset: {x: 0, y: 0}
     size: {x: 1, y: 1}
     duration: 0.28
-    waitForVisualImpact: 1
   - card: {fileID: 0}
     matchAnyEffectType: 0
     effectType: 1
@@ -1337,11 +1336,9 @@ MonoBehaviour:
     targetOffset: {x: 0, y: 0}
     size: {x: 1, y: 1}
     duration: 0.28
-    waitForVisualImpact: 1
   _defaultTarget: {fileID: 0}
   _defaultProjectileSize: {x: 1, y: 1}
   _defaultProjectileDuration: 0.28
-  _fallbackCardIconWaitsForImpact: 1
   _projectileSortingOrder: 100
 --- !u!4 &677711470
 Transform:

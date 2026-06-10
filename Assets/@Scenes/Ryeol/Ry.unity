@@ -3927,7 +3927,6 @@ MonoBehaviour:
     targetOffset: {x: 0, y: 0}
     size: {x: 1, y: 1}
     duration: 0.28
-    waitForVisualImpact: 1
     movementMode: 0
     projectileForce: 1000
     forwardSpawnOffset: 0.3
@@ -3943,7 +3942,6 @@ MonoBehaviour:
     targetOffset: {x: 0, y: 0}
     size: {x: 1, y: 1}
     duration: 0.28
-    waitForVisualImpact: 1
     movementMode: 0
     projectileForce: 1000
     forwardSpawnOffset: 0.3
@@ -3952,7 +3950,6 @@ MonoBehaviour:
   _defaultTarget: {fileID: 743872838}
   _defaultProjectileSize: {x: 1, y: 1}
   _defaultProjectileDuration: 0.28
-  _fallbackCardIconWaitsForImpact: 1
   _projectileSortingOrder: 100
 --- !u!1 &1843453996
 GameObject:

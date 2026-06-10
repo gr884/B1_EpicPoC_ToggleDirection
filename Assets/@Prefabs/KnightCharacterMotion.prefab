@@ -132,7 +132,6 @@ MonoBehaviour:
   _defaultTarget: {fileID: 0}
   _defaultProjectileSize: {x: 1, y: 1}
   _defaultProjectileDuration: 0.28
-  _fallbackCardIconWaitsForImpact: 1
   _projectileSortingOrder: 100
 --- !u!114 &100000005
 MonoBehaviour:

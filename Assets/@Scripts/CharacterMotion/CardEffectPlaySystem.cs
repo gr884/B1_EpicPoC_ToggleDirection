@@ -33,7 +33,6 @@ public class CardEffectPlaySystem : MonoBehaviour
         public Vector2 targetOffset;
         public Vector2 size = Vector2.one;
         [Min(0f)] public float duration = 0.28f;
-        public bool waitForVisualImpact = true;
         public VisualMovementMode movementMode = VisualMovementMode.Auto;
         [Min(0f)] public float projectileForce = 1000f;
         [Min(0f)] public float forwardSpawnOffset = 0.3f;
@@ -75,7 +74,6 @@ public class CardEffectPlaySystem : MonoBehaviour
     [SerializeField] private Transform _defaultTarget;
     [SerializeField] private Vector2 _defaultProjectileSize = Vector2.one;
     [SerializeField, Min(0f)] private float _defaultProjectileDuration = 0.28f;
-    [SerializeField] private bool _fallbackCardIconWaitsForImpact = true;
     [SerializeField] private int _projectileSortingOrder = 100;
 
     private const float DefaultProjectileForce = 1000f;
@@ -202,6 +200,30 @@ public class CardEffectPlaySystem : MonoBehaviour
             yield return null;
     }
 
+    public void PlayAssignedEffectDetached(
+        CardView sourceCard,
+        EffectType effectType,
+        QueuedEffectTiming timing,
+        Transform targetOverride = null,
+        float value = 0f)
+    {
+        if (!isActiveAndEnabled || !HasAssignedVisual(sourceCard, effectType))
+            return;
+
+        CardData cardData = sourceCard != null ? sourceCard.Data : null;
+        QueuedEffectRequest request = new(
+            sourceCard,
+            cardData,
+            effectType,
+            timing,
+            null,
+            targetOverride,
+            value);
+
+        // 체인 진행과 무관하게 비주얼만 독립 실행한다.
+        StartCoroutine(PlayDetachedEffect(request));
+    }
+
     public void EnqueueEffect(QueuedEffectRequest request)
     {
         EnqueueEffect(request, null);
@@ -225,11 +247,8 @@ public class CardEffectPlaySystem : MonoBehaviour
 
         _effectQueue.Clear();
 
-        if (_playRoutine != null)
-        {
-            StopCoroutine(_playRoutine);
-            _playRoutine = null;
-        }
+        StopAllCoroutines();
+        _playRoutine = null;
 
         ClearSpawnedVisuals();
     }
@@ -267,20 +286,17 @@ public class CardEffectPlaySystem : MonoBehaviour
         _playRoutine = null;
     }
 
+    private IEnumerator PlayDetachedEffect(QueuedEffectRequest request)
+    {
+        CardEffectVisualSetting setting = FindVisualSetting(request.CardData, request.EffectType);
+        if (HasVisual(request, setting))
+            yield return PlayVisual(request, setting);
+    }
+
     private IEnumerator PlayEffectRequest(QueuedEffectRequest request)
     {
         CardEffectVisualSetting setting = FindVisualSetting(request.CardData, request.EffectType);
         bool hasVisual = HasVisual(request, setting);
-        bool waitForImpact = setting != null
-            ? setting.waitForVisualImpact
-            : _fallbackCardIconWaitsForImpact;
-
-        if (hasVisual && waitForImpact)
-        {
-            yield return PlayVisual(request, setting);
-            request.OnImpact?.Invoke();
-            yield break;
-        }
 
         request.OnImpact?.Invoke();
 
