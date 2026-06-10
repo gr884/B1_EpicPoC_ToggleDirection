@@ -15,13 +15,15 @@ MonoBehaviour:
   cardId: 
   displayName: "\uC5D0\uB108\uC9C0 \uACF5\uAE09"
   description: "1 \uCF54\uC2A4\uD2B8\uB97C \uD68D\uB4DD\uD569\uB2C8\uB2E4."
-  cost: 2
+  cost: 3
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3
   isRecaller: 0
   hasAutoTrigger: 0
   autoTriggerThreshold: 1
+  isCastingCard: 0
+  castingRequiredCount: 3
   range: 1
   recallDestination: 0
   directions: 0100000007000000
@@ -33,4 +35,5 @@ MonoBehaviour:
     effectType: 5
     value: 1
     secondaryValue: 0
+  totemAuraOffsets: []
   icon: {fileID: -3824217783865341878, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

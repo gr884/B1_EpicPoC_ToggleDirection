@@ -17,13 +17,15 @@ MonoBehaviour:
   description: "\uACF5\uACA9 + 4\n\n\uC774 \uCE74\uB4DC\uAC00\n\uD65C\uC131\uD654\uB420
     \uB54C\uB9C8\uB2E4\n\uC774\uBC88 \uC804\uD22C\uC5D0\uC11C\n\uACF5\uACA9\uC774
     1 \uCD94\uAC00\uB429\uB2C8\uB2E4."
-  cost: 0
+  cost: 1
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3
   isRecaller: 0
   hasAutoTrigger: 0
   autoTriggerThreshold: 1
+  isCastingCard: 0
+  castingRequiredCount: 3
   range: 1
   recallDestination: 0
   directions: 05000000
@@ -42,4 +44,5 @@ MonoBehaviour:
     effectType: 7
     value: 1
     secondaryValue: 0
+  totemAuraOffsets: []
   icon: {fileID: -7142010459297365230, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

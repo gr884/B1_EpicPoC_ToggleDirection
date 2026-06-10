@@ -10,14 +10,13 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: GainCost_LeftRightItem
+  m_Name: ShotgunAttack_RightItem
   m_EditorClassIdentifier: Assembly-CSharp::ItemData
   cardId: 
-  displayName: "\uC5D0\uB108\uC9C0 \uACF5\uAE092"
-  description: "1 \uCF54\uC2A4\uD2B8\uB97C \uD68D\uB4DD\uD569\uB2C8\uB2E4.\n\uAC19\uC740
-    \uC5F4 \uC804\uBD80 \uD65C\uC131\uD654 \uC2DC,\n\uCD94\uAC00 1 \uCF54\uC2A4\uD2B8\uB97C
-    \uD68D\uB4DD\uD569\uB2C8\uB2E4."
-  cost: 3
+  displayName: "\uC0F7\uAC74"
+  description: "10\uC758 \uB370\uBBF8\uC9C0\uB97C \uC8FC\uACE0\n\uC624\uB978\uCABD
+    \uC77C\uB82C\uB85C \uACF5\uACA9\uD569\uB2C8\uB2E4."
+  cost: 1
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3
@@ -28,21 +27,14 @@ MonoBehaviour:
   castingRequiredCount: 3
   range: 1
   recallDestination: 0
-  directions: 0700000003000000
+  directions: 020000000300000004000000
   effects:
   - trigger: 0
     scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 5
-    value: 1
-    secondaryValue: 0
-  - trigger: 0
-    scope: 1
-    thresholdType: 1
-    threshold: 0
-    effectType: 5
-    value: 1
+    effectType: 0
+    value: 5
     secondaryValue: 0
   totemAuraOffsets: []
-  icon: {fileID: -4007638174666264586, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
+  icon: {fileID: -2237518807768803992, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
