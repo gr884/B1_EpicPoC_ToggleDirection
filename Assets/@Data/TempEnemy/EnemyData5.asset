@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::EnemyDataSO
   enemyId: 
   displayName: Enemy5
-  maxHp: 170
+  maxHp: 130
   sprite: {fileID: 0}
   motionPrefab: {fileID: 910000000000000003, guid: b4c759504f5847f99b510526e209bfd3, type: 3}
   intentPattern:
