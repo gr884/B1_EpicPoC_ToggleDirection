@@ -39,12 +39,16 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
     private TotemAuraSystem _totemSystem;
     private readonly InfiniteLoopDetector _loopDetector = new();
 
+    // ON 상태에서 꺼지지 않아야 하는 카드 집합 (축전기 방전 중 등)
+    private readonly HashSet<CardView> _onLockedCards = new();
+
     public int GetTotemDamageBonus(CardView card) => _totemSystem != null ? _totemSystem.GetDamageBonus(card) : 0;
     public int GetTotemDefenseBonus(CardView card) => _totemSystem != null ? _totemSystem.GetDefenseBonus(card) : 0;
 
     public void ResetTurnToggleCount()
     {
         _turnToggleCount = 0;
+        _onLockedCards.Clear();
         OnToggleCountChanged?.Invoke();
     }
 
@@ -175,11 +179,7 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (nextState && !card.IsEnemy)
             {
                 PlayTriggerDirectionLine(card);
-                _turnToggleCount++;
-                OnToggleCountChanged?.Invoke();
-                card.Instance?.PersistentState.IncrementTurnOnCount();
-                ProcessCastingTriggers(card);
-                yield return ApplyEffects(card, EffectTrigger.OnActivated);
+                yield return FireCardOnEffects(card);
             }
             else if (!nextState && !card.IsEnemy)
             {
@@ -224,11 +224,7 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
             RefreshTotemAuras();
 
             // ON 여부와 관계없이 효과 발동 + 카운트 증가 + 피드백
-            _turnToggleCount++;
-            OnToggleCountChanged?.Invoke();
-            neighbor.Instance?.PersistentState.IncrementTurnOnCount();
-            ProcessCastingTriggers(neighbor);
-            yield return ApplyEffects(neighbor);
+            yield return FireCardOnEffects(neighbor);
             StartCoroutine(neighbor.PlayActivationFeedback(_cardFeedbackDuration));
 
             // OFF→ON이 된 카드만 이웃으로 체인 전파
@@ -294,6 +290,34 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
             {
                 if (current == null || current.CurrentSlot == null) continue;
 
+                // 축전기 카드 처리: 일반 토글 대신 충전/방전 로직으로 분기
+                if (!current.IsEnemy && current.Data != null && current.Data.isCapacitorCard)
+                {
+                    var capRuntime = current.GetComponent<CardRuntimeState>();
+                    if (current.IsActivated && _onLockedCards.Contains(current))
+                    {
+                        // 방전 중 — 토글 무시
+                    }
+                    else if (!current.IsActivated)
+                    {
+                        // OFF 상태 — 충전 카운트 증가
+                        capRuntime?.IncrementCharge();
+                        StartCoroutine(current.PlayActivationFeedback(_cardFeedbackDuration));
+
+                        int chargeCount = capRuntime?.CurrentChargeCount ?? 0;
+                        int required = current.Data.capacitorChargeRequired;
+                        if (chargeCount >= required)
+                        {
+                            // 충전 완료 → ON 전환 후 방전 시작
+                            current.SetActivated(true);
+                            RefreshTotemAuras();
+                            _onLockedCards.Add(current);
+                            StartCoroutine(DischargeCapacitor(current, activatedCards));
+                        }
+                    }
+                    continue;
+                }
+
                 bool nextState = !current.IsActivated;
                 current.SetActivated(nextState);
                 HandleCastingStateChange(current, nextState);
@@ -314,15 +338,7 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                     if (!current.IsEnemy)
                     {
-                        // 임계 활성화: ON 횟수 누적
-                        current.Instance?.PersistentState.IncrementTurnOnCount();
-                        // 카운터형: 그리드 전체 ON 횟수 누적
-                        _turnToggleCount++;
-                        OnToggleCountChanged?.Invoke();
-
-                        ProcessCastingTriggers(current);
-
-                        yield return ApplyEffects(current);
+                        yield return FireCardOnEffects(current);
 
                         // Replay 이펙트: 체인 흐름 안에서 처리
                         if (current.Data?.effects != null)
@@ -405,6 +421,55 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
             currentWave = new List<CardView>(nextWaveSet);
         }
+    }
+
+    // ON된 아군 카드의 공통 부수효과 발동 (시각 라인·체인 제어는 호출부 담당)
+    private IEnumerator FireCardOnEffects(CardView card)
+    {
+        // 임계 활성화: ON 횟수 누적
+        card.Instance?.PersistentState.IncrementTurnOnCount();
+        // 카운터형: 그리드 전체 ON 횟수 누적
+        _turnToggleCount++;
+        OnToggleCountChanged?.Invoke();
+
+        ProcessCastingTriggers(card);
+
+        yield return ApplyEffects(card);
+    }
+
+    // ── 축전기 방전 ───────────────────────────────────────
+
+    private IEnumerator DischargeCapacitor(CardView card, HashSet<CardView> activatedCards)
+    {
+        if (card?.Data == null || card.CurrentSlot == null) yield break;
+
+        int dischargeCount = card.Data.capacitorDischargeCount;
+        for (int i = 0; i < dischargeCount; i++)
+        {
+            if (card.CurrentSlot == null) break;
+
+            PlayTriggerDirectionLine(card);
+
+            // 화살표 방향 이웃 카드들을 체인 발동
+            foreach (CardDirection dir in card.Data.GetAllDirections())
+            {
+                GridSlot current = card.CurrentSlot;
+                for (int r = 0; r < card.Data.range; r++)
+                {
+                    GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                    if (neighbor == null) break;
+                    if (neighbor.OccupiedCard != null)
+                        yield return ActivateChainFrom(neighbor.OccupiedCard, activatedCards);
+                    current = neighbor;
+                }
+            }
+        }
+
+        // 방전 완료 — OFF로 전환 및 상태 리셋
+        _onLockedCards.Remove(card);
+        card.SetActivated(false);
+        RefreshTotemAuras();
+        card.GetComponent<CardRuntimeState>()?.ResetCharge();
     }
 
     private void PlayTriggerDirectionLine(CardView card)
