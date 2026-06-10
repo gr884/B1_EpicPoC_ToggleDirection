@@ -48,10 +48,14 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     public void ResetTurnToggleCount()
     {
         _turnToggleCount = 0;
+        _onLockedCards.Clear();
         OnToggleCountChanged?.Invoke();
     }
 
     public bool IsExecuting { get; private set; }
+
+    // ON 상태에서 꺼지지 않아야 하는 카드 집합 (축전기 방전 중 등)
+    private readonly HashSet<CardView> _onLockedCards = new();
 
     public void Init()
     {
@@ -111,7 +115,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (!CanApplyTotemBonus(effectType)) return baseValue;
 
-        int bonus = (effectType == EffectType.Defense) ? 
+        int bonus = (effectType == EffectType.Defense) ?
             GetTotemDefenseBonus(card) : GetTotemDamageBonus(card);
         return baseValue + bonus;
     }
@@ -234,7 +238,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
                     foreach (var e in targetCard.Data.effects)
                     {
-                        bool isdmg =    (e.effectType == EffectType.Damage) ||
+                        bool isdmg = (e.effectType == EffectType.Damage) ||
                                         (e.effectType == EffectType.DefenseOnOff) ||
                                         (e.effectType == EffectType.CounterDamage);
                         if (!isdmg) continue;
@@ -323,7 +327,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                         runtime.GetModifiedDamage(basePopDamage) : basePopDamage;
                     // 주위 블럭들을 기반으로 한 총합 데미지
                     int popularityDamage = modifiedPopDamage * neighborCount;
-                    
+
                     if (popularityDamage > 0)
                         DealDamageToEnemy(popularityDamage);
                 }
@@ -353,50 +357,50 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             case EffectType.TotemAura:
                 break;
             case EffectType.Devour:
-            {
-                if (card.CurrentSlot == null) break;
-
-                int devourCount = 0;
-                List<CardView> targetsToDevour = new(); // 루프 도중 파괴로 인한 에러 방지용 리스트
-
-                // 범위 내의 먹잇감 스캔
-                foreach (CardDirection dir in card.Data.GetAllDirections())
                 {
-                    GridSlot current = card.CurrentSlot;
-                    for (int i = 0; i < card.Data.range; i++)
-                    {
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                        if (neighbor == null) break;
+                    if (card.CurrentSlot == null) break;
 
-                        CardView targetCard = neighbor.OccupiedCard;
-                        
-                        // 적이 아니고, 빈 칸이 아니며, 아직 먹기로 예약되지 않은 아군/특수 기물이라면!
-                        if (targetCard != null && !targetCard.IsEnemy && !targetsToDevour.Contains(targetCard))
+                    int devourCount = 0;
+                    List<CardView> targetsToDevour = new(); // 루프 도중 파괴로 인한 에러 방지용 리스트
+
+                    // 범위 내의 먹잇감 스캔
+                    foreach (CardDirection dir in card.Data.GetAllDirections())
+                    {
+                        GridSlot current = card.CurrentSlot;
+                        for (int i = 0; i < card.Data.range; i++)
                         {
-                            targetsToDevour.Add(targetCard);
+                            GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                            if (neighbor == null) break;
+
+                            CardView targetCard = neighbor.OccupiedCard;
+
+                            // 적이 아니고, 빈 칸이 아니며, 아직 먹기로 예약되지 않은 아군/특수 기물이라면!
+                            if (targetCard != null && !targetCard.IsEnemy && !targetsToDevour.Contains(targetCard))
+                            {
+                                targetsToDevour.Add(targetCard);
+                            }
+                            current = neighbor;
                         }
-                        current = neighbor;
                     }
-                }
 
-                // 일괄 포식
-                foreach (CardView target in targetsToDevour)
-                {
-                    devourCount++;
-                    CardManager.Instance.ExileCard(target); // 알아서 토템 장판 등도 갱신해줌
-                }
-
-                // 먹은 개수만큼 스탯 상승 (이번 전투 내내 유지)
-                if (devourCount > 0)
-                {
-                    int gainAmount = Mathf.Max(1, Mathf.RoundToInt(value)) * devourCount;
-                    if (runtime != null)
+                    // 일괄 포식
+                    foreach (CardView target in targetsToDevour)
                     {
-                        runtime.AddBonusDamage(gainAmount); // 영구 공격력 증가
+                        devourCount++;
+                        CardManager.Instance.ExileCard(target); // 알아서 토템 장판 등도 갱신해줌
                     }
+
+                    // 먹은 개수만큼 스탯 상승 (이번 전투 내내 유지)
+                    if (devourCount > 0)
+                    {
+                        int gainAmount = Mathf.Max(1, Mathf.RoundToInt(value)) * devourCount;
+                        if (runtime != null)
+                        {
+                            runtime.AddBonusDamage(gainAmount); // 영구 공격력 증가
+                        }
+                    }
+                    break;
                 }
-                break;
-            }
             case EffectType.CastingDamage:
             case EffectType.CastingDefense:
                 break;
@@ -729,6 +733,34 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
             {
                 if (current == null || current.CurrentSlot == null) continue;
 
+                // 축전기 카드 처리: 일반 토글 대신 충전/방전 로직으로 분기
+                if (!current.IsEnemy && current.Data != null && current.Data.isCapacitorCard)
+                {
+                    var capRuntime = current.GetComponent<CardRuntimeState>();
+                    if (current.IsActivated && _onLockedCards.Contains(current))
+                    {
+                        // 방전 중 — 토글 무시
+                    }
+                    else if (!current.IsActivated)
+                    {
+                        // OFF 상태 — 충전 카운트 증가
+                        capRuntime?.IncrementCharge();
+                        StartCoroutine(current.PlayActivationFeedback(_cardFeedbackDuration));
+
+                        int chargeCount = capRuntime?.CurrentChargeCount ?? 0;
+                        int required = current.Data.capacitorChargeRequired;
+                        if (chargeCount >= required)
+                        {
+                            // 충전 완료 → ON 전환 후 방전 시작
+                            current.SetActivated(true);
+                            RefreshTotemAuras();
+                            _onLockedCards.Add(current);
+                            StartCoroutine(DischargeCapacitor(current, activatedCards));
+                        }
+                    }
+                    continue;
+                }
+
                 bool nextState = !current.IsActivated;
                 current.SetActivated(nextState);
                 HandleCastingStateChange(current, nextState);
@@ -913,7 +945,7 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     else
                         _totemDamageBonusByCard[target] = auraValue;
                 }
-                
+
                 if (isDefTotem)
                 {
                     int auraValue = GetTotemAuraValue(source.Data, EffectType.TotemAura_Defense);
@@ -1254,6 +1286,41 @@ public class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnToggleCountChanged = null;
         OnTotemAuraChanged = null;
         base.Dispose();
+    }
+
+    // ── 축전기 방전 ───────────────────────────────────────
+
+    private IEnumerator DischargeCapacitor(CardView card, HashSet<CardView> activatedCards)
+    {
+        if (card?.Data == null || card.CurrentSlot == null) yield break;
+
+        int dischargeCount = card.Data.capacitorDischargeCount;
+        for (int i = 0; i < dischargeCount; i++)
+        {
+            if (card.CurrentSlot == null) break;
+
+            PlayTriggerDirectionLine(card);
+
+            // 화살표 방향 이웃 카드들을 체인 발동
+            foreach (CardDirection dir in card.Data.GetAllDirections())
+            {
+                GridSlot current = card.CurrentSlot;
+                for (int r = 0; r < card.Data.range; r++)
+                {
+                    GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                    if (neighbor == null) break;
+                    if (neighbor.OccupiedCard != null)
+                        yield return ActivateChainFrom(neighbor.OccupiedCard, activatedCards);
+                    current = neighbor;
+                }
+            }
+        }
+
+        // 방전 완료 — OFF로 전환 및 상태 리셋
+        _onLockedCards.Remove(card);
+        card.SetActivated(false);
+        RefreshTotemAuras();
+        card.GetComponent<CardRuntimeState>()?.ResetCharge();
     }
 
     //* ON/OFF 시 캐스팅 카운트를 리셋

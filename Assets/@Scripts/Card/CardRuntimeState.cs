@@ -10,6 +10,7 @@ public class CardRuntimeState : MonoBehaviour
     public CardInstance Instance => _instance;
     public int BonusDamage => !_isEnemy && _instance != null ? _instance.PersistentState.BonusDamage : 0;
     public int CurrentCastingCount { get; private set; }
+    public int CurrentChargeCount { get; private set; }
 
     public event Action OnChanged;
 
@@ -84,6 +85,18 @@ public class CardRuntimeState : MonoBehaviour
     public void ResetCasting()
     {
         CurrentCastingCount = 0;
+        OnChanged?.Invoke();
+    }
+
+    public void IncrementCharge()
+    {
+        CurrentChargeCount++;
+        OnChanged?.Invoke();
+    }
+
+    public void ResetCharge()
+    {
+        CurrentChargeCount = 0;
         OnChanged?.Invoke();
     }
 }

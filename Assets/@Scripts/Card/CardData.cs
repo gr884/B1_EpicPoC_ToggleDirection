@@ -138,6 +138,11 @@ public class CardData : ScriptableObject
     public bool isCastingCard = false;
     public int castingRequiredCount = 3;
 
+    [Header("Capacitor")]
+    public bool isCapacitorCard = false;
+    public int capacitorChargeRequired = 3;  // ON이 되기 위한 트리거 횟수
+    public int capacitorDischargeCount = 3;  // ON 후 화살표 방향 트리거 실행 횟수 N
+
     [Header("Range")]
     [Min(1)] public int range = 1;
 
