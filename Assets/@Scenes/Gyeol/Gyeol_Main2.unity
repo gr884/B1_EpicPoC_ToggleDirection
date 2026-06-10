@@ -4347,22 +4347,12 @@ MonoBehaviour:
   _player: {fileID: 82675637}
   _flightEffectPlayer: {fileID: 1926050208}
   _startingDeck:
-  - {fileID: 11400000, guid: b99f0bb34196b7344afd6bc04f608ee4, type: 2}
-  - {fileID: 11400000, guid: 6e6994e4dd0ed744eb6665fb15aaf4b0, type: 2}
-  - {fileID: 11400000, guid: e240465966e702d40ade5320a3569edd, type: 2}
-  - {fileID: 11400000, guid: 7f02197a1cdefb34ebcdab1676ec9555, type: 2}
-  - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
-  - {fileID: 11400000, guid: 10d134d03c9bca44b9b118c0ba8e082c, type: 2}
-  - {fileID: 11400000, guid: 7651bbda5845f9344b096e73d3da8979, type: 2}
-  - {fileID: 11400000, guid: 612445577a5007943ae9638866b316ec, type: 2}
-  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
-  - {fileID: 11400000, guid: 584c68ab73179be48a6e5fdbd18347cb, type: 2}
-  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
-  - {fileID: 11400000, guid: 531a05e1d2ac06d4fb5320b56e385ce0, type: 2}
   - {fileID: 11400000, guid: 61a85492deb3cee40bf4a4d3e3d28bb7, type: 2}
   - {fileID: 11400000, guid: 61a85492deb3cee40bf4a4d3e3d28bb7, type: 2}
-  - {fileID: 11400000, guid: 5283a550a20821740a3b8d03db485478, type: 2}
-  - {fileID: 11400000, guid: 0ce2d9f694da2134d93c5d2c8378dd2b, type: 2}
+  - {fileID: 11400000, guid: 6c5ff3461e3a7c64fb7a46735e174aef, type: 2}
+  - {fileID: 11400000, guid: 6c5ff3461e3a7c64fb7a46735e174aef, type: 2}
+  - {fileID: 11400000, guid: a6ecaa1504750e14882060029ad02830, type: 2}
+  - {fileID: 11400000, guid: a6ecaa1504750e14882060029ad02830, type: 2}
   _shuffleOnReset: 1
 --- !u!114 &1926050208
 MonoBehaviour:
@@ -6859,6 +6849,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fec3d0e7f4d0f2740a854d8c5d85b003, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameFlowManager
+  _forwardMotionEffect: {fileID: 0}
+  _forwardMotionFallbackTimeout: 5
 --- !u!114 &2218965749678627868
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -9605,6 +9597,7 @@ MonoBehaviour:
   _cardFeedbackDuration: 0.22
   _maxLoopCount: 3
   _cardEffectPlaySystem: {fileID: 1780183745}
+  _triggerDirectionLineEffectPlayer: {fileID: 0}
   _infiniteLoopText: {fileID: 1924988237}
   _loopSlashDirector: {fileID: 1389832506}
   _infiniteLoopGraceDuration: 2
