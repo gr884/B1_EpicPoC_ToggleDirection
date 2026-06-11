@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "PopularityDamageEffect", menuName = "Game/Effects/PopularityDamage")]
 public class PopularityDamageEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.PopularityDamage;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         if (ctx.Card?.CurrentSlot == null) yield break;

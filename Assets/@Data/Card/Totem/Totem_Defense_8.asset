@@ -31,7 +31,8 @@ MonoBehaviour:
     scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 17
+    effect: {fileID: 11400000, guid: 2c0f3aec3a9c6694cb6b0da2dcd5dfe4, type: 2}
+    _legacyEffectType: 17
     value: 1
     secondaryValue: 0
   totemAuraOffsets:

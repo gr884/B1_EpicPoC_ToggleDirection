@@ -432,8 +432,10 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         foreach (CardEffect e in Data.effects)
         {
             if (e.trigger == EffectTrigger.OnPlaced) continue;
-            if (e.EffectTypeId == EffectType.DirectionalDamageBonus) hasDirectionalBonus = true;
-            if (e.EffectTypeId == EffectType.Damage)
+            CardEffectBase resolvedEffect = e.ResolvedEffect;
+            if (resolvedEffect == null) continue;
+            if (resolvedEffect.IsDirectionalDamageBonus) hasDirectionalBonus = true;
+            if (resolvedEffect.IsDamage)
                 baseDamageTotal += Mathf.Max(1, Mathf.RoundToInt(e.value));
         }
 
@@ -442,9 +444,11 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         foreach (CardEffect effect in Data.effects)
         {
             if (effect.trigger == EffectTrigger.OnPlaced) continue;
+            CardEffectBase resolvedEffect = effect.ResolvedEffect;
+            if (resolvedEffect == null) continue;
 
             // Damage는 DirectionalDamageBonus와 합산 처리
-            if (effect.EffectTypeId == EffectType.Damage && hasDirectionalBonus)
+            if (resolvedEffect.IsDamage && hasDirectionalBonus)
             {
                 if (!damageLineWritten)
                 {
@@ -456,7 +460,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                 continue;
             }
 
-            if (effect.EffectTypeId == EffectType.DirectionalDamageBonus) continue;
+            if (resolvedEffect.IsDirectionalDamageBonus) continue;
 
             string l = BuildPreviewLine(effect, bonusDamage, totemDamageBonus, totemDefenseBonus);
             if (!string.IsNullOrEmpty(l))
@@ -487,10 +491,12 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                 // 해당 방향의 기물이 가지는 효과 확인
                 foreach (CardEffect e in n.OccupiedCard.Data.effects)
                 {
-                    if (e.EffectTypeId != EffectType.Damage &&
-                        e.EffectTypeId != EffectType.CounterDamage &&
-                        e.EffectTypeId != EffectType.PopularityDamage &&
-                        e.EffectTypeId != EffectType.DefenseOnOff)
+                    CardEffectBase resolvedEffect = e.ResolvedEffect;
+                    if (resolvedEffect == null) continue;
+                    if (!resolvedEffect.IsDamage &&
+                        !resolvedEffect.IsCounterDamage &&
+                        !resolvedEffect.IsPopularityDamage &&
+                        !resolvedEffect.IsDefenseOnOff)
                         continue;
 
                     // 해당 효과의 기본 데미지
@@ -501,13 +507,13 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                     int modifiedBase = neighborRuntime != null ? neighborRuntime.GetModifiedDamage(totalBase) : totalBase;
 
                     // 카운트 기물이라면 토글 횟수 추가
-                    if (e.EffectTypeId == EffectType.CounterDamage)
+                    if (resolvedEffect.IsCounterDamage)
                     {
                         int toggleCount = ChainExecutor.Instance != null ? ChainExecutor.Instance.TurnToggleCount : 0;
                         neighborDamage += modifiedBase + toggleCount;
                     }
                     // 인싸 기물이라면 곱연산해 적용
-                    else if (e.EffectTypeId == EffectType.PopularityDamage)
+                    else if (resolvedEffect.IsPopularityDamage)
                     {
                         int popCount = 0;
                         foreach (CardDirection d in Enum.GetValues(typeof(CardDirection)))
@@ -536,115 +542,127 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 
     private string BuildPreviewLine(CardEffect effect, int bonusDamage, int totemDamageBonus, int totemDefenseBonus)
     {
-        switch (effect.EffectTypeId)
+        CardEffectBase resolvedEffect = effect.ResolvedEffect;
+        if (resolvedEffect == null)
+            return "";
+
+        if (resolvedEffect.IsDamage)
         {
-            case EffectType.Damage:
-                {
-                    int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
-                    int totalBonus = bonusDamage + totemDamageBonus;
-                    return totalBonus > 0 ? $"{baseVal + totalBonus}" : $"{baseVal}";
-                }
-            case EffectType.FinisherDamage:
-                {
-                    int onCount = 0;
-                    if (GridManager.Instance != null)
-                        foreach (GridSlot s in GridManager.Instance.Slots.Values)
-                            if (s.OccupiedCard != null && s.OccupiedCard.IsActivated)
-                                onCount++;
-
-                    // (기본 값 + 추가되는 값) * 켜진 카운트 를 합산해 리턴
-                    int baseVal = Mathf.RoundToInt(effect.value);
-                    int totalBonus = bonusDamage + totemDamageBonus;
-                    return $"{baseVal + totalBonus} × {onCount}";
-                }
-            case EffectType.CounterDamage:
-                {
-                    int toggleCount = ChainExecutor.Instance != null ? ChainExecutor.Instance.TurnToggleCount : 0;
-                    int baseVal = Mathf.RoundToInt(effect.value);
-                    int totalBonus = bonusDamage + totemDamageBonus;
-                    return $"{baseVal + totalBonus} + {toggleCount}";
-                }
-            case EffectType.PopularityDamage:
-                {
-                    int neighborCount = 0;
-                    if (CurrentSlot != null && GridManager.Instance != null)
-                        foreach (CardDirection dir in Enum.GetValues(typeof(CardDirection)))
-                        {
-                            if (dir == CardDirection.None) continue;
-                            GridSlot n = GridManager.Instance.GetNeighbor(CurrentSlot, dir);
-                            if (n != null && !n.IsEmpty) neighborCount++;
-                        }
-
-                    // 기본 데미지 + 토템 버프 + 보너스 데미지 합산
-                    int baseVal = Mathf.RoundToInt(effect.value);
-                    int totalBonus = bonusDamage + totemDamageBonus;
-
-                    return $"{baseVal + totalBonus} × {neighborCount}";
-                }
-            case EffectType.Defense:
-                {
-                    int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
-                    return totemDefenseBonus > 0 ? $"{baseVal + totemDefenseBonus}" : $"{baseVal}";
-                }
-            case EffectType.Heal:
-                return $"{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
-            case EffectType.DefenseOnOff:
-                if (IsActivated)
-                {
-                    int baseVal = Mathf.RoundToInt(effect.value);
-                    int totalBonus = bonusDamage + totemDamageBonus;
-                    return totalBonus > 0 ? $"{baseVal + totalBonus}" : $"{baseVal}";
-                }
-                else
-                {
-                    int baseVal = Mathf.RoundToInt(effect.secondaryValue);
-                    return totemDefenseBonus > 0 ? $"{baseVal + totemDefenseBonus}" : $"{baseVal}";
-                }
-            case EffectType.Devour:
-                {
-                    int targetCount = 0;
-                    if (CurrentSlot != null && GridManager.Instance != null)
-                    {
-                        foreach (CardDirection dir in Data.GetAllDirections())
-                        {
-                            GridSlot current = CurrentSlot;
-                            for (int i = 0; i < Data.range; i++)
-                            {
-                                GridSlot n = GridManager.Instance.GetNeighbor(current, dir);
-                                if (n == null) break;
-
-                                if (n.OccupiedCard != null && !n.OccupiedCard.IsEnemy)
-                                    targetCount++;
-
-                                current = n;
-                            }
-                        }
-                    }
-
-                    int gain = Mathf.RoundToInt(effect.value) * targetCount;
-                    return gain > 0 ? $"{gain}" : "";
-                }
-            case EffectType.CastingDamage:
-                {
-                    int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
-                    int totalBonus = bonusDamage + totemDamageBonus;
-
-                    int displayCount = (IsActivated && _runtimeState != null) ?
-                        _runtimeState.CurrentCastingCount : Data.castingRequiredCount;
-                    return totalBonus > 0 ? $"{baseVal + totalBonus} ({displayCount})" :
-                                            $"{baseVal} ({displayCount})";
-                }
-            case EffectType.CastingDefense:
-                {
-                    int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
-                    int displayCount = (IsActivated && _runtimeState != null) ?
-                        _runtimeState.CurrentCastingCount : Data.castingRequiredCount;
-                    int finalDef = baseVal + totemDefenseBonus;
-                    return totemDefenseBonus > 0 ? $"{finalDef} ({displayCount})" :
-                                                    $"{baseVal} ({displayCount})";
-                }
-            default:
-                return "";
+            int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
+            int totalBonus = bonusDamage + totemDamageBonus;
+            return totalBonus > 0 ? $"{baseVal + totalBonus}" : $"{baseVal}";
         }
+
+        if (resolvedEffect.IsFinisherDamage)
+        {
+            int onCount = 0;
+            if (GridManager.Instance != null)
+                foreach (GridSlot s in GridManager.Instance.Slots.Values)
+                    if (s.OccupiedCard != null && s.OccupiedCard.IsActivated)
+                        onCount++;
+
+            // (기본 값 + 추가되는 값) * 켜진 카운트 를 합산해 리턴
+            int baseVal = Mathf.RoundToInt(effect.value);
+            int totalBonus = bonusDamage + totemDamageBonus;
+            return $"{baseVal + totalBonus} × {onCount}";
+        }
+
+        if (resolvedEffect.IsCounterDamage)
+        {
+            int toggleCount = ChainExecutor.Instance != null ? ChainExecutor.Instance.TurnToggleCount : 0;
+            int baseVal = Mathf.RoundToInt(effect.value);
+            int totalBonus = bonusDamage + totemDamageBonus;
+            return $"{baseVal + totalBonus} + {toggleCount}";
+        }
+
+        if (resolvedEffect.IsPopularityDamage)
+        {
+            int neighborCount = 0;
+            if (CurrentSlot != null && GridManager.Instance != null)
+                foreach (CardDirection dir in Enum.GetValues(typeof(CardDirection)))
+                {
+                    if (dir == CardDirection.None) continue;
+                    GridSlot n = GridManager.Instance.GetNeighbor(CurrentSlot, dir);
+                    if (n != null && !n.IsEmpty) neighborCount++;
+                }
+
+            // 기본 데미지 + 토템 버프 + 보너스 데미지 합산
+            int baseVal = Mathf.RoundToInt(effect.value);
+            int totalBonus = bonusDamage + totemDamageBonus;
+
+            return $"{baseVal + totalBonus} × {neighborCount}";
+        }
+
+        if (resolvedEffect.IsDefense)
+        {
+            int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
+            return totemDefenseBonus > 0 ? $"{baseVal + totemDefenseBonus}" : $"{baseVal}";
+        }
+
+        if (resolvedEffect.IsHeal)
+            return $"{Mathf.Max(1, Mathf.RoundToInt(effect.value))}";
+
+        if (resolvedEffect.IsDefenseOnOff)
+        {
+            if (IsActivated)
+            {
+                int baseVal = Mathf.RoundToInt(effect.value);
+                int totalBonus = bonusDamage + totemDamageBonus;
+                return totalBonus > 0 ? $"{baseVal + totalBonus}" : $"{baseVal}";
+            }
+            else
+            {
+                int baseVal = Mathf.RoundToInt(effect.secondaryValue);
+                return totemDefenseBonus > 0 ? $"{baseVal + totemDefenseBonus}" : $"{baseVal}";
+            }
+        }
+
+        if (resolvedEffect.IsDevour)
+        {
+            int targetCount = 0;
+            if (CurrentSlot != null && GridManager.Instance != null)
+            {
+                foreach (CardDirection dir in Data.GetAllDirections())
+                {
+                    GridSlot current = CurrentSlot;
+                    for (int i = 0; i < Data.range; i++)
+                    {
+                        GridSlot n = GridManager.Instance.GetNeighbor(current, dir);
+                        if (n == null) break;
+
+                        if (n.OccupiedCard != null && !n.OccupiedCard.IsEnemy)
+                            targetCount++;
+
+                        current = n;
+                    }
+                }
+            }
+
+            int gain = Mathf.RoundToInt(effect.value) * targetCount;
+            return gain > 0 ? $"{gain}" : "";
+        }
+
+        if (resolvedEffect.IsCastingDamage)
+        {
+            int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
+            int totalBonus = bonusDamage + totemDamageBonus;
+
+            int displayCount = (IsActivated && _runtimeState != null) ?
+                _runtimeState.CurrentCastingCount : Data.castingRequiredCount;
+            return totalBonus > 0 ? $"{baseVal + totalBonus} ({displayCount})" :
+                                    $"{baseVal} ({displayCount})";
+        }
+
+        if (resolvedEffect.IsCastingDefense)
+        {
+            int baseVal = Mathf.Max(1, Mathf.RoundToInt(effect.value));
+            int displayCount = (IsActivated && _runtimeState != null) ?
+                _runtimeState.CurrentCastingCount : Data.castingRequiredCount;
+            int finalDef = baseVal + totemDefenseBonus;
+            return totemDefenseBonus > 0 ? $"{finalDef} ({displayCount})" :
+                                            $"{baseVal} ({displayCount})";
+        }
+
+        return "";
     }
 }

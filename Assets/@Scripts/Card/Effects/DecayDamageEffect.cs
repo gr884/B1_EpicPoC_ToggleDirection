@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "DecayDamageEffect", menuName = "Game/Effects/DecayDamage")]
 public class DecayDamageEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.DecayDamage;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         ctx.DeductBonusDamage(Mathf.RoundToInt(ctx.Value));

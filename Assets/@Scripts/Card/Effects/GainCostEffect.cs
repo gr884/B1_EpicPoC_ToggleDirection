@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "GainCostEffect", menuName = "Game/Effects/GainCost")]
 public class GainCostEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.GainCost;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         if (BattleManager.Instance != null)

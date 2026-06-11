@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "DamageEffect", menuName = "Game/Effects/Damage")]
 public class DamageEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.Damage;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         int damage = ctx.GetModifiedDamage(ctx.IntValue);

@@ -32,7 +32,8 @@ MonoBehaviour:
     scope: 0
     thresholdType: 0
     threshold: 5
-    effectType: 4
+    effect: {fileID: 11400000, guid: 086da0417938c884d9ca8052caffc083, type: 2}
+    _legacyEffectType: 4
     value: 1
     secondaryValue: 0
   icon: {fileID: -2745747098976433411, guid: 4759a828c918b4ce890833789886c362, type: 3}

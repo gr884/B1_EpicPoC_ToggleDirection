@@ -58,12 +58,12 @@ public class EffectContext
 
     public void DealDamage(int amount) => _chain.DealDamageToEnemyPublic(amount);
 
-    public float GetTotemAdjusted(EffectType type, float baseValue) =>
-        _chain.GetTotemAdjustedValue(Card, type, baseValue);
+    public float GetTotemAdjusted(CardEffectBase effect, float baseValue) =>
+        _chain.GetTotemAdjustedValue(Card, effect, baseValue);
 
     /// <summary>임의 카드(이웃 등)에 대한 토템 보정값.</summary>
-    public float GetTotemAdjustedFor(CardView target, EffectType type, float baseValue) =>
-        _chain.GetTotemAdjustedValue(target, type, baseValue);
+    public float GetTotemAdjustedFor(CardView target, CardEffectBase effect, float baseValue) =>
+        _chain.GetTotemAdjustedValue(target, effect, baseValue);
 
     public void ApplyPreserveToNeighbors(int amount) =>
         _chain.ApplyPreserveToNeighborsPublic(Card, amount);

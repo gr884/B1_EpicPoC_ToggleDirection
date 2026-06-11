@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "DefenseOnOffEffect", menuName = "Game/Effects/DefenseOnOff")]
 public class DefenseOnOffEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.DefenseOnOff;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         int damage = ctx.GetModifiedDamage(ctx.IntValue);

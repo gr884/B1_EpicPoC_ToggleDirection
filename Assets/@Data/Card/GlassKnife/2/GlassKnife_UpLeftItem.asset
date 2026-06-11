@@ -33,21 +33,24 @@ MonoBehaviour:
     scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 15
+    effect: {fileID: 11400000, guid: 71adffa39fca1d1428cacf2ca2cc30b7, type: 2}
+    _legacyEffectType: 15
     value: 19
     secondaryValue: 0
   - trigger: 0
     scope: 0
     thresholdType: 0
     threshold: 1
-    effectType: 0
+    effect: {fileID: 11400000, guid: 4de8bb1f4c314c543bb2355b241b59dc, type: 2}
+    _legacyEffectType: 0
     value: 1
     secondaryValue: 0
   - trigger: 0
     scope: 0
     thresholdType: 0
     threshold: 1
-    effectType: 8
+    effect: {fileID: 11400000, guid: bb0824103f236d94696cb680ede7f835, type: 2}
+    _legacyEffectType: 8
     value: 2
     secondaryValue: 0
   totemAuraOffsets: []

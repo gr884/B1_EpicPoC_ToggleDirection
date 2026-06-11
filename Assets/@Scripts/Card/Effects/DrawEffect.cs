@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "DrawEffect", menuName = "Game/Effects/Draw")]
 public class DrawEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.Draw;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         if (CardManager.Instance != null)

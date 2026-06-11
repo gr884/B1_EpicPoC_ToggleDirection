@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public enum CardDirection
 {
@@ -21,52 +22,6 @@ public enum EffectTrigger
     OnTurnEnd,   // 턴 종료 시
     OnTurnStart, // 턴 시작 시
     OnPlaced,    // 배치 시 (체인 전)
-}
-
-public enum EffectType
-{
-    // 수치 효과 (누적)
-    Damage,
-    Defense,
-    Heal,
-    DirectionalDamageBonus,
-
-    // 행동 효과
-    Draw,     // value = 드로우 장 수
-    GainCost, // value = 획득 cost 수
-    Preserve, // value = 방향으로 연결된 카드에 쌓을 보존 스택 수
-
-    // 누적 데미지
-    GainDamage,  // BonusDamage +N
-    DecayDamage, // BonusDamage -N (0 아래로 안 내려감)
-
-    // 반전형: ON → Damage(value), OFF → Defense(secondaryValue)
-    DefenseOnOff,
-
-    // 카운터형: value + 이번 턴 그리드 전체 ON 횟수 데미지
-    CounterDamage,
-
-    // 폭발형: directions 방향 카드 강제 ON 후 소멸
-    Explode,
-
-    // 인싸형: 인접 카드 수(8방향) × value 데미지
-    PopularityDamage,
-
-    // 재발동형: 이번 턴 첫 번째로 놓인 카드 재발동
-    Replay,
-
-    // 마무리형: 턴 종료 시 ON 상태라면 그리드 ON 카드 수 × value 데미지
-    FinisherDamage,
-
-    // 소진형 초기화: 배치 시 BonusDamage를 value로 세팅 (누적 아닌 덮어쓰기)
-    InitDamage,
-    TotemAura,
-    TotemAura_Defense,
-
-    Devour,  // 포식
-
-    CastingDamage,  // 캐스팅 - 공격
-    CastingDefense, // 캐스팅 - 수비
 }
 
 public enum CountScope
@@ -108,11 +63,17 @@ public class CardEffect
 
     [Header("효과")]
     public CardEffectBase effect; // 효과 SO 에셋을 드래그해 지정
+    [FormerlySerializedAs("effectType")]
+    [SerializeField, HideInInspector] private int _legacyEffectType = -1;
     public float value;
     public float secondaryValue; // DefenseOnOff의 OFF 방어값 등
 
-    // 비주얼/토템/캐스팅 시스템이 쓰는 효과 식별자 (effect가 비어있으면 None 취급)
-    public EffectType EffectTypeId => effect != null ? effect.EffectTypeId : default;
+    // 기존 effectType 직렬화 숫자를 새 효과 SO 구조로 읽기 위한 호환 접근자
+    public CardEffectBase ResolvedEffect => effect != null
+        ? effect
+        : _legacyEffectType >= 0
+            ? CardEffectBase.FromLegacyEffectCode(_legacyEffectType)
+            : null;
 }
 
 [CreateAssetMenu(menuName = "Game/Card Data", fileName = "CardData")]

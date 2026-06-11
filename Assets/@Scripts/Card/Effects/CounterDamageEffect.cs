@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "CounterDamageEffect", menuName = "Game/Effects/CounterDamage")]
 public class CounterDamageEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.CounterDamage;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         int finalDamage = ctx.IntValue + ctx.TurnToggleCount;

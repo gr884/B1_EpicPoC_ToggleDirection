@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "FinisherDamageEffect", menuName = "Game/Effects/FinisherDamage")]
 public class FinisherDamageEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.FinisherDamage;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         int onCount = ctx.CountActivatedOnGrid();

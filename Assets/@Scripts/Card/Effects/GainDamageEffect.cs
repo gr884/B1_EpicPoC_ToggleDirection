@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "GainDamageEffect", menuName = "Game/Effects/GainDamage")]
 public class GainDamageEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.GainDamage;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         ctx.AddBonusDamage(Mathf.RoundToInt(ctx.Value));

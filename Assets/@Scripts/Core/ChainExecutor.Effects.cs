@@ -13,12 +13,13 @@ public partial class ChainExecutor
     {
         if (card?.Data?.effects == null) yield break;
 
-        var atLeastBest = new Dictionary<EffectType, CardEffect>();
+        var atLeastBest = new Dictionary<Type, CardEffect>();
 
         foreach (CardEffect effect in card.Data.effects)
         {
             if (effect.trigger != trigger) continue;
-            if (effect.effect == null) continue;
+            CardEffectBase resolvedEffect = effect.ResolvedEffect;
+            if (resolvedEffect == null) continue;
 
             if (effect.thresholdType == ThresholdType.Full)
             {
@@ -36,11 +37,11 @@ public partial class ChainExecutor
             int count = CountByScope(effect.scope, card);
             if (count < effect.threshold) continue;
 
-            EffectType typeId = effect.EffectTypeId;
-            if (!atLeastBest.TryGetValue(typeId, out CardEffect best) ||
+            Type effectKey = resolvedEffect.GetType();
+            if (!atLeastBest.TryGetValue(effectKey, out CardEffect best) ||
                 effect.threshold > best.threshold)
             {
-                atLeastBest[typeId] = effect;
+                atLeastBest[effectKey] = effect;
             }
         }
 
@@ -50,20 +51,22 @@ public partial class ChainExecutor
 
     private IEnumerator ApplyEffectWithVisual(CardEffect entry, CardView card, EffectTrigger trigger)
     {
-        EffectType typeId = entry.EffectTypeId;
-        float resolvedValue = GetTotemAdjustedValue(card, typeId, entry.value);
+        CardEffectBase resolvedEffect = entry.ResolvedEffect;
+        if (resolvedEffect == null) yield break;
 
-        if (typeId == EffectType.InitDamage)
+        float resolvedValue = GetTotemAdjustedValue(card, resolvedEffect, entry.value);
+
+        if (resolvedEffect.IsInitDamage)
         {
             yield return RunEffect(entry, resolvedValue, card, trigger);
             yield break;
         }
 
-        if (_cardEffectPlaySystem != null && _cardEffectPlaySystem.HasAssignedVisual(card, typeId))
+        if (_cardEffectPlaySystem != null && _cardEffectPlaySystem.HasAssignedVisual(card, resolvedEffect))
         {
             bool scheduledOnImpact = _cardEffectPlaySystem.PlayAssignedEffectDetached(
                 card,
-                typeId,
+                resolvedEffect,
                 ToQueuedEffectTiming(trigger),
                 () => StartCoroutine(RunEffect(entry, resolvedValue, card, trigger)),
                 value: resolvedValue);
@@ -78,9 +81,10 @@ public partial class ChainExecutor
     // 효과 SO 실행 — 컨텍스트를 세팅하고 다형성으로 위임
     private IEnumerator RunEffect(CardEffect entry, float resolvedValue, CardView card, EffectTrigger trigger)
     {
-        if (entry.effect == null) yield break;
+        CardEffectBase resolvedEffect = entry.ResolvedEffect;
+        if (resolvedEffect == null) yield break;
         EffectCtx.Setup(card, resolvedValue, entry.secondaryValue, entry.scope, trigger, _activatedCards);
-        yield return entry.effect.Apply(EffectCtx);
+        yield return resolvedEffect.Apply(EffectCtx);
     }
 
     private static CardEffectPlaySystem.QueuedEffectTiming ToQueuedEffectTiming(EffectTrigger trigger)
@@ -112,7 +116,7 @@ public partial class ChainExecutor
 
         foreach (CardEffect effect in card.Data.effects)
         {
-            if (effect.EffectTypeId != EffectType.DefenseOnOff) continue;
+            if (effect.ResolvedEffect == null || !effect.ResolvedEffect.IsDefenseOnOff) continue;
             // OFF 전환 시: secondaryValue만큼 방어 부여
             int defense = Mathf.Max(1, Mathf.RoundToInt(effect.secondaryValue));
             if (BattleManager.Instance != null)

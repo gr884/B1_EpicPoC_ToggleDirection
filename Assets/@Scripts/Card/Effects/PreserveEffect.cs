@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "PreserveEffect", menuName = "Game/Effects/Preserve")]
 public class PreserveEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.Preserve;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         ctx.ApplyPreserveToNeighbors(ctx.IntValue);

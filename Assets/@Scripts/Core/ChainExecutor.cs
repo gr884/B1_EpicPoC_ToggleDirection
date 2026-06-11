@@ -121,10 +121,10 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnChainFinished?.Invoke();
     }
 
-    public float GetTotemAdjustedValue(CardView card, EffectType effectType, float baseValue)
+    public float GetTotemAdjustedValue(CardView card, CardEffectBase effect, float baseValue)
     {
         EnsureTotemSystem();
-        return _totemSystem.GetAdjustedValue(card, effectType, baseValue);
+        return _totemSystem.GetAdjustedValue(card, effect, baseValue);
     }
 
     public void RefreshTotemAuras()
@@ -353,7 +353,7 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
                             foreach (CardEffect effect in current.Data.effects)
                             {
                                 if (effect.trigger != EffectTrigger.OnActivated) continue;
-                                if (effect.EffectTypeId != EffectType.Replay) continue;
+                                if (effect.ResolvedEffect == null || !effect.ResolvedEffect.IsReplay) continue;
                                 yield return ApplyReplayEffect(current);
                             }
                         }
@@ -685,16 +685,19 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
         {
             foreach (var effect in card.Data.effects)
             {
-                if (effect.EffectTypeId == EffectType.CastingDamage)
+                CardEffectBase resolvedEffect = effect.ResolvedEffect;
+                if (resolvedEffect == null) continue;
+
+                if (resolvedEffect.IsCastingDamage)
                 {
-                    float adjusted = GetTotemAdjustedValue(card, EffectType.CastingDamage, effect.value);
+                    float adjusted = GetTotemAdjustedValue(card, resolvedEffect, effect.value);
                     int baseDmg = Mathf.Max(1, Mathf.RoundToInt(adjusted));
                     int finalDmg = runtime != null ? runtime.GetModifiedDamage(baseDmg) : baseDmg;
                     DealDamageToEnemy(finalDmg);
                 }
-                else if (effect.EffectTypeId == EffectType.CastingDefense)
+                else if (resolvedEffect.IsCastingDefense)
                 {
-                    float adjusted = GetTotemAdjustedValue(card, EffectType.Defense, effect.value);
+                    float adjusted = GetTotemAdjustedValue(card, resolvedEffect, effect.value);
                     int baseDef = Mathf.Max(1, Mathf.RoundToInt(adjusted));
                     BattleManager.Instance.Player.AddDefense(baseDef);
                 }

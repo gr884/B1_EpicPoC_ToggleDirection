@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "ExplodeEffect", menuName = "Game/Effects/Explode")]
 public class ExplodeEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.Explode;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         yield return ctx.RunExplodeChain();

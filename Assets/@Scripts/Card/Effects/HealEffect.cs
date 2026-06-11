@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "HealEffect", menuName = "Game/Effects/Heal")]
 public class HealEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.Heal;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         if (BattleManager.Instance != null)

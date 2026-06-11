@@ -5,8 +5,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "DefenseEffect", menuName = "Game/Effects/Defense")]
 public class DefenseEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.Defense;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         if (BattleManager.Instance != null)

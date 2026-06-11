@@ -2,6 +2,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 
 public class CardEffectPlaySystem : MonoBehaviour
 {
@@ -25,7 +26,10 @@ public class CardEffectPlaySystem : MonoBehaviour
     {
         public CardData card;
         public bool matchAnyEffectType;
-        public EffectType effectType = EffectType.Damage;
+        public CardEffectBase effect;
+        [FormerlySerializedAs("effectType")]
+        [SerializeField, HideInInspector] private int _legacyEffectType = -1;
+        public int LegacyEffectCode => _legacyEffectType;
         public Sprite projectileSprite;
         public GameObject vfxPrefab;
         public Transform targetOverride;
@@ -45,7 +49,7 @@ public class CardEffectPlaySystem : MonoBehaviour
         public QueuedEffectRequest(
             CardView sourceCard,
             CardData cardData,
-            EffectType effectType,
+            CardEffectBase effect,
             QueuedEffectTiming timing,
             Action onImpact = null,
             Transform targetOverride = null,
@@ -53,7 +57,7 @@ public class CardEffectPlaySystem : MonoBehaviour
         {
             SourceCard = sourceCard;
             CardData = cardData;
-            EffectType = effectType;
+            Effect = effect;
             Timing = timing;
             OnImpact = onImpact;
             TargetOverride = targetOverride;
@@ -62,7 +66,7 @@ public class CardEffectPlaySystem : MonoBehaviour
 
         public CardView SourceCard { get; }
         public CardData CardData { get; }
-        public EffectType EffectType { get; }
+        public CardEffectBase Effect { get; }
         public QueuedEffectTiming Timing { get; }
         public Action OnImpact { get; }
         public Transform TargetOverride { get; }
@@ -105,75 +109,71 @@ public class CardEffectPlaySystem : MonoBehaviour
 
     public void EnqueueActivatedEffect(
         CardView sourceCard,
-        EffectType effectType,
+        CardEffectBase effect,
         Action onImpact = null,
         Transform targetOverride = null,
         float value = 0f)
     {
-        EnqueueEffect(sourceCard, effectType, QueuedEffectTiming.OnActivated, onImpact, targetOverride, value);
+        EnqueueEffect(sourceCard, effect, QueuedEffectTiming.OnActivated, onImpact, targetOverride, value);
     }
 
     public void EnqueueTurnEndEffect(
         CardView sourceCard,
-        EffectType effectType,
+        CardEffectBase effect,
         Action onImpact = null,
         Transform targetOverride = null,
         float value = 0f)
     {
-        EnqueueEffect(sourceCard, effectType, QueuedEffectTiming.OnTurnEnd, onImpact, targetOverride, value);
+        EnqueueEffect(sourceCard, effect, QueuedEffectTiming.OnTurnEnd, onImpact, targetOverride, value);
     }
 
     public void EnqueueTurnStartEffect(
         CardView sourceCard,
-        EffectType effectType,
+        CardEffectBase effect,
         Action onImpact = null,
         Transform targetOverride = null,
         float value = 0f)
     {
-        EnqueueEffect(sourceCard, effectType, QueuedEffectTiming.OnTurnStart, onImpact, targetOverride, value);
+        EnqueueEffect(sourceCard, effect, QueuedEffectTiming.OnTurnStart, onImpact, targetOverride, value);
     }
 
     public void EnqueueDirectEffect(
         CardView sourceCard,
-        EffectType effectType,
+        CardEffectBase effect,
         Action onImpact = null,
         Transform targetOverride = null,
         float value = 0f)
     {
-        EnqueueEffect(sourceCard, effectType, QueuedEffectTiming.Direct, onImpact, targetOverride, value);
+        EnqueueEffect(sourceCard, effect, QueuedEffectTiming.Direct, onImpact, targetOverride, value);
     }
 
-    public void PlayAppliedEffects(CardView sourceCard, IEnumerable<EffectType> effectTypes)
+    public void PlayAppliedEffects(CardView sourceCard, IEnumerable<CardEffectBase> effects)
     {
-        if (sourceCard == null || effectTypes == null)
+        if (sourceCard == null || effects == null)
             return;
 
-        HashSet<EffectType> requestedTypes = effectTypes as HashSet<EffectType> ?? new HashSet<EffectType>(effectTypes);
-
-        if (requestedTypes.Contains(EffectType.Damage))
-            EnqueueDirectEffect(sourceCard, EffectType.Damage);
-
-        if (requestedTypes.Contains(EffectType.Defense))
-            EnqueueDirectEffect(sourceCard, EffectType.Defense);
+        foreach (CardEffectBase effect in effects)
+            if (effect != null && (effect.IsDamage || effect.IsDefense))
+                EnqueueDirectEffect(sourceCard, effect);
     }
 
-    public bool HasAssignedVisual(CardView sourceCard, EffectType effectType)
+    public bool HasAssignedVisual(CardView sourceCard, CardEffectBase effect)
     {
         CardData cardData = sourceCard != null ? sourceCard.Data : null;
-        CardEffectVisualSetting setting = FindVisualSetting(cardData, effectType);
+        CardEffectVisualSetting setting = FindVisualSetting(cardData, effect);
         return HasAssignedVisual(setting);
     }
 
     public IEnumerator PlayAssignedEffectAndWait(
         CardView sourceCard,
-        EffectType effectType,
+        CardEffectBase effect,
         QueuedEffectTiming timing,
         Action onImpact = null,
         Transform targetOverride = null,
         float value = 0f,
         Action<bool> onComplete = null)
     {
-        if (!HasAssignedVisual(sourceCard, effectType))
+        if (!HasAssignedVisual(sourceCard, effect))
         {
             onImpact?.Invoke();
             onComplete?.Invoke(true);
@@ -185,7 +185,7 @@ public class CardEffectPlaySystem : MonoBehaviour
         EnqueueEffect(new QueuedEffectRequest(
                 sourceCard,
                 cardData,
-                effectType,
+                effect,
                 timing,
                 onImpact,
                 targetOverride,
@@ -202,20 +202,20 @@ public class CardEffectPlaySystem : MonoBehaviour
 
     public bool PlayAssignedEffectDetached(
         CardView sourceCard,
-        EffectType effectType,
+        CardEffectBase effect,
         QueuedEffectTiming timing,
         Action onImpact = null,
         Transform targetOverride = null,
         float value = 0f)
     {
-        if (!isActiveAndEnabled || !HasAssignedVisual(sourceCard, effectType))
+        if (!isActiveAndEnabled || !HasAssignedVisual(sourceCard, effect))
             return false;
 
         CardData cardData = sourceCard != null ? sourceCard.Data : null;
         QueuedEffectRequest request = new(
             sourceCard,
             cardData,
-            effectType,
+            effect,
             timing,
             onImpact,
             targetOverride,
@@ -257,7 +257,7 @@ public class CardEffectPlaySystem : MonoBehaviour
 
     private void EnqueueEffect(
         CardView sourceCard,
-        EffectType effectType,
+        CardEffectBase effect,
         QueuedEffectTiming timing,
         Action onImpact,
         Transform targetOverride,
@@ -267,7 +267,7 @@ public class CardEffectPlaySystem : MonoBehaviour
         EnqueueEffect(new QueuedEffectRequest(
             sourceCard,
             cardData,
-            effectType,
+            effect,
             timing,
             onImpact,
             targetOverride,
@@ -290,7 +290,7 @@ public class CardEffectPlaySystem : MonoBehaviour
 
     private IEnumerator PlayDetachedEffect(QueuedEffectRequest request)
     {
-        CardEffectVisualSetting setting = FindVisualSetting(request.CardData, request.EffectType);
+        CardEffectVisualSetting setting = FindVisualSetting(request.CardData, request.Effect);
         if (HasVisual(request, setting))
             yield return PlayVisual(request, setting);
 
@@ -299,7 +299,7 @@ public class CardEffectPlaySystem : MonoBehaviour
 
     private IEnumerator PlayEffectRequest(QueuedEffectRequest request)
     {
-        CardEffectVisualSetting setting = FindVisualSetting(request.CardData, request.EffectType);
+        CardEffectVisualSetting setting = FindVisualSetting(request.CardData, request.Effect);
         bool hasVisual = HasVisual(request, setting);
 
         request.OnImpact?.Invoke();
@@ -453,7 +453,7 @@ public class CardEffectPlaySystem : MonoBehaviour
         if (projectileSprite == null)
             return false;
 
-        visualObject = new GameObject($"CardEffectProjectile_{request.EffectType}");
+        visualObject = new GameObject($"CardEffectProjectile_{GetEffectLogName(request.Effect)}");
         visualObject.transform.SetPositionAndRotation(position, rotation);
         SpriteRenderer renderer = visualObject.AddComponent<SpriteRenderer>();
         renderer.sprite = projectileSprite;
@@ -500,7 +500,7 @@ public class CardEffectPlaySystem : MonoBehaviour
         return target != null;
     }
 
-    private CardEffectVisualSetting FindVisualSetting(CardData cardData, EffectType effectType)
+    private CardEffectVisualSetting FindVisualSetting(CardData cardData, CardEffectBase effect)
     {
         CardEffectVisualSetting cardDefault = null;
         CardEffectVisualSetting effectDefault = null;
@@ -512,7 +512,7 @@ public class CardEffectPlaySystem : MonoBehaviour
                 continue;
 
             bool matchesCard = setting.card != null && setting.card == cardData;
-            bool matchesEffect = !setting.matchAnyEffectType && setting.effectType == effectType;
+            bool matchesEffect = !setting.matchAnyEffectType && MatchesEffectSetting(setting, effect);
 
             if (matchesCard && matchesEffect)
                 return setting;
@@ -555,7 +555,25 @@ public class CardEffectPlaySystem : MonoBehaviour
         Vector3 targetPosition)
     {
         Debug.Log(
-            $"[CardEffectPlaySystem] Spawn visual={visualObject.name}, effect={request.EffectType}, card={(request.CardData != null ? request.CardData.displayName : "None")}, rawStart={rawStartPosition}, start={startPosition}, target={targetPosition}");
+            $"[CardEffectPlaySystem] Spawn visual={visualObject.name}, effect={GetEffectLogName(request.Effect)}, card={(request.CardData != null ? request.CardData.displayName : "None")}, rawStart={rawStartPosition}, start={startPosition}, target={targetPosition}");
+    }
+
+    private static bool MatchesEffectSetting(CardEffectVisualSetting setting, CardEffectBase effect)
+    {
+        if (effect == null)
+            return false;
+
+        if (setting.effect != null)
+            return setting.effect.Matches(effect);
+
+        return setting.LegacyEffectCode >= 0
+            && effect.TryGetLegacyEffectCode(out int legacyCode)
+            && legacyCode == setting.LegacyEffectCode;
+    }
+
+    private static string GetEffectLogName(CardEffectBase effect)
+    {
+        return effect != null ? effect.name : "None";
     }
 
     private VisualMovementMode ResolveMovementMode(CardEffectVisualSetting setting)

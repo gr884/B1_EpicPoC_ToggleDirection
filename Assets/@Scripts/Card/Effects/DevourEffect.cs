@@ -9,8 +9,6 @@ using UnityEngine;
 [CreateAssetMenu(fileName = "DevourEffect", menuName = "Game/Effects/Devour")]
 public class DevourEffect : CardEffectBase
 {
-    public override EffectType EffectTypeId => EffectType.Devour;
-
     public override IEnumerator Apply(EffectContext ctx)
     {
         CardView card = ctx.Card;

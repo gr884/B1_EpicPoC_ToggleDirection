@@ -21,11 +21,12 @@ public class TotemAuraSystem : MonoBehaviour
     public int GetDefenseBonus(CardView card) =>
         (card != null && _defenseBonusByCard.TryGetValue(card, out int b)) ? b : 0;
 
-    public float GetAdjustedValue(CardView card, EffectType effectType, float baseValue)
+    public float GetAdjustedValue(CardView card, CardEffectBase effect, float baseValue)
     {
-        if (!CanApplyBonus(effectType)) return baseValue;
+        if (effect == null || (!effect.ReceivesDamageTotemBonus && !effect.ReceivesDefenseTotemBonus))
+            return baseValue;
 
-        int bonus = (effectType == EffectType.Defense)
+        int bonus = effect.ReceivesDefenseTotemBonus
             ? GetDefenseBonus(card)
             : GetDamageBonus(card);
         return baseValue + bonus;
@@ -56,8 +57,8 @@ public class TotemAuraSystem : MonoBehaviour
             if (source == null || source.IsEnemy || !source.IsActivated || source.CurrentSlot == null) continue;
 
             // 공/수 토템 확인
-            bool isDmgTotem = ContainsEffect(source.Data, EffectType.TotemAura);
-            bool isDefTotem = ContainsEffect(source.Data, EffectType.TotemAura_Defense);
+            bool isDmgTotem = ContainsEffect(source.Data, effect => effect.IsDamageTotemAura);
+            bool isDefTotem = ContainsEffect(source.Data, effect => effect.IsDefenseTotemAura);
             if (!isDmgTotem && !isDefTotem) continue;
 
             List<Vector2Int> offsets = source.Data.totemAuraOffsets;    // 해당 토템의 영역 오프셋을 가져옴
@@ -81,7 +82,7 @@ public class TotemAuraSystem : MonoBehaviour
 
                 if (isDmgTotem)
                 {
-                    int auraValue = GetAuraValue(source.Data, EffectType.TotemAura);
+                    int auraValue = GetAuraValue(source.Data, effect => effect.IsDamageTotemAura);
                     if (_damageBonusByCard.TryGetValue(target, out int bonus))
                         _damageBonusByCard[target] = bonus + auraValue;
                     else
@@ -90,7 +91,7 @@ public class TotemAuraSystem : MonoBehaviour
 
                 if (isDefTotem)
                 {
-                    int auraValue = GetAuraValue(source.Data, EffectType.TotemAura_Defense);
+                    int auraValue = GetAuraValue(source.Data, effect => effect.IsDefenseTotemAura);
                     if (_defenseBonusByCard.TryGetValue(target, out int bonus))
                         _defenseBonusByCard[target] = bonus + auraValue;
                     else
@@ -127,32 +128,15 @@ public class TotemAuraSystem : MonoBehaviour
         }
     }
 
-    private static bool CanApplyBonus(EffectType effectType)
-    {
-        switch (effectType)
-        {
-            case EffectType.Damage:                 // 공격
-            case EffectType.Defense:                // 수비
-            case EffectType.DirectionalDamageBonus: // 흡수
-            case EffectType.CounterDamage:          // 카운터
-            case EffectType.PopularityDamage:       // 인싸
-            case EffectType.FinisherDamage:         // 마무리
-            case EffectType.DefenseOnOff:           // 쌍방 (ON일 때 공격력)
-            case EffectType.CastingDamage:
-                return true;
-            default:
-                return false;
-        }
-    }
-
-    private static int GetAuraValue(CardData data, EffectType auraType)
+    private static int GetAuraValue(CardData data, Predicate<CardEffectBase> matchesAura)
     {
         if (data?.effects == null) return 0;
 
         int total = 0;
         foreach (CardEffect effect in data.effects)
         {
-            if (effect.EffectTypeId != auraType) continue;
+            CardEffectBase resolvedEffect = effect.ResolvedEffect;
+            if (resolvedEffect == null || !matchesAura(resolvedEffect)) continue;
             total += Mathf.RoundToInt(effect.value);
         }
 
@@ -161,16 +145,19 @@ public class TotemAuraSystem : MonoBehaviour
 
     public static bool IsTotemCardData(CardData data)
     {
-        return ContainsEffect(data, EffectType.TotemAura) || ContainsEffect(data, EffectType.TotemAura_Defense);
+        return ContainsEffect(data, effect => effect.IsDamageTotemAura || effect.IsDefenseTotemAura);
     }
 
-    private static bool ContainsEffect(CardData data, EffectType effectType)
+    private static bool ContainsEffect(CardData data, Predicate<CardEffectBase> predicate)
     {
         if (data?.effects == null) return false;
 
         foreach (CardEffect effect in data.effects)
-            if (effect.EffectTypeId == effectType)
+        {
+            CardEffectBase resolvedEffect = effect.ResolvedEffect;
+            if (resolvedEffect != null && predicate(resolvedEffect))
                 return true;
+        }
 
         return false;
     }

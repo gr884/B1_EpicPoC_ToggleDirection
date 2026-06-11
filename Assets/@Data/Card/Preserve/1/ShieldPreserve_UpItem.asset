@@ -33,14 +33,16 @@ MonoBehaviour:
     scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 6
+    effect: {fileID: 11400000, guid: aff745940db7f0f47828699ae21673da, type: 2}
+    _legacyEffectType: 6
     value: 1
     secondaryValue: 0
   - trigger: 0
     scope: 0
     thresholdType: 0
     threshold: 0
-    effectType: 1
+    effect: {fileID: 11400000, guid: eee33e757292ff64f8fbd9b5ed0c8ea4, type: 2}
+    _legacyEffectType: 1
     value: 5
     secondaryValue: 0
   icon: {fileID: 2283088269339079388, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}
