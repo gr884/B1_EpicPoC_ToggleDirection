@@ -107,10 +107,11 @@ public partial class ChainExecutor
                 break;
             case EffectType.DirectionalDamageBonus:
                 int totalDamage = 0;
-                foreach (var dir in card.Data.GetAllDirections())
+                foreach (GridSlot neighbor in CardTargetResolver.ResolveAdjacentArrowSlots(
+                    card.Data,
+                    card.CurrentSlot,
+                    GridManager.Instance))
                 {
-                    GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
-                    if (neighbor == null) continue;
                     var targetCard = neighbor.OccupiedCard;
                     if (targetCard == null || targetCard.Data == null) continue;
                     var targetRuntime = targetCard.GetComponent<CardRuntimeState>();
@@ -217,17 +218,17 @@ public partial class ChainExecutor
             case EffectType.FinisherDamage:
                 if (GridManager.Instance != null)
                 {
-                    int onCount = 0;
+                    HashSet<CardView> activeCards = new();
                     foreach (GridSlot s in GridManager.Instance.Slots.Values)
                         if (s.OccupiedCard != null && s.OccupiedCard.IsActivated)
-                            onCount++;
+                            activeCards.Add(s.OccupiedCard);
                     // 기본 데미지
                     int baseFinisher = Mathf.RoundToInt(value);
                     // 런타임 값이 적용된 데미지
                     int modifiedFinisher = runtime != null ?
                         runtime.GetModifiedDamage(baseFinisher) : baseFinisher;
                     // 모든 버프가 더해진 데미지 * 켜진 횟수를 합산 후 적용
-                    int finisherDamage = modifiedFinisher * onCount;
+                    int finisherDamage = modifiedFinisher * activeCards.Count;
 
                     if (finisherDamage > 0)
                         DealDamageToEnemy(finisherDamage);
@@ -338,10 +339,11 @@ public partial class ChainExecutor
     {
         if (GridManager.Instance == null) yield break;
 
+        HashSet<CardView> processedCards = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy) continue;
+            if (card == null || card.IsEnemy || !processedCards.Add(card)) continue;
             if (card.Data != null && card.Data.isCastingCard)
                 card.GetComponent<CardRuntimeState>()?.InitializeCasting(card.Data.castingRequiredCount);
             yield return ApplyEffects(card, EffectTrigger.OnTurnEnd);
@@ -352,10 +354,11 @@ public partial class ChainExecutor
     {
         if (GridManager.Instance == null) yield break;
 
+        HashSet<CardView> processedCards = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy) continue;
+            if (card == null || card.IsEnemy || !processedCards.Add(card)) continue;
             if (!card.IsActivated) continue;
             yield return ApplyEffects(card, EffectTrigger.OnTurnStart);
         }
@@ -365,9 +368,11 @@ public partial class ChainExecutor
     {
         if (card?.Data == null || card.CurrentSlot == null) return;
 
-        foreach (CardDirection dir in card.Data.GetAllDirections())
+        foreach (GridSlot neighbor in CardTargetResolver.ResolveAdjacentArrowSlots(
+            card.Data,
+            card.CurrentSlot,
+            GridManager.Instance))
         {
-            GridSlot neighbor = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
             if (neighbor != null && neighbor.OccupiedCard != null && !neighbor.OccupiedCard.IsEnemy)
                 neighbor.OccupiedCard.AddPreserve(amount);
         }
@@ -405,35 +410,17 @@ public partial class ChainExecutor
         switch (scope)
         {
             case CountScope.Row:
-                int rowCount = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
-                        && slot.Position.y == pos.y)
-                        rowCount++;
-                return rowCount;
+                return CountUniqueActivatedCards(slot => slot.Position.y == pos.y);
 
             case CountScope.Column:
-                int colCount = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
-                        && slot.Position.x == pos.x)
-                        colCount++;
-                return colCount;
+                return CountUniqueActivatedCards(slot => slot.Position.x == pos.x);
 
             case CountScope.Cross:
-                int crossCount = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated
-                        && (slot.Position.y == pos.y || slot.Position.x == pos.x))
-                        crossCount++;
-                return crossCount;
+                return CountUniqueActivatedCards(slot =>
+                    slot.Position.y == pos.y || slot.Position.x == pos.x);
 
             case CountScope.Total:
-                int total = 0;
-                foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-                    if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
-                        total++;
-                return total;
+                return CountUniqueActivatedCards(_ => true);
 
             case CountScope.Self:
                 return card.Instance?.PersistentState.TurnOnCount ?? 0;
@@ -444,5 +431,17 @@ public partial class ChainExecutor
             default:
                 return 0;
         }
+    }
+
+    private int CountUniqueActivatedCards(Predicate<GridSlot> isInScope)
+    {
+        HashSet<CardView> cards = new();
+        foreach (GridSlot slot in GridManager.Instance.Slots.Values)
+        {
+            CardView card = slot.OccupiedCard;
+            if (card != null && card.IsActivated && isInScope(slot))
+                cards.Add(card);
+        }
+        return cards.Count;
     }
 }

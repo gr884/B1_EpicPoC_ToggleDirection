@@ -150,18 +150,20 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (GridManager.Instance == null) yield break;
 
-        int onCount = 0;
+        HashSet<CardView> activeCards = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
             if (slot.OccupiedCard != null && slot.OccupiedCard.IsActivated)
-                onCount++;
+                activeCards.Add(slot.OccupiedCard);
 
         List<CardView> toTrigger = new();
+        HashSet<CardView> checkedCards = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
             if (card == null || card.IsEnemy) continue;
+            if (!checkedCards.Add(card)) continue;
             if (card.Data == null || !card.Data.hasAutoTrigger) continue;
-            if (onCount >= card.Data.autoTriggerThreshold)
+            if (activeCards.Count >= card.Data.autoTriggerThreshold)
                 toTrigger.Add(card);
         }
 
@@ -205,11 +207,11 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
         HashSet<CardView> nextWave = new();
 
-        foreach (CardDirection dir in card.Data.GetAllDirections())
+        foreach (GridSlot neighborSlot in CardTargetResolver.ResolveAdjacentArrowSlots(
+            card.Data,
+            card.CurrentSlot,
+            GridManager.Instance))
         {
-            GridSlot neighborSlot = GridManager.Instance.GetNeighbor(card.CurrentSlot, dir);
-            if (neighborSlot == null) continue;
-
             CardView neighbor = neighborSlot.OccupiedCard;
             if (neighbor == null || neighbor.IsEnemy) continue;
 
@@ -249,18 +251,9 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (emitter?.Data == null || emitter.CurrentSlot == null) continue;
             activatedCards.Add(emitter);
 
-            foreach (CardDirection dir in emitter.Data.GetAllDirections())
-            {
-                GridSlot current = emitter.CurrentSlot;
-                for (int i = 0; i < emitter.Data.range; i++)
-                {
-                    GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                    if (neighbor == null) break;
-                    if (neighbor.OccupiedCard != null)
-                        nextWaveSet.Add(neighbor.OccupiedCard);
-                    current = neighbor;
-                }
-            }
+            foreach (GridSlot targetSlot in CardTargetResolver.ResolveToggleSlots(emitter, GridManager.Instance))
+                if (targetSlot.OccupiedCard != null)
+                    nextWaveSet.Add(targetSlot.OccupiedCard);
         }
 
         yield return new WaitForSeconds(_cardFeedbackDuration);
@@ -379,20 +372,9 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
             {
                 if (emitter.Data == null) continue;
 
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
-                {
-                    GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
-                    {
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                        if (neighbor == null) break;
-
-                        if (neighbor.OccupiedCard != null)
-                            nextWaveSet.Add(neighbor.OccupiedCard);
-
-                        current = neighbor;
-                    }
-                }
+                foreach (GridSlot targetSlot in CardTargetResolver.ResolveToggleSlots(emitter, GridManager.Instance))
+                    if (targetSlot.OccupiedCard != null)
+                        nextWaveSet.Add(targetSlot.OccupiedCard);
             }
 
             if (nextWaveSet.Count > 0)
@@ -451,18 +433,14 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
             PlayTriggerDirectionLine(card);
 
             // 화살표 방향 이웃 카드들을 체인 발동
-            foreach (CardDirection dir in card.Data.GetAllDirections())
+            HashSet<CardView> dischargeTargets = new();
+            foreach (GridSlot targetSlot in CardTargetResolver.ResolveToggleSlots(card, GridManager.Instance))
             {
-                GridSlot current = card.CurrentSlot;
-                for (int r = 0; r < card.Data.range; r++)
-                {
-                    GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                    if (neighbor == null) break;
-                    if (neighbor.OccupiedCard != null)
-                        yield return ActivateChainFrom(neighbor.OccupiedCard, activatedCards);
-                    current = neighbor;
-                }
+                if (targetSlot.OccupiedCard != null)
+                    dischargeTargets.Add(targetSlot.OccupiedCard);
             }
+            foreach (CardView target in dischargeTargets)
+                yield return ActivateChainFrom(target, activatedCards);
         }
 
         // 방전 완료 — OFF로 전환 및 상태 리셋
@@ -649,6 +627,7 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
     {
         if (GridManager.Instance == null) return;
         List<CardView> cardsToExecute = new();
+        HashSet<CardView> processedCards = new();
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
@@ -657,6 +636,7 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
             if (card == null || card.IsEnemy || !card.IsActivated) continue;
             if (card == triggerCard) continue;
             if (card.Data == null || !card.Data.isCastingCard) continue;
+            if (!processedCards.Add(card)) continue;
 
             var runtime = card.GetComponent<CardRuntimeState>();
             if (runtime != null && runtime.CurrentCastingCount > 0)

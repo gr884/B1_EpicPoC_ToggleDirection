@@ -66,20 +66,11 @@ public class InfiniteLoopDetector
             {
                 if (emitter == null || emitter.Data == null) continue;
 
-                foreach (CardDirection dir in emitter.Data.GetAllDirections())
+                foreach (GridSlot targetSlot in CardTargetResolver.ResolveToggleSlots(emitter, GridManager.Instance))
                 {
-                    GridSlot current = emitter.CurrentSlot;
-                    for (int i = 0; i < emitter.Data.range; i++)
-                    {
-                        GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
-                        if (neighbor == null) break;
-
-                        CardView target = neighbor.OccupiedCard;
-                        if (target != null && simulatedStates.ContainsKey(target))
-                            nextWaveSet.Add(target);
-
-                        current = neighbor;
-                    }
+                    CardView target = targetSlot.OccupiedCard;
+                    if (target != null && simulatedStates.ContainsKey(target))
+                        nextWaveSet.Add(target);
                 }
             }
 
@@ -92,8 +83,9 @@ public class InfiniteLoopDetector
     private static List<CardView> GetPlacedCards()
     {
         List<CardView> result = new();
+        HashSet<CardView> uniqueCards = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
-            if (slot.OccupiedCard != null)
+            if (slot.OccupiedCard != null && uniqueCards.Add(slot.OccupiedCard))
                 result.Add(slot.OccupiedCard);
         return result;
     }

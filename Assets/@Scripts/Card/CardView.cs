@@ -4,10 +4,12 @@ using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using TMPro;
 using System;
+using System.Collections.Generic;
 
 public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler, IPointerClickHandler
 {
     private CardRuntimeState _runtimeState;
+    private CardPieceShapeView _pieceShapeView;
 
     [Header("Refs")]
     [SerializeField] private Image _backgroundImage;
@@ -46,8 +48,10 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public bool IsActivated { get; private set; }
     public bool IsEnemy { get; private set; }
     public GridSlot CurrentSlot { get; private set; }
+    public IReadOnlyList<GridSlot> OccupiedSlots => _occupiedSlots;
     public int PreserveStack { get; private set; }
     public int ContaminateCurseCount { get; private set; }
+    private readonly List<GridSlot> _occupiedSlots = new();
 
     public void SetContaminateCurseCount(int count)
     {
@@ -107,6 +111,9 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         _canvasGroup = GetComponent<CanvasGroup>();
 
         _runtimeState = GetComponent<CardRuntimeState>();
+        _pieceShapeView = GetComponent<CardPieceShapeView>();
+        if (_pieceShapeView == null)
+            _pieceShapeView = gameObject.AddComponent<CardPieceShapeView>();
         if (_runtimeState != null)
         {
             _runtimeState.OnChanged += RefreshRuntimeText;
@@ -139,6 +146,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         IsActivated = startsActivated;
         IsEnemy = isEnemy;
         CurrentSlot = null;
+        _occupiedSlots.Clear();
         PreserveStack = 0;
         ContaminateCurseCount = 0;
         RefreshPreserveUI();
@@ -172,6 +180,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         RefreshRuntimeText();
         RefreshDirectionIcons();
         RefreshVisual();
+        RefreshPieceShape(false);
     }
 
     public void ApplyHandLayout()
@@ -182,6 +191,10 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             _canvasGroup = GetComponent<CanvasGroup>();
         if (!_hasHandLayout)
             CaptureHandLayout();
+
+        LayoutElement layoutElement = GetComponent<LayoutElement>();
+        if (layoutElement != null)
+            layoutElement.ignoreLayout = false;
 
         if (_rectTransform != null)
         {
@@ -202,6 +215,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             _canvasGroup.blocksRaycasts = true;
             _canvasGroup.alpha = 1f;
         }
+        RefreshPieceShape(false);
     }
 
     public void ApplyGridLayout()
@@ -228,19 +242,30 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             _canvasGroup.blocksRaycasts = true;
             _canvasGroup.alpha = 1f;
         }
+        RefreshPieceShape(true);
     }
 
     public void SetPlaced(GridSlot slot)
     {
-        bool wasOnGrid = CurrentSlot != null;
-        CurrentSlot = slot;
+        SetPlaced(slot, slot != null ? new[] { slot } : null);
+    }
 
-        if (slot != null && !wasOnGrid)
+    public void SetPlaced(GridSlot anchorSlot, IReadOnlyList<GridSlot> occupiedSlots)
+    {
+        bool wasOnGrid = CurrentSlot != null;
+        CurrentSlot = anchorSlot;
+        _occupiedSlots.Clear();
+        if (occupiedSlots != null)
+            foreach (GridSlot occupiedSlot in occupiedSlots)
+                if (occupiedSlot != null)
+                    _occupiedSlots.Add(occupiedSlot);
+
+        if (anchorSlot != null && !wasOnGrid)
         {
             SubscribeChainFinished();
             RefreshPreviewText();
         }
-        else if (slot == null && wasOnGrid)
+        else if (anchorSlot == null && wasOnGrid)
         {
             UnsubscribeChainFinished();
             if (_previewText != null)
@@ -364,6 +389,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         HideAllDirectionIcons();
 
         if (Data == null) return;
+        if (Data.pieceCells != null && Data.pieceCells.Count > 0) return;
 
         foreach (CardDirection dir in Data.GetAllDirections())
         {
@@ -405,6 +431,33 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             _backgroundImage.color = IsActivated ? _enemyActiveColor : _enemyInactiveColor;
         else
             _backgroundImage.color = IsActivated ? _activeColor : _inactiveColor;
+
+        RefreshPieceShape(CurrentSlot != null);
+    }
+
+    public void RefreshPieceShape(bool onGrid)
+    {
+        if (_pieceShapeView == null || Data == null) return;
+
+        bool hasShape = Data.pieceCells != null && Data.pieceCells.Count > 0;
+        if (_backgroundImage != null)
+            _backgroundImage.enabled = !onGrid || !hasShape;
+
+        Color color = IsEnemy
+            ? (IsActivated ? _enemyActiveColor : _enemyInactiveColor)
+            : (IsActivated ? _activeColor : _inactiveColor);
+        Dictionary<CardDirection, Sprite> sprites = new()
+        {
+            [CardDirection.UpLeft] = _upLeft != null ? _upLeft.sprite : null,
+            [CardDirection.Up] = _up != null ? _up.sprite : null,
+            [CardDirection.UpRight] = _upRight != null ? _upRight.sprite : null,
+            [CardDirection.Left] = _left != null ? _left.sprite : null,
+            [CardDirection.Right] = _right != null ? _right.sprite : null,
+            [CardDirection.DownLeft] = _downLeft != null ? _downLeft.sprite : null,
+            [CardDirection.Down] = _down != null ? _down.sprite : null,
+            [CardDirection.DownRight] = _downRight != null ? _downRight.sprite : null
+        };
+        _pieceShapeView.Rebuild(Data, onGrid, color, sprites);
     }
 
     //* 실시간 텍스트 수정
@@ -474,9 +527,11 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         int neighborDamage = 0;
         if (CurrentSlot != null && GridManager.Instance != null)
         {
-            foreach (CardDirection dir in Data.GetAllDirections())
+            foreach (GridSlot n in CardTargetResolver.ResolveAdjacentArrowSlots(
+                Data,
+                CurrentSlot,
+                GridManager.Instance))
             {
-                GridSlot n = GridManager.Instance.GetNeighbor(CurrentSlot, dir);
                 if (n == null || n.OccupiedCard == null || n.OccupiedCard.Data == null) continue;
                 
                 var neighborRuntime = n.OccupiedCard.GetComponent<CardRuntimeState>();
@@ -546,16 +601,16 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
                 }
             case EffectType.FinisherDamage:
                 {
-                    int onCount = 0;
+                    HashSet<CardView> activeCards = new();
                     if (GridManager.Instance != null)
                         foreach (GridSlot s in GridManager.Instance.Slots.Values)
                             if (s.OccupiedCard != null && s.OccupiedCard.IsActivated)
-                                onCount++;
+                                activeCards.Add(s.OccupiedCard);
                     
                     // (기본 값 + 추가되는 값) * 켜진 카운트 를 합산해 리턴
                     int baseVal = Mathf.RoundToInt(effect.value);
                     int totalBonus = bonusDamage + totemDamageBonus;
-                    return $"{baseVal + totalBonus} × {onCount}";
+                    return $"{baseVal + totalBonus} × {activeCards.Count}";
                 }
             case EffectType.CounterDamage:
                 {

@@ -94,6 +94,16 @@ public enum ThresholdType
 }
 
 [Serializable]
+public class PieceCellData
+{
+    [Tooltip("Grid offset from the cell where this card is dropped.")]
+    public Vector2Int offset;
+
+    [Tooltip("Directions emitted by this cell. Directions facing another cell in this piece are ignored.")]
+    public List<CardDirection> directions = new();
+}
+
+[Serializable]
 public class CardEffect
 {
     [Header("발동 타이밍")]
@@ -152,6 +162,14 @@ public class CardData : ScriptableObject
     [Header("Directions")]
     public List<CardDirection> directions = new();
 
+    [Header("Remote Toggle")]
+    [Tooltip("Explicit target offsets. When empty, Directions and Range are used.")]
+    public List<Vector2Int> remoteToggleOffsets = new();
+
+    [Header("Piece Shape")]
+    [Tooltip("Occupied offsets from the drop cell. Empty means a legacy one-cell card.")]
+    public List<PieceCellData> pieceCells = new();
+
     [Header("Effects")]
     public List<CardEffect> effects = new();
 
@@ -167,4 +185,57 @@ public class CardData : ScriptableObject
             if (dir != CardDirection.None)
                 yield return dir;
     }
+
+    public IEnumerable<Vector2Int> GetOccupiedOffsets()
+    {
+        if (pieceCells == null || pieceCells.Count == 0)
+        {
+            yield return Vector2Int.zero;
+            yield break;
+        }
+
+        HashSet<Vector2Int> yielded = new();
+        foreach (PieceCellData cell in pieceCells)
+            if (cell != null && yielded.Add(cell.offset))
+                yield return cell.offset;
+
+        if (yielded.Count == 0)
+            yield return Vector2Int.zero;
+    }
+
+    public IEnumerable<CardDirection> GetDirectionsAt(Vector2Int offset)
+    {
+        if (pieceCells == null || pieceCells.Count == 0)
+        {
+            if (offset == Vector2Int.zero)
+                foreach (CardDirection direction in GetAllDirections())
+                    yield return direction;
+            yield break;
+        }
+
+        HashSet<Vector2Int> occupied = new(GetOccupiedOffsets());
+        foreach (PieceCellData cell in pieceCells)
+        {
+            if (cell == null || cell.offset != offset || cell.directions == null) continue;
+            foreach (CardDirection direction in cell.directions)
+            {
+                if (direction == CardDirection.None) continue;
+                if (!occupied.Contains(offset + DirectionToDelta(direction)))
+                    yield return direction;
+            }
+        }
+    }
+
+    public static Vector2Int DirectionToDelta(CardDirection direction) => direction switch
+    {
+        CardDirection.Up => new Vector2Int(0, 1),
+        CardDirection.UpRight => new Vector2Int(1, 1),
+        CardDirection.Right => new Vector2Int(1, 0),
+        CardDirection.DownRight => new Vector2Int(1, -1),
+        CardDirection.Down => new Vector2Int(0, -1),
+        CardDirection.DownLeft => new Vector2Int(-1, -1),
+        CardDirection.Left => new Vector2Int(-1, 0),
+        CardDirection.UpLeft => new Vector2Int(-1, 1),
+        _ => Vector2Int.zero
+    };
 }

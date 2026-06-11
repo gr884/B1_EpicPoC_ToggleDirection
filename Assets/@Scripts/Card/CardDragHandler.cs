@@ -99,8 +99,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         _pendingDropAccepted = false;
         ClearPendingDirectionalImpact();
 
-        _rectTransform.SetParent(newParent, false);
-        FitToParent();
+        GridManager.Instance?.LayoutPlacedCard(Card);
 
         _canvasGroup.blocksRaycasts = true;
         _canvasGroup.alpha = 1f;
@@ -112,19 +111,12 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         _pendingDropAccepted = true;
         ClearPendingDirectionalImpact();
 
-        _rectTransform.SetParent(newParent, false);
-        FitToParent();
+        // Pending cards are laid out when the current chain finishes.
 
         // 정식 부착 전까지 플레이어 입력과 슬롯 판정을 가로막지 않는다.
         _canvasGroup.blocksRaycasts = false;
         _canvasGroup.alpha = 1f;
         _rootCanvas = null;
-    }
-
-    private void FitToParent()
-    {
-        if (Card != null)
-            Card.ApplyGridLayout();
     }
 
     private bool CanDragHandCardInput()

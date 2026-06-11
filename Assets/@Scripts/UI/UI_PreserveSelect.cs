@@ -54,12 +54,13 @@ public class UI_PreserveSelect : MonoBehaviour
     private void Show()
     {
         _selectedCards.Clear();
+        HashSet<CardView> processedCards = new();
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             if (slot.IsEmpty) continue;
             CardView card = slot.OccupiedCard;
-            if (card.IsEnemy) continue;
+            if (card.IsEnemy || !processedCards.Add(card)) continue;
 
             card.SetSelected(false);
             CreateHitArea(card);
@@ -74,11 +75,12 @@ public class UI_PreserveSelect : MonoBehaviour
 
     private void Hide()
     {
+        HashSet<CardView> processedCards = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             if (slot.IsEmpty) continue;
             CardView card = slot.OccupiedCard;
-            if (card.IsEnemy) continue;
+            if (card.IsEnemy || !processedCards.Add(card)) continue;
             card.SetSelected(false);
         }
 

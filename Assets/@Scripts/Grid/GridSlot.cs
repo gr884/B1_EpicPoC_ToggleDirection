@@ -22,18 +22,25 @@ public class GridSlot : MonoBehaviour, IDropHandler
 
     public void AssignCard(CardView card)
     {
-        OccupiedCard = card;
-        if (card != null)
-            card.SetPlaced(this);
-        SetHighlight(false);
-        SetTotemBorder(false, false);
+        if (card != null && GridManager.Instance != null)
+            GridManager.Instance.PlaceCard(card, this);
+        else
+            SetOccupant(card);
     }
 
     public void ClearCard()
     {
-        if (OccupiedCard != null)
-            OccupiedCard.SetPlaced(null);
-        OccupiedCard = null;
+        if (OccupiedCard != null && GridManager.Instance != null)
+            GridManager.Instance.RemoveCard(OccupiedCard);
+        else
+            SetOccupant(null);
+    }
+
+    public void SetOccupant(CardView card)
+    {
+        OccupiedCard = card;
+        SetHighlight(false);
+        SetTotemBorder(false, false);
     }
 
     public void SetHighlight(bool highlight)

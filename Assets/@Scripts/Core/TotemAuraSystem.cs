@@ -49,11 +49,13 @@ public class TotemAuraSystem : MonoBehaviour
 
         if (GridManager.Instance == null) return;
 
+        HashSet<CardView> processedTotems = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             // 켜진 기물이 아니면 스킵
             CardView source = slot.OccupiedCard;
             if (source == null || source.IsEnemy || !source.IsActivated || source.CurrentSlot == null) continue;
+            if (!processedTotems.Add(source)) continue;
 
             // 공/수 토템 확인
             bool isDmgTotem = ContainsEffect(source.Data, EffectType.TotemAura);
@@ -62,6 +64,8 @@ public class TotemAuraSystem : MonoBehaviour
 
             List<Vector2Int> offsets = source.Data.totemAuraOffsets;    // 해당 토템의 영역 오프셋을 가져옴
             if (offsets == null || offsets.Count == 0) continue;
+            HashSet<CardView> damagedTargets = new();
+            HashSet<CardView> defendedTargets = new();
 
             // 각 오프셋에 해당하는 그리드를 확인 및 계산
             foreach (Vector2Int offset in offsets)
@@ -79,7 +83,7 @@ public class TotemAuraSystem : MonoBehaviour
                 if (target == null || target.IsEnemy) continue;
                 if (IsTotemCardData(target.Data)) continue;
 
-                if (isDmgTotem)
+                if (isDmgTotem && damagedTargets.Add(target))
                 {
                     int auraValue = GetAuraValue(source.Data, EffectType.TotemAura);
                     if (_damageBonusByCard.TryGetValue(target, out int bonus))
@@ -88,7 +92,7 @@ public class TotemAuraSystem : MonoBehaviour
                         _damageBonusByCard[target] = auraValue;
                 }
 
-                if (isDefTotem)
+                if (isDefTotem && defendedTargets.Add(target))
                 {
                     int auraValue = GetAuraValue(source.Data, EffectType.TotemAura_Defense);
                     if (_defenseBonusByCard.TryGetValue(target, out int bonus))
@@ -119,10 +123,11 @@ public class TotemAuraSystem : MonoBehaviour
     {
         if (GridManager.Instance == null) return;
 
+        HashSet<CardView> refreshedCards = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             CardView card = slot.OccupiedCard;
-            if (card == null || card.IsEnemy) continue;
+            if (card == null || card.IsEnemy || !refreshedCards.Add(card)) continue;
             card.GetComponent<CardRuntimeState>()?.Refresh();
         }
     }

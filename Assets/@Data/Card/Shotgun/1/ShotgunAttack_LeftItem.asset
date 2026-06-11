@@ -25,9 +25,22 @@ MonoBehaviour:
   autoTriggerThreshold: 1
   isCastingCard: 0
   castingRequiredCount: 3
+  isCapacitorCard: 0
+  capacitorChargeRequired: 3
+  capacitorDischargeCount: 3
   range: 1
   recallDestination: 0
   directions: 080000000700000006000000
+  remoteToggleOffsets:
+  - {x: -1, y: 0}
+  - {x: -2, y: 0}
+  - {x: -2, y: 1}
+  - {x: -2, y: -1}
+  pieceCells:
+  - offset: {x: 0, y: 0}
+    directions: 070000000800000006000000
+  - offset: {x: 1, y: 0}
+    directions: 
   effects:
   - trigger: 0
     scope: 0

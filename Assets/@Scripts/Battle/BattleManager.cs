@@ -197,20 +197,20 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
     private void ProcessContaminateCards()
     {
-        List<GridSlot> contaminateSlots = new();
+        List<CardView> contaminateCards = new();
+        HashSet<CardView> uniqueCards = new();
 
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             if (slot.IsEmpty) continue;
             CardView card = slot.OccupiedCard;
             if (!card.IsEnemy || card.ContaminateCurseCount <= 0) continue;
-            contaminateSlots.Add(slot);
+            if (uniqueCards.Add(card))
+                contaminateCards.Add(card);
         }
 
-        foreach (GridSlot slot in contaminateSlots)
+        foreach (CardView card in contaminateCards)
         {
-            CardView card = slot.OccupiedCard;
-
             if (card.IsActivated)
             {
                 CardData curseCard = _enemy.CurseCardData;
@@ -226,7 +226,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
                 Debug.Log("[BattleManager] 오염 카드 제거 성공 — 저주 없음");
             }
 
-            slot.ClearCard();
+            GridManager.Instance.RemoveCard(card);
             PoolManager.Instance.Return(card.gameObject);
         }
     }

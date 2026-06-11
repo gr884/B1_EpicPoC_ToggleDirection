@@ -15,6 +15,7 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     public int Rows => _rows;
     public int Columns => _columns;
+    public RectTransform GridRoot => _gridRoot;
 
     private readonly Dictionary<Vector2Int, GridSlot> _slots = new();
     public IReadOnlyDictionary<Vector2Int, GridSlot> Slots => _slots;
@@ -65,9 +66,12 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     public void ResetCards()
     {
+        HashSet<CardView> cards = new();
         foreach (GridSlot slot in _slots.Values)
-            if (!slot.IsEmpty)
-                slot.ClearCard();
+            if (slot.OccupiedCard != null)
+                cards.Add(slot.OccupiedCard);
+        foreach (CardView card in cards)
+            RemoveCard(card);
 
         Debug.Log("[GridManager] 그리드 카드 리셋");
     }
@@ -90,19 +94,20 @@ public class GridManager : SingletonBehaviour<GridManager>
     public CardView PlaceEnemyCardRandom(CardData data, GameObject cardPrefab, bool startsActivated = true)
     {
         List<GridSlot> emptySlots = GetEmptySlots();
-        if (emptySlots.Count == 0) return null;
-
         Shuffle(emptySlots);
-        return SpawnEnemyCard(data, cardPrefab, emptySlots[0], startsActivated);
+        foreach (GridSlot slot in emptySlots)
+            if (CanPlaceCard(data, slot))
+                return SpawnEnemyCard(data, cardPrefab, slot, startsActivated);
+        return null;
     }
 
     public int GetEnemyCardCount()
     {
-        int count = 0;
+        HashSet<CardView> enemies = new();
         foreach (GridSlot slot in _slots.Values)
             if (!slot.IsEmpty && slot.OccupiedCard.IsEnemy)
-                count++;
-        return count;
+                enemies.Add(slot.OccupiedCard);
+        return enemies.Count;
     }
 
     // ── 조회 ───────────────────────────────────────────────
@@ -128,28 +133,94 @@ public class GridManager : SingletonBehaviour<GridManager>
         return result;
     }
 
-    public List<GridSlot> GetDirectionalImpactSlots(CardView sourceCard, GridSlot attachSlot)
+    public bool TryGetPlacementSlots(CardData data, GridSlot anchor, out List<GridSlot> slots)
     {
-        List<GridSlot> result = new();
-        if (sourceCard?.Data == null || attachSlot == null) return result;
-        if (sourceCard.Data.isRecaller) return result;
+        return CardPlacementResolver.TryResolveSlots(data, anchor, this, out slots);
+    }
 
-        int range = Mathf.Max(1, sourceCard.Data.range);
-        foreach (CardDirection dir in sourceCard.Data.GetAllDirections())
+    public bool CanPlaceCard(CardData data, GridSlot anchor, CardView ignoredCard = null)
+    {
+        if (!TryGetPlacementSlots(data, anchor, out List<GridSlot> slots))
+            return false;
+
+        foreach (GridSlot slot in slots)
+            if (slot.OccupiedCard != null && slot.OccupiedCard != ignoredCard)
+                return false;
+        return true;
+    }
+
+    public bool PlaceCard(CardView card, GridSlot anchor)
+    {
+        if (card?.Data == null || !CanPlaceCard(card.Data, anchor, card))
+            return false;
+        if (!TryGetPlacementSlots(card.Data, anchor, out List<GridSlot> slots))
+            return false;
+
+        RemoveCard(card);
+        foreach (GridSlot slot in slots)
+            slot.SetOccupant(card);
+        card.SetPlaced(anchor, slots);
+        LayoutPlacedCard(card);
+        return true;
+    }
+
+    public void RemoveCard(CardView card)
+    {
+        if (card == null) return;
+
+        foreach (GridSlot slot in _slots.Values)
+            if (slot.OccupiedCard == card)
+                slot.SetOccupant(null);
+        card.SetPlaced(null, null);
+    }
+
+    public void LayoutPlacedCard(CardView card)
+    {
+        if (card == null || card.CurrentSlot == null) return;
+
+        RectTransform cardRect = card.transform as RectTransform;
+        if (cardRect == null) return;
+
+        // The dragged card comes from the root canvas. Do not preserve its world Z
+        // when moving it back under the grid canvas.
+        cardRect.SetParent(_gridRoot, false);
+        LayoutElement layoutElement = card.GetComponent<LayoutElement>();
+        if (layoutElement == null)
+            layoutElement = card.gameObject.AddComponent<LayoutElement>();
+        layoutElement.ignoreLayout = true;
+        Vector3[] corners = new Vector3[4];
+        Vector2 min = new(float.PositiveInfinity, float.PositiveInfinity);
+        Vector2 max = new(float.NegativeInfinity, float.NegativeInfinity);
+        foreach (GridSlot slot in card.OccupiedSlots)
         {
-            GridSlot current = attachSlot;
-            for (int i = 0; i < range; i++)
+            RectTransform slotRect = slot != null ? slot.transform as RectTransform : null;
+            if (slotRect == null) continue;
+            slotRect.GetWorldCorners(corners);
+            foreach (Vector3 corner in corners)
             {
-                GridSlot next = GetNeighbor(current, dir);
-                if (next == null) break;
-
-                if (!result.Contains(next))
-                    result.Add(next);
-                current = next;
+                Vector2 local = _gridRoot.InverseTransformPoint(corner);
+                min = Vector2.Min(min, local);
+                max = Vector2.Max(max, local);
             }
         }
 
-        return result;
+        cardRect.anchorMin = new Vector2(0.5f, 0.5f);
+        cardRect.anchorMax = new Vector2(0.5f, 0.5f);
+        cardRect.pivot = new Vector2(0.5f, 0.5f);
+        Vector2 center = (min + max) * 0.5f;
+        cardRect.anchoredPosition3D = new Vector3(center.x, center.y, 0f);
+        cardRect.sizeDelta = max - min;
+        cardRect.localPosition = new Vector3(cardRect.localPosition.x, cardRect.localPosition.y, 0f);
+        cardRect.localRotation = Quaternion.identity;
+        cardRect.localScale = Vector3.one;
+        card.RefreshPieceShape(true);
+    }
+
+    public List<GridSlot> GetDirectionalImpactSlots(CardView sourceCard, GridSlot attachSlot)
+    {
+        if (sourceCard?.Data == null || attachSlot == null || sourceCard.Data.isRecaller)
+            return new List<GridSlot>();
+        return CardTargetResolver.ResolveToggleSlots(sourceCard.Data, attachSlot, this);
     }
 
     public void ShowPendingDirectionalImpact(CardView sourceCard, GridSlot attachSlot)
@@ -159,6 +230,9 @@ public class GridManager : SingletonBehaviour<GridManager>
         if (CardManager.Instance == null || !CardManager.Instance.CanPreviewPlaceCard(sourceCard, attachSlot)) return;
 
         CreatePendingPlacementPreviewEffect(attachSlot);
+        if (TryGetPlacementSlots(sourceCard.Data, attachSlot, out List<GridSlot> placementSlots))
+            foreach (GridSlot slot in placementSlots)
+                CreatePendingPlacementPreviewEffect(slot);
 
         List<GridSlot> targets = GetDirectionalImpactSlots(sourceCard, attachSlot);
         ResolveDirectionalImpactEffectPlayer()?.Show(targets);
@@ -193,15 +267,17 @@ public class GridManager : SingletonBehaviour<GridManager>
 
     private CardView SpawnEnemyCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated)
     {
-        GameObject obj = PoolManager.Instance.Get(cardPrefab, slot.transform);
+        GameObject obj = PoolManager.Instance.Get(cardPrefab, _gridRoot);
         CardView card = obj.GetComponent<CardView>();
         if (card == null) return null;
 
         card.Initialize(data, isEnemy: true, startsActivated: startsActivated);
         card.SetDraggable(false);
-        card.ApplyGridLayout();
-
-        slot.AssignCard(card);
+        if (!PlaceCard(card, slot))
+        {
+            PoolManager.Instance.Return(obj);
+            return null;
+        }
         return card;
     }
 

@@ -142,8 +142,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         card.Instance.Exile();
         _exiledPile.Add(card.Instance);
 
-        GridSlot slot = card.CurrentSlot;
-        slot?.ClearCard();
+        GridManager.Instance?.RemoveCard(card);
         ChainExecutor.Instance?.RefreshTotemAuras();
         PoolManager.Instance.Return(card.gameObject);
 
@@ -292,10 +291,8 @@ public class CardManager : SingletonBehaviour<CardManager>
     {
         if (card == null || card.IsEnemy) return;
 
-        GridSlot slot = card.CurrentSlot;
-        if (slot == null) return;
-
-        slot.ClearCard();
+        if (card.CurrentSlot == null) return;
+        GridManager.Instance?.RemoveCard(card);
         ChainExecutor.Instance?.RefreshTotemAuras();
 
         CardInstance instance = card.Instance;
@@ -331,11 +328,12 @@ public class CardManager : SingletonBehaviour<CardManager>
     public void DiscardGrid()
     {
         _firstPlacedCard = null;
+        HashSet<CardView> processed = new();
         foreach (GridSlot slot in GridManager.Instance.Slots.Values)
         {
             if (slot.IsEmpty) continue;
             CardView card = slot.OccupiedCard;
-            if (card.IsEnemy) continue;
+            if (card.IsEnemy || !processed.Add(card)) continue;
 
             // 보존 스택이 있으면 1 차감 후 유지
             if (card.ConsumePreserve())
@@ -348,7 +346,7 @@ public class CardManager : SingletonBehaviour<CardManager>
             if (card.Instance != null)
                 _discardPile.Add(card.Instance);
             _flightEffectPlayer?.PlayDiscardFrom(card.transform);
-            slot.ClearCard();
+            GridManager.Instance.RemoveCard(card);
             PoolManager.Instance.Return(card.gameObject);
         }
 
@@ -365,14 +363,12 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (!_hand.Contains(card)) return false;
         if (card.Instance == null || card.Data == null) return false;
         if (card.Data.isUnplayable) return false;
-        if (IsSlotReserved(targetSlot)) return false;
-
         bool isRecaller = card.Data.isRecaller;
         bool isChainExecuting = ChainExecutor.Instance != null && ChainExecutor.Instance.IsExecuting;
         if (isChainExecuting && isRecaller) return false;
 
         // 일반 카드는 빈 슬롯만, 조작형은 점유 슬롯만 허용
-        if (!isRecaller && !targetSlot.IsEmpty) return false;
+        if (!isRecaller && !CanReservePlacement(card.Data, targetSlot)) return false;
         if (isRecaller && targetSlot.IsEmpty) return false;
         // 조작형은 적 카드 회수 불가
         if (isRecaller && targetSlot.OccupiedCard != null && targetSlot.OccupiedCard.IsEnemy) return false;
@@ -389,14 +385,12 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (!_hand.Contains(card)) return false;
         if (card.Instance == null || card.Data == null) return false;
         if (card.Data.isUnplayable) return false;
-        if (IsSlotReserved(targetSlot)) return false;
-
         bool isRecaller = card.Data.isRecaller;
         bool isChainExecuting = ChainExecutor.Instance != null && ChainExecutor.Instance.IsExecuting;
         if (isChainExecuting && isRecaller) return false;
 
         // 일반 카드는 빈 슬롯만, 조작형은 점유 슬롯만 허용
-        if (!isRecaller && !targetSlot.IsEmpty) return false;
+        if (!isRecaller && !CanReservePlacement(card.Data, targetSlot)) return false;
         if (isRecaller && targetSlot.IsEmpty) return false;
         // 조작형은 적 카드 회수 불가
         if (isRecaller && targetSlot.OccupiedCard != null && targetSlot.OccupiedCard.IsEnemy) return false;
@@ -416,7 +410,7 @@ public class CardManager : SingletonBehaviour<CardManager>
             CardView target = targetSlot.OccupiedCard;
             if (target != null)
             {
-                targetSlot.ClearCard();
+                GridManager.Instance.RemoveCard(target);
                 SpawnToHand(target.Instance);
                 PoolManager.Instance.Return(target.gameObject);
                 OnHandChanged?.Invoke();
@@ -430,7 +424,8 @@ public class CardManager : SingletonBehaviour<CardManager>
             return true;
         }
 
-        targetSlot.AssignCard(card);
+        if (!GridManager.Instance.PlaceCard(card, targetSlot))
+            return false;
         ChainExecutor.Instance?.RefreshTotemAuras();
         card.SetDraggable(false);
         _hand.Remove(card);
@@ -450,10 +445,30 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (slot == null) return false;
 
         foreach (PendingPlacement pending in _pendingPlacements)
-            if (pending != null && pending.TargetSlot == slot)
+        {
+            if (pending?.Card?.Data == null || pending.TargetSlot == null) continue;
+            if (GridManager.Instance.TryGetPlacementSlots(
+                    pending.Card.Data,
+                    pending.TargetSlot,
+                    out List<GridSlot> slots)
+                && slots.Contains(slot))
                 return true;
+        }
 
         return false;
+    }
+
+    private bool CanReservePlacement(CardData data, GridSlot targetSlot)
+    {
+        if (GridManager.Instance == null || !GridManager.Instance.CanPlaceCard(data, targetSlot))
+            return false;
+        if (!GridManager.Instance.TryGetPlacementSlots(data, targetSlot, out List<GridSlot> slots))
+            return false;
+
+        foreach (GridSlot slot in slots)
+            if (IsSlotReserved(slot))
+                return false;
+        return true;
     }
 
     private void QueuePendingPlacement(CardView card, GridSlot targetSlot)
@@ -483,14 +498,17 @@ public class CardManager : SingletonBehaviour<CardManager>
             GridSlot targetSlot = pending.TargetSlot;
             if (card == null)
                 continue;
-            if (targetSlot == null || !targetSlot.IsEmpty)
+            if (targetSlot == null || !CanReservePlacement(card.Data, targetSlot))
             {
                 ReturnPendingCardToHand(card);
                 continue;
             }
 
-            targetSlot.AssignCard(card);
-            card.ApplyGridLayout();
+            if (!GridManager.Instance.PlaceCard(card, targetSlot))
+            {
+                ReturnPendingCardToHand(card);
+                continue;
+            }
             ChainExecutor.Instance?.RefreshTotemAuras();
             card.SetDraggable(false);
 
@@ -538,8 +556,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (recallInstance == null || recallData == null) return false;
         if (!_player.SpendCost(1)) return false;
 
-        GridSlot slot = card.CurrentSlot;
-        slot.ClearCard();
+        GridManager.Instance?.RemoveCard(card);
         ChainExecutor.Instance?.RefreshTotemAuras();
 
         _flightEffectPlayer?.PlayRecallToHandFrom(card.transform);

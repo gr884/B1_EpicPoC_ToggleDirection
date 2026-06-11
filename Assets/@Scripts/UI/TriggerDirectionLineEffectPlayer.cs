@@ -104,21 +104,11 @@ public class TriggerDirectionLineEffectPlayer : MonoBehaviour
             return targets;
 
         // 카드의 방향/range 안에서 실제 점유 카드만 수집한다.
-        int range = Mathf.Max(1, sourceCard.Data.range);
-        foreach (CardDirection direction in sourceCard.Data.GetAllDirections())
+        foreach (GridSlot targetSlot in CardTargetResolver.ResolveToggleSlots(sourceCard, GridManager.Instance))
         {
-            GridSlot current = sourceCard.CurrentSlot;
-            for (int i = 0; i < range; i++)
-            {
-                GridSlot next = GridManager.Instance.GetNeighbor(current, direction);
-                if (next == null) break;
-
-                CardView target = next.OccupiedCard;
-                if (target != null && !targets.Contains(target))
-                    targets.Add(target);
-
-                current = next;
-            }
+            CardView target = targetSlot.OccupiedCard;
+            if (target != null && !targets.Contains(target))
+                targets.Add(target);
         }
 
         return targets;
