@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -441,6 +441,18 @@ public class CardManager : SingletonBehaviour<CardManager>
             _firstPlacedCard = card;
 
         TutorialManager.Instance?.OnCardPlaced(card);
+
+        // 운명 공동체 카드: 짝 선택 후 체인 실행
+        if (card.Data.isFateBondCard && UI_FateBondSelect.Instance != null)
+        {
+            CardView placedCard = card;
+            UI_FateBondSelect.Instance.Begin(placedCard, () =>
+            {
+                ChainExecutor.Instance.ExecutePlacedCard(placedCard);
+            });
+            return true;
+        }
+
         ChainExecutor.Instance.ExecutePlacedCard(card);
         return true;
     }

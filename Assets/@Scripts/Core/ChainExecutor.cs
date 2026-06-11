@@ -134,6 +134,33 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
         OnTotemAuraChanged?.Invoke();
     }
 
+    // 운명 공동체 후보 판정: from 카드가 자기 화살표·사거리로 to 카드에 도달하는가
+    public static bool CardReaches(CardView from, CardView to)
+    {
+        if (from?.Data == null || from.CurrentSlot == null) return false;
+        if (to == null || to.CurrentSlot == null) return false;
+        if (GridManager.Instance == null) return false;
+
+        foreach (CardDirection dir in from.Data.GetAllDirections())
+        {
+            GridSlot current = from.CurrentSlot;
+            for (int i = 0; i < from.Data.range; i++)
+            {
+                GridSlot neighbor = GridManager.Instance.GetNeighbor(current, dir);
+                if (neighbor == null) break;
+                if (neighbor.OccupiedCard == to) return true;
+                current = neighbor;
+            }
+        }
+        return false;
+    }
+
+    // 둘 중 한쪽이라도 서로를 가리키면 운명 공동체로 묶을 수 없음 (왕복 방지)
+    public static bool CardsPointAtEachOther(CardView a, CardView b)
+    {
+        return CardReaches(a, b) || CardReaches(b, a);
+    }
+
     // ── 재발동형 ──────────────────────────────────────────
 
     private IEnumerator ApplyReplayEffect(CardView replayCard)
@@ -372,6 +399,42 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
                     // 반전형: OFF될 때 방어 발동
                     if (!current.IsEnemy && current.Data?.effects != null)
                         yield return ApplyDefenseOnOffEffects(current);
+                }
+
+                // 운명 공동체: current가 ON/OFF 어느 쪽으로 토글되든 짝도 같이 토글.
+                // 후보 선택 단계에서 서로의 화살표가 닿는 짝은 배제했으므로,
+                // 짝이 화살표로 current를 다시 토글하는 왕복은 발생하지 않는다.
+                CardView partner = current.FateBondPartner;
+                if (partner != null && partner.CurrentSlot != null)
+                {
+                    bool partnerNext = !partner.IsActivated;
+                    partner.SetActivated(partnerNext);
+                    HandleCastingStateChange(partner, partnerNext);
+                    RefreshTotemAuras();
+
+                    if (partnerNext)
+                    {
+                        PlayTriggerDirectionLine(partner);
+                        emitters.Add(partner);
+                        activatedCards.Add(partner);
+
+                        if (!partner.IsEnemy)
+                            yield return FireCardOnEffects(partner);
+                    }
+                    else
+                    {
+                        activatedCards.Remove(partner);
+                        if (!partner.IsEnemy && partner.Data?.effects != null)
+                            yield return ApplyDefenseOnOffEffects(partner);
+                    }
+
+                    StartCoroutine(partner.PlayActivationFeedback(_cardFeedbackDuration));
+
+                    if (BattleManager.Instance.Enemy.IsDead)
+                    {
+                        Debug.Log("[ChainExecutor] 적 사망 — 체인 중단");
+                        yield break;
+                    }
                 }
             }
 

@@ -46,6 +46,20 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public bool IsActivated { get; private set; }
     public bool IsEnemy { get; private set; }
     public GridSlot CurrentSlot { get; private set; }
+
+    // ── 운명 공동체 ──────────────────────────────────────
+    public CardView FateBondPartner { get; private set; }
+
+    public void SetFateBondPartner(CardView partner)
+    {
+        FateBondPartner = partner;
+    }
+
+    public void ClearFateBond()
+    {
+        FateBondPartner = null;
+    }
+
     public int PreserveStack { get; private set; }
     public int ContaminateCurseCount { get; private set; }
 
@@ -245,6 +259,13 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
             UnsubscribeChainFinished();
             if (_previewText != null)
                 _previewText.text = "";
+
+            // 운명 공동체 해제: 짝의 참조도 함께 정리
+            if (FateBondPartner != null)
+            {
+                FateBondPartner.ClearFateBond();
+                ClearFateBond();
+            }
         }
     }
 

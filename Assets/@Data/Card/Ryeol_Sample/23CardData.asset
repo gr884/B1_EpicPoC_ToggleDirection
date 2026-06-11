@@ -10,29 +10,29 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
-  m_Name: 22CardData
+  m_Name: 23CardData
   m_EditorClassIdentifier: Assembly-CSharp::CardData
   cardId: 
-  displayName: "\uCD95\uC804\uAE30"
-  description: "\uBC30\uCE58 \uD3EC\uD568 4\uBC88 \uD2B8\uB9AC\uAC70 \uC2DC \uD65C\uC131\uD654.
-    \uD65C\uC131\uD654 \uD6C4 \uD654\uC0B4\uD45C \uBC29\uD5A5\uC73C\uB85C 5\uBC88
-    \uBC1C\uB3D9"
+  displayName: "\uC6B4\uBA85\uACF5\uB3D9\uCCB4"
+  description: "\uBC30\uCE58 \uC2DC \uB2E4\uB978 \uCE74\uB4DC 1\uC7A5\uACFC \uC6B4\uBA85\uC744
+    \uC787\uC2B5\uB2C8\uB2E4. \uD55C\uCABD\uC774 \uD1A0\uAE00\uB418\uBA74 \uB2E4\uB978
+    \uD55C\uCABD\uB3C4 \uD1A0\uAE00\uB429\uB2C8\uB2E4."
   cost: 1
   isUnplayable: 0
   isCurseCard: 0
   curseDamage: 3
   isRecaller: 0
-  isFateBondCard: 0
+  isFateBondCard: 1
   hasAutoTrigger: 0
   autoTriggerThreshold: 1
   isCastingCard: 0
   castingRequiredCount: 3
-  isCapacitorCard: 1
-  capacitorChargeRequired: 4
-  capacitorDischargeCount: 5
+  isCapacitorCard: 0
+  capacitorChargeRequired: 3
+  capacitorDischargeCount: 1
   range: 1
   recallDestination: 0
-  directions: 0300000005000000
+  directions: 0700000001000000
   effects: []
   totemAuraOffsets: []
-  icon: {fileID: 0}
+  icon: {fileID: 4151007152507790544, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

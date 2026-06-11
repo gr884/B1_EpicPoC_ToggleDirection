@@ -94,6 +94,9 @@ public class CardData : ScriptableObject
     public int curseDamage = 3;
     public bool isRecaller = false; // 점유된 슬롯에 배치 가능 (조작형)
 
+    [Header("Fate Bond (운명 공동체)")]
+    public bool isFateBondCard = false;  // 배치 후 그리드 카드 1장과 운명 공동체로 묶임
+
     [Header("Auto Trigger")]
     public bool hasAutoTrigger = false;          // 체인 종료 후 조건 충족 시 자동 ON
     public int autoTriggerThreshold = 1;         // 그리드 ON 카드 수 기준
