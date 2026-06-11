@@ -36,7 +36,7 @@ public class UI_RewardPopup : MonoBehaviour
 
     private void Show()
     {
-        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial) return;
+        if (GameManager.Instance.CurrentState == GameManager.GameState.FirstRunTutorial) return;
         _selectedCard = null;
         _confirmButton.interactable = false;
         ClearCards();

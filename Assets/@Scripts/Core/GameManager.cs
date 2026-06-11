@@ -4,13 +4,13 @@ using UnityEngine.SceneManagement;
 
 public class GameManager : SingletonBehaviour<GameManager>
 {
-    public enum GameState { Idle, Playing, Tutorial, GameOver, GameClear }
+    public enum GameState { Idle, Playing, FirstRunTutorial, GameOver, GameClear }
 
     // ── 상태 ──────────────────────────────────────
     public GameState CurrentState { get; private set; } = GameState.Idle;
     private bool _isPaused;
     public bool IsPaused => _isPaused;
-    public bool IsPlaying => (CurrentState == GameState.Playing || CurrentState == GameState.Tutorial) && !_isPaused;
+    public bool IsPlaying => (CurrentState == GameState.Playing || CurrentState == GameState.FirstRunTutorial) && !_isPaused;
 
     // ── 이벤트 ────────────────────────────────────
     public event Action<GameState> OnStateChanged;
@@ -24,7 +24,7 @@ public class GameManager : SingletonBehaviour<GameManager>
 
     // ── 상태 전환 ─────────────────────────────────
     public void GameStart() => ChangeState(GameState.Playing);
-    public void StartTutorial() => ChangeState(GameState.Tutorial);
+    public void StartFirstRunTutorial() => ChangeState(GameState.FirstRunTutorial);
     public void GameOver() => ChangeState(GameState.GameOver);
     public void GameClear() => ChangeState(GameState.GameClear);
     public void GoToMainMenu() => SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex); // 꼼수
@@ -45,7 +45,7 @@ public class GameManager : SingletonBehaviour<GameManager>
         switch (state)
         {
             case GameState.Playing:
-            case GameState.Tutorial:
+            case GameState.FirstRunTutorial:
                 Time.timeScale = 1f;
                 break;
             case GameState.GameOver:

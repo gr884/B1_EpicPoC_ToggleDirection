@@ -23,6 +23,7 @@ public class SpumEnemyMotionPlayer : MonoBehaviour
 
     private readonly Queue<SpumEnemyMotionRequest> _queue = new();
     private Coroutine _queueRoutine;
+    private Coroutine _hitRoutine;
     private Coroutine _dieRoutine;
     private SpumEnemyMotionRequest _currentRequest;
     private SpumEnemyMotionRequest _activeAttackRequest;
@@ -51,6 +52,12 @@ public class SpumEnemyMotionPlayer : MonoBehaviour
         {
             StopCoroutine(_queueRoutine);
             _queueRoutine = null;
+        }
+
+        if (_hitRoutine != null)
+        {
+            StopCoroutine(_hitRoutine);
+            _hitRoutine = null;
         }
 
         if (_dieRoutine != null)
@@ -86,7 +93,17 @@ public class SpumEnemyMotionPlayer : MonoBehaviour
     {
         if (_isDying || !isActiveAndEnabled) return;
 
-        Enqueue(new SpumEnemyMotionRequest(SpumEnemyMotionType.Hit));
+        // 공격 중에는 Hit으로 인터럽트하지 않음
+        if (_activeAttackRequest != null) return;
+
+        // 기존 Hit 코루틴이 있으면 즉시 중단하고 새로 시작
+        if (_hitRoutine != null)
+        {
+            StopCoroutine(_hitRoutine);
+            _hitRoutine = null;
+        }
+
+        _hitRoutine = StartCoroutine(PlayHitImmediate());
     }
 
     public void PlayDie()
@@ -141,9 +158,6 @@ public class SpumEnemyMotionPlayer : MonoBehaviour
                 case SpumEnemyMotionType.Attack:
                     yield return PlayAttackChain(_currentRequest);
                     break;
-                case SpumEnemyMotionType.Hit:
-                    yield return PlayHitRoutine();
-                    break;
             }
 
             _currentRequest.Complete();
@@ -181,13 +195,15 @@ public class SpumEnemyMotionPlayer : MonoBehaviour
         _activeAttackRequest = null;
     }
 
-    private IEnumerator PlayHitRoutine()
+    private IEnumerator PlayHitImmediate()
     {
         PlaySpum(PlayerState.DAMAGED, _damagedIndex);
 
         float hitDuration = GetMotionDuration(PlayerState.DAMAGED, _damagedIndex, _hitDuration);
         if (hitDuration > 0f)
             yield return new WaitForSeconds(hitDuration);
+
+        _hitRoutine = null;
 
         if (!_isDying)
             PlayIdle();

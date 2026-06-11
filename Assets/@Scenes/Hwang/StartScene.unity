@@ -4411,7 +4411,8 @@ MonoBehaviour:
   _visualSettings:
   - card: {fileID: 0}
     matchAnyEffectType: 0
-    effectType: 0
+    effect: {fileID: 11400000, guid: 4de8bb1f4c314c543bb2355b241b59dc, type: 2}
+    _legacyEffectType: 0
     projectileSprite: {fileID: 0}
     vfxPrefab: {fileID: 100000, guid: 85189cce24e80d841a5e5e7944bdd238, type: 3}
     targetOverride: {fileID: 743872838}
@@ -4426,7 +4427,8 @@ MonoBehaviour:
     maxFlightDuration: 5
   - card: {fileID: 0}
     matchAnyEffectType: 0
-    effectType: 1
+    effect: {fileID: 11400000, guid: eee33e757292ff64f8fbd9b5ed0c8ea4, type: 2}
+    _legacyEffectType: 1
     projectileSprite: {fileID: 0}
     vfxPrefab: {fileID: 100000, guid: 7d61fdcfa2d42c24d83c7c35a6c42e80, type: 3}
     targetOverride: {fileID: 82675638}
@@ -4436,6 +4438,22 @@ MonoBehaviour:
     duration: 0.28
     movementMode: 0
     projectileForce: 1000
+    forwardSpawnOffset: 0.3
+    impactDistance: 0.35
+    maxFlightDuration: 5
+  - card: {fileID: 0}
+    matchAnyEffectType: 0
+    effect: {fileID: 11400000, guid: 39f43d20592814e41bc16d27648cffc3, type: 2}
+    _legacyEffectType: 1
+    projectileSprite: {fileID: 0}
+    vfxPrefab: {fileID: 100000, guid: ac362dee23e5abd49a1bea78db16488b, type: 3}
+    targetOverride: {fileID: 743872838}
+    spawnOffset: {x: 0, y: 0}
+    targetOffset: {x: 0, y: 0}
+    size: {x: 1.5, y: 1.5}
+    duration: 0.28
+    movementMode: 0
+    projectileForce: 300
     forwardSpawnOffset: 0.3
     impactDistance: 0.35
     maxFlightDuration: 5
@@ -5839,6 +5857,216 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5823781837874480147}
   m_CullTransparentMesh: 1
+--- !u!1 &771234560000000001
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 771234560000000002}
+  - component: {fileID: 771234560000000003}
+  m_Layer: 0
+  m_Name: StartSceneTutorialDirector
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &771234560000000002
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 771234560000000001}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &771234560000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 771234560000000001}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4a7c97a2b054e0c8d9a5f2362b65b01, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StartSceneTutorialDirector
+  _mainSceneName: Main2_Test
+  _playerPrefsKey: StartSceneTutorialCompleted
+  _rows: 7
+  _columns: 7
+  _placementSlot: {x: 3, y: 3}
+  _fixedCards:
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 0, y: 0}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 0, y: 1}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 0, y: 2}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
+    position: {x: 0, y: 3}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
+    position: {x: 0, y: 4}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 0, y: 5}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+    position: {x: 0, y: 6}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
+    position: {x: 1, y: 0}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 6c5ff3461e3a7c64fb7a46735e174aef, type: 2}
+    position: {x: 1, y: 1}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 1, y: 2}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 6c5ff3461e3a7c64fb7a46735e174aef, type: 2}
+    position: {x: 1, y: 3}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
+    position: {x: 1, y: 4}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 1, y: 5}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 1, y: 6}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 2, y: 0}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 2, y: 1}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 6e6994e4dd0ed744eb6665fb15aaf4b0, type: 2}
+    position: {x: 2, y: 2}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 48f71131d50d0a746b1e52eeef2eba07, type: 2}
+    position: {x: 2, y: 3}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 2, y: 4}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 2, y: 5}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 6e6994e4dd0ed744eb6665fb15aaf4b0, type: 2}
+    position: {x: 2, y: 6}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+    position: {x: 3, y: 0}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+    position: {x: 3, y: 1}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 6e6994e4dd0ed744eb6665fb15aaf4b0, type: 2}
+    position: {x: 3, y: 2}
+    startsActivated: 1
+  - card: {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
+    position: {x: 3, y: 4}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: fd2abe82bd2600e41940f5e0a1b44f9f, type: 2}
+    position: {x: 3, y: 5}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 3, y: 6}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 4, y: 0}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: 0fd7c8752ea2bdb408f570c820b62195, type: 2}
+    position: {x: 4, y: 1}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 4, y: 2}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: ffcfaa0789d9b72418e8ee3d92b932a0, type: 2}
+    position: {x: 4, y: 3}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 4, y: 4}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 4, y: 5}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 4, y: 6}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 5, y: 0}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: b99f0bb34196b7344afd6bc04f608ee4, type: 2}
+    position: {x: 5, y: 1}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+    position: {x: 5, y: 2}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a6ecaa1504750e14882060029ad02830, type: 2}
+    position: {x: 5, y: 3}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 5, y: 4}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 5, y: 5}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: abf26f3e67793114a8faa5311a2960f5, type: 2}
+    position: {x: 5, y: 6}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: e240465966e702d40ade5320a3569edd, type: 2}
+    position: {x: 6, y: 0}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+    position: {x: 6, y: 1}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: a3b49d11829013044a43c98151f916f5, type: 2}
+    position: {x: 6, y: 2}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+    position: {x: 6, y: 3}
+    startsActivated: 1
+  - card: {fileID: 11400000, guid: e240465966e702d40ade5320a3569edd, type: 2}
+    position: {x: 6, y: 4}
+    startsActivated: 0
+  - card: {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+    position: {x: 6, y: 5}
+    startsActivated: 1
+  - card: {fileID: 11400000, guid: c8d5e98b67b47444a9ccade1ba8672ec, type: 2}
+    position: {x: 6, y: 6}
+    startsActivated: 0
+  _tutorialEnemyData: {fileID: 11400000, guid: 62ee41f6055e12e46b0d21f3f2921237, type: 2}
+  _drawCard: {fileID: 11400000, guid: ae60efd8aefbe6b419bab5234d12684e, type: 2}
+  _cardPrefab: {fileID: 1674811531140421914, guid: 0e272834403ce414296f2f8730bfa569, type: 3}
+  _playerStartHp: 1
+  _dialogueLines:
+  - "\uCE74\uB4DC\uC758 \uD654\uC0B4\uD45C\uB294 \uB2E4\uB978 \uCE74\uB4DC\uB97C
+    \uCF1C\uACE0 \uB044\uBA70 \uC5F0\uC1C4\uB97C \uB9CC\uB4ED\uB2C8\uB2E4."
+  - "\uBE44\uC5B4 \uC788\uB294 \uD55C \uCE78\uC5D0 \uC190\uD328\uC758 \uCE74\uB4DC\uB97C
+    \uB193\uC544 \uBCF4\uC138\uC694."
+  - "\uC5F0\uC1C4\uAC00 \uB05D\uB098\uBA74 \uD134 \uC885\uB8CC \uBC84\uD2BC\uC744
+    \uB20C\uB7EC \uC801\uC758 \uACF5\uACA9\uAE4C\uC9C0 \uD655\uC778\uD569\uB2C8\uB2E4."
+  _dialogueGroup: {fileID: 0}
+  _dialogueText: {fileID: 0}
+  _dialogueNextButton: {fileID: 0}
+  _turnEndGuideGroup: {fileID: 0}
+  _turnEndGuideText: {fileID: 0}
 --- !u!1 &779104201234560001
 GameObject:
   m_ObjectHideFlags: 0
@@ -11080,7 +11308,7 @@ MonoBehaviour:
   m_ChildAlignment: 4
   m_StartCorner: 0
   m_StartAxis: 0
-  m_CellSize: {x: 140, y: 140}
+  m_CellSize: {x: 120, y: 120}
   m_Spacing: {x: 14, y: 14}
   m_Constraint: 1
   m_ConstraintCount: 5
@@ -11476,3 +11704,4 @@ SceneRoots:
   - {fileID: 743872838}
   - {fileID: 1139617443}
   - {fileID: 82675638}
+  - {fileID: 771234560000000002}

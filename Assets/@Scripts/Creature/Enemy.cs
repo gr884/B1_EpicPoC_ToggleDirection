@@ -47,7 +47,9 @@ public class Enemy : MonoBehaviour
 
         _view.OnDied -= HandleDied;
         _view.OnDied += HandleDied;
-        _view.Setup(data.displayName, data.maxHp);
+        string displayName = data != null ? data.displayName : "Enemy";
+        int maxHp = data != null ? data.maxHp : 20;
+        _view.Setup(displayName, maxHp);
 
         // 첫 플레이어 턴에 표시할 Intent 로드 (실행 아님)
         RefreshIntent();
@@ -221,7 +223,7 @@ public class Enemy : MonoBehaviour
         }
 
         bool isTutorial = GameManager.Instance != null
-            && GameManager.Instance.CurrentState == GameManager.GameState.Tutorial;
+            && GameManager.Instance.CurrentState == GameManager.GameState.FirstRunTutorial;
 
         if (isTutorial)
             _intentIndex = (_intentIndex + 1) % _data.intentPattern.Count;

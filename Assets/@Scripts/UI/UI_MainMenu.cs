@@ -21,7 +21,7 @@ public class UI_MainMenu : MonoBehaviour
         if (_startButton != null)
             _startButton.onClick.AddListener(OnStartClicked);
         if (_tutorialButton != null)
-            _tutorialButton.onClick.AddListener(OnTutorialClicked);
+            _tutorialButton.gameObject.SetActive(false);
 
         if (_initializeCardMenuOnStart)
             InitializeCardMenu();
@@ -41,9 +41,6 @@ public class UI_MainMenu : MonoBehaviour
     {
         if (_startButton != null)
             _startButton.onClick.RemoveListener(OnStartClicked);
-        if (_tutorialButton != null)
-            _tutorialButton.onClick.RemoveListener(OnTutorialClicked);
-
         if (GameManager.Instance != null)
             GameManager.Instance.OnStateChanged -= OnStateChanged;
     }
@@ -56,11 +53,6 @@ public class UI_MainMenu : MonoBehaviour
     private void OnStartClicked()
     {
         GameManager.Instance.GameStart();
-    }
-
-    private void OnTutorialClicked()
-    {
-        GameManager.Instance.StartTutorial();
     }
 
     public void InitializeCardMenu()

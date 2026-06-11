@@ -45,6 +45,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public CardInstance Instance { get; private set; }
     public bool IsActivated { get; private set; }
     public bool IsEnemy { get; private set; }
+    public bool IsLocked { get; private set; }
     public GridSlot CurrentSlot { get; private set; }
     public int PreserveStack { get; private set; }
     public int ContaminateCurseCount { get; private set; }
@@ -138,6 +139,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
         Data = instance != null ? instance.SourceData : null;
         IsActivated = startsActivated;
         IsEnemy = isEnemy;
+        IsLocked = false;
         CurrentSlot = null;
         PreserveStack = 0;
         ContaminateCurseCount = 0;
@@ -258,7 +260,14 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public void SetDraggable(bool draggable)
     {
         CardDragHandler drag = GetComponent<CardDragHandler>();
-        if (drag != null) drag.SetDraggable(draggable);
+        if (drag != null) drag.SetDraggable(draggable && !IsLocked);
+    }
+
+    public void SetLocked(bool locked)
+    {
+        IsLocked = locked;
+        if (locked)
+            SetDraggable(false);
     }
 
     public void SetSelected(bool selected)
@@ -296,7 +305,7 @@ public class CardView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
     public void OnPointerClick(PointerEventData eventData)
     {
         if (eventData.button != PointerEventData.InputButton.Right) return;
-        if (CurrentSlot == null || IsEnemy) return;
+        if (CurrentSlot == null || IsEnemy || IsLocked) return;
         CardManager.Instance.TryRecallCard(this);
     }
 

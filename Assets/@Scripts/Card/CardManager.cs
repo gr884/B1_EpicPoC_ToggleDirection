@@ -26,6 +26,7 @@ public class CardManager : SingletonBehaviour<CardManager>
     private readonly List<CardData> _discardPileView = new();
     public int DrawPileCount => _drawPile.Count;
     public int DiscardPileCount => _discardPile.Count;
+    public GameObject CardPrefab => _cardPrefab;
     public IReadOnlyList<CardData> DrawPile
     {
         get
@@ -257,7 +258,6 @@ public class CardManager : SingletonBehaviour<CardManager>
         _firstPlacedCard = null;
         DiscardHand();
         DrawToHand(_player.HandSize);
-        TutorialManager.Instance?.OnHandDrawn();
     }
 
     public void DiscardHand()
@@ -376,8 +376,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (isRecaller && targetSlot.IsEmpty) return false;
         // 조작형은 적 카드 회수 불가
         if (isRecaller && targetSlot.OccupiedCard != null && targetSlot.OccupiedCard.IsEnemy) return false;
-        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && !TutorialManager.Instance.CanPlaceCard(card, targetSlot)) return false;
+        StartSceneTutorialDirector tutorial = StartSceneTutorialDirector.Instance;
+        if (tutorial != null && tutorial.IsRunning && !tutorial.CanPlaceCard(card, targetSlot)) return false;
 
         return _player != null && _player.CanSpend(card.Data.cost);
     }
@@ -400,8 +400,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (isRecaller && targetSlot.IsEmpty) return false;
         // 조작형은 적 카드 회수 불가
         if (isRecaller && targetSlot.OccupiedCard != null && targetSlot.OccupiedCard.IsEnemy) return false;
-        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && !TutorialManager.Instance.CanPlaceCard(card, targetSlot)) return false;
+        StartSceneTutorialDirector tutorial = StartSceneTutorialDirector.Instance;
+        if (tutorial != null && tutorial.IsRunning && !tutorial.CanPlaceCard(card, targetSlot)) return false;
         if (!_player.SpendCost(card.Data.cost)) return false;
 
         if (isChainExecuting)
@@ -440,7 +440,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         if (_firstPlacedCard == null)
             _firstPlacedCard = card;
 
-        TutorialManager.Instance?.OnCardPlaced(card);
+        tutorial?.OnCardPlaced(card);
         ChainExecutor.Instance.ExecutePlacedCard(card);
         return true;
     }
@@ -467,7 +467,7 @@ public class CardManager : SingletonBehaviour<CardManager>
         card.SetDraggable(false);
         _hand.Remove(card);
         OnHandChanged?.Invoke();
-        TutorialManager.Instance?.OnCardPlaced(card);
+        StartSceneTutorialDirector.Instance?.OnCardPlaced(card);
     }
 
     private void ResolveNextPendingPlacement()
@@ -515,8 +515,8 @@ public class CardManager : SingletonBehaviour<CardManager>
         OnHandChanged?.Invoke();
     }
 
-    /// <summary>튜토리얼 전용 고정 덱을 세팅합니다.</summary>
-    public void SetTutorialDeck(System.Collections.Generic.List<CardData> cards)
+    /// <summary>고정 순서 드로우 덱을 세팅합니다.</summary>
+    public void SetFixedDrawDeck(System.Collections.Generic.List<CardData> cards)
     {
         _drawPile.Clear();
         _discardPile.Clear();

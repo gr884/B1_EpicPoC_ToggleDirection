@@ -89,14 +89,17 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     public void ConfirmPlayerTurn()
     {
         if (CurrentPhase != BattlePhase.PlayerTurn || IsProcessing) return;
-        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && !TutorialManager.Instance.CanConfirm()) return;
 
-        TutorialManager.Instance?.OnTurnConfirmed();
+        StartSceneTutorialDirector tutorial = StartSceneTutorialDirector.Instance;
+        if (tutorial != null && tutorial.IsRunning)
+        {
+            if (!tutorial.CanConfirmTurn()) return;
+            tutorial.OnTurnConfirmed();
+        }
 
-        // 튜토리얼에서는 보존 선택 UI 건너뜀
-        bool isTutorial = GameManager.Instance.CurrentState == GameManager.GameState.Tutorial;
-        if (isTutorial)
+        // 첫 실행 튜토리얼에서는 보존 선택 UI 건너뜀
+        bool isFirstRunTutorial = GameManager.Instance.CurrentState == GameManager.GameState.FirstRunTutorial;
+        if (isFirstRunTutorial)
         {
             EnterPhase(BattlePhase.ResolvingPlayerTurn);
             StartCoroutine(PlayerTurnRoutine());
@@ -115,7 +118,7 @@ public class BattleManager : SingletonBehaviour<BattleManager>
         StartCoroutine(PlayerTurnRoutine());
     }
 
-    public void StartTutorialBattle(EnemyDataSO enemyData)
+    public void StartFirstRunTutorialBattle(EnemyDataSO enemyData)
     {
         _player.OnDied -= HandlePlayerDied;
         _enemy.OnDied -= HandleEnemyDied;
@@ -284,27 +287,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
 
         EnterPhase(BattlePhase.PlayerTurn);
 
-        // 튜토리얼: 적이 살아있으면 재시도
-        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && TutorialManager.Instance != null)
-        {
-            if (TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free
-                && !_enemy.IsDead)
-            {
-                TutorialManager.Instance.OnTurn3FreeFailed();
-                IsProcessing = false;
-                yield break;
-            }
-
-            if (TutorialManager.Instance.CurrentStep == TutorialStep.Turn2_Place
-                && !_enemy.IsDead)
-            {
-                TutorialManager.Instance.OnTurn2Failed();
-                IsProcessing = false;
-                yield break;
-            }
-        }
-
         CardManager.Instance.DiscardAndDraw();
         IsProcessing = false;
     }
@@ -314,14 +296,6 @@ public class BattleManager : SingletonBehaviour<BattleManager>
     private void HandlePlayerDied() => StartCoroutine(EndBattleRoutine(false));
     private void HandleEnemyDied()
     {
-        TutorialManager.Instance?.OnEnemyDefeated();
-
-        if (GameManager.Instance.CurrentState == GameManager.GameState.Tutorial
-            && TutorialManager.Instance != null
-            && (TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Guided
-                || TutorialManager.Instance.CurrentStep == TutorialStep.Turn3_Free))
-            return;
-
         StartCoroutine(EndBattleRoutine(true));
     }
 

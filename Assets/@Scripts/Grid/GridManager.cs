@@ -84,6 +84,13 @@ public class GridManager : SingletonBehaviour<GridManager>
         return SpawnEnemyCard(data, cardPrefab, slot, startsActivated);
     }
 
+    public CardView PlacePlayerCard(CardData data, GameObject cardPrefab, Vector2Int position, bool startsActivated = false, bool locked = false)
+    {
+        GridSlot slot = GetSlot(position);
+        if (slot == null || !slot.IsEmpty) return null;
+        return SpawnPlayerCard(data, cardPrefab, slot, startsActivated, locked);
+    }
+
     /// <summary>
     /// 빈 슬롯 중 랜덤한 위치에 적 카드 한 장 배치.
     /// </summary>
@@ -199,6 +206,21 @@ public class GridManager : SingletonBehaviour<GridManager>
 
         card.Initialize(data, isEnemy: true, startsActivated: startsActivated);
         card.SetDraggable(false);
+        card.ApplyGridLayout();
+
+        slot.AssignCard(card);
+        return card;
+    }
+
+    private CardView SpawnPlayerCard(CardData data, GameObject cardPrefab, GridSlot slot, bool startsActivated, bool locked)
+    {
+        GameObject obj = PoolManager.Instance.Get(cardPrefab, slot.transform);
+        CardView card = obj.GetComponent<CardView>();
+        if (card == null) return null;
+
+        card.Initialize(data, isEnemy: false, startsActivated: startsActivated);
+        card.SetLocked(locked);
+        card.SetDraggable(!locked);
         card.ApplyGridLayout();
 
         slot.AssignCard(card);

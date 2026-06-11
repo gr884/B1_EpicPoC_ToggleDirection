@@ -30,8 +30,8 @@ public class GameFlowManager : SingletonBehaviour<GameFlowManager>
                 BattleManager.Instance.StartBattle();
                 break;
 
-            case GameManager.GameState.Tutorial:
-                // TutorialManager가 OnStateChanged 구독해서 직접 처리
+            case GameManager.GameState.FirstRunTutorial:
+                // StartSceneTutorialDirector가 직접 처리
                 break;
 
             case GameManager.GameState.GameOver:

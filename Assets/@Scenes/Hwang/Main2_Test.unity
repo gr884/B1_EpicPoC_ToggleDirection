@@ -5978,14 +5978,13 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3705588463999848433}
-  - component: {fileID: 7270467450042635865}
   m_Layer: 0
   m_Name: TutorialManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &389387913748240413
 RectTransform:
   m_ObjectHideFlags: 0
@@ -6194,22 +6193,6 @@ RectTransform:
   m_AnchoredPosition: {x: -291.99994, y: -117}
   m_SizeDelta: {x: 70, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &605937624730875394
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 5235103668886410703}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 0ce8e332f05fd934aabcecdcdd615cc0, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::UI_TutorialPopup
-  _canvasGroup: {fileID: 5484810448294002772}
-  _messageText: {fileID: 4681465350720922008}
-  _confirmButton: {fileID: 4643139494494676610}
-  _confirmButtonText: {fileID: 1087303666559617891}
 --- !u!1 &618948951922336437
 GameObject:
   m_ObjectHideFlags: 0
@@ -10834,14 +10817,13 @@ GameObject:
   m_Component:
   - component: {fileID: 7540410703646570376}
   - component: {fileID: 5484810448294002772}
-  - component: {fileID: 605937624730875394}
   m_Layer: 5
   m_Name: UI_TutorialPopup
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!224 &5301146216771982241
 RectTransform:
   m_ObjectHideFlags: 0
@@ -10976,7 +10958,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!114 &5469925720748020113
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12275,143 +12257,6 @@ RectTransform:
   m_AnchoredPosition: {x: -238.99994, y: 223}
   m_SizeDelta: {x: 70, y: 70}
   m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &7270467450042635865
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 336010901188883838}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9341623e29ea1f84caa5fd67e142c3f6, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::TutorialManager
-  _tutorialEnemyData: {fileID: 11400000, guid: e0945575906e9ba4cb6d45a9f2ce2e1a, type: 2}
-  _turn3EnemyData: {fileID: 11400000, guid: 62ee41f6055e12e46b0d21f3f2921237, type: 2}
-  _turn3RightCard: {fileID: 11400000, guid: 20670fb3304761246b28fef23c9e0121, type: 2}
-  _turn3LeftCard: {fileID: 11400000, guid: 10c917e10f0bf254d95e22a6af17f8c1, type: 2}
-  _tutorialDeck:
-  - {fileID: 11400000, guid: f471dbcd90b6dc146b4ecf9fca871c61, type: 2}
-  - {fileID: 11400000, guid: c66e5fa00e961ee4e9b00a6707a275e5, type: 2}
-  - {fileID: 11400000, guid: f7b9d43f3f3fdc6479a9b87d5d2f7e8e, type: 2}
-  - {fileID: 11400000, guid: 1e2463275567bc240bbf7de8768c4e68, type: 2}
-  - {fileID: 11400000, guid: 972763e1001ff9349abf0ffcbd02277f, type: 2}
-  - {fileID: 11400000, guid: 2a265fc760c45d3489234e3d83d3ee1f, type: 2}
-  _stepRules:
-  - step: 0
-    placementRules: []
-    wrongCardMessage: 
-    blockedCards: []
-    highlightObjects:
-    - {fileID: 4233935385572647884}
-  - step: 1
-    placementRules:
-    - card: {fileID: 11400000, guid: f471dbcd90b6dc146b4ecf9fca871c61, type: 2}
-      slot: {x: 1, y: 1}
-    wrongCardMessage: 
-    blockedCards: []
-    highlightObjects: []
-  - step: 2
-    placementRules: []
-    wrongCardMessage: 
-    blockedCards: []
-    highlightObjects:
-    - {fileID: 6694233091088990314}
-    - {fileID: 1013446399945996691}
-  - step: 3
-    placementRules:
-    - card: {fileID: 11400000, guid: c66e5fa00e961ee4e9b00a6707a275e5, type: 2}
-      slot: {x: 2, y: 1}
-    - card: {fileID: 11400000, guid: f7b9d43f3f3fdc6479a9b87d5d2f7e8e, type: 2}
-      slot: {x: 1, y: 2}
-    wrongCardMessage: 
-    blockedCards: []
-    highlightObjects:
-    - {fileID: 6737614747241567321}
-  - step: 4
-    placementRules: []
-    wrongCardMessage: 
-    blockedCards: []
-    highlightObjects:
-    - {fileID: 5561963294278532493}
-    - {fileID: 6737614747241567321}
-  - step: 6
-    placementRules:
-    - card: {fileID: 11400000, guid: 1e2463275567bc240bbf7de8768c4e68, type: 2}
-      slot: {x: 2, y: 2}
-    - card: {fileID: 11400000, guid: 972763e1001ff9349abf0ffcbd02277f, type: 2}
-      slot: {x: 2, y: 1}
-    - card: {fileID: 11400000, guid: 2a265fc760c45d3489234e3d83d3ee1f, type: 2}
-      slot: {x: 1, y: 2}
-    wrongCardMessage: "\uACF5\uACA9 \uCE74\uB4DC\uB97C \uBA3C\uC800 \uBC30\uCE58\uD574\uC11C
-      \uACF5\uACA9 \uCE74\uB4DC\uB97C OFF \u2192 ON \uC2DC\uCF1C\uC57C \uD569\uB2C8\uB2E4!\n\n\uACF5\uACA9
-      \uCE74\uB4DC \uD65C\uC131\uD654\uB97C \uB9CE\uC774 \uC2DC\uCF1C\uC57C \uC801\uC758
-      \uBC29\uC5B4\uB97C \uB6AB\uC744 \uC218 \uC788\uB2E4\uAD6C\uC694!!"
-    blockedCards:
-    - {fileID: 11400000, guid: 972763e1001ff9349abf0ffcbd02277f, type: 2}
-    - {fileID: 11400000, guid: 2a265fc760c45d3489234e3d83d3ee1f, type: 2}
-    highlightObjects: []
---- !u!114 &7292297093697588302
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1192655332939013816}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 0.392}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 10907, guid: 0000000000000000f000000000000000, type: 0}
-  m_Type: 1
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!114 &7311683570041620353
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4233935385572647884}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: UnityEngine.UI::UnityEngine.UI.Image
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 21300000, guid: a200830e744341b41bd1343a4b281de2, type: 3}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
 --- !u!222 &7370748370643964721
 CanvasRenderer:
   m_ObjectHideFlags: 0

@@ -1,0 +1,43 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3cf5bfc9ffecaba4db576fdd2c1f2f09, type: 3}
+  m_Name: Shield_Left+UpItem
+  m_EditorClassIdentifier: Assembly-CSharp::ItemData
+  cardId: 
+  displayName: "\uBC29\uD328"
+  description: "\uBC29\uC5B4\uB3C4 + 5"
+  cost: 1
+  isUnplayable: 0
+  isCurseCard: 0
+  curseDamage: 3
+  isRecaller: 0
+  hasAutoTrigger: 0
+  autoTriggerThreshold: 1
+  isCastingCard: 0
+  castingRequiredCount: 3
+  isCapacitorCard: 0
+  capacitorChargeRequired: 3
+  capacitorDischargeCount: 1
+  range: 1
+  recallDestination: 0
+  directions: 08000000
+  effects:
+  - trigger: 0
+    scope: 0
+    thresholdType: 0
+    threshold: 0
+    effect: {fileID: 11400000, guid: eee33e757292ff64f8fbd9b5ed0c8ea4, type: 2}
+    _legacyEffectType: 1
+    value: 5
+    secondaryValue: 0
+  totemAuraOffsets: []
+  icon: {fileID: 7544613302241952520, guid: 7d7db3a0e775d8d4aa0f7fb5f7257b3d, type: 3}

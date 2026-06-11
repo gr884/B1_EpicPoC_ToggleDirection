@@ -41,8 +41,9 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         if (Card.CurrentSlot != null) return;
         if (!CanDragHandCardInput()) return;
 
-        // 튜토리얼에서 막힌 카드면 드래그 차단
-        if (TutorialManager.Instance != null && !TutorialManager.Instance.CanDragCard(Card))
+        // 첫 실행 튜토리얼에서 막힌 카드면 드래그 차단
+        StartSceneTutorialDirector tutorial = StartSceneTutorialDirector.Instance;
+        if (tutorial != null && tutorial.IsRunning && !tutorial.CanDragCard(Card))
             return;
 
         _rootCanvas = GetComponentInParent<Canvas>();
@@ -62,7 +63,7 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         _canvasGroup.blocksRaycasts = false;
         _canvasGroup.alpha = 0.75f;
 
-        TutorialManager.Instance?.OnCardDragBegin(Card);
+        tutorial?.OnCardDragBegin(Card);
     }
 
     public void OnDrag(PointerEventData eventData)
@@ -193,6 +194,6 @@ public class CardDragHandler : MonoBehaviour, IBeginDragHandler, IDragHandler, I
         }
 
         _rootCanvas = null;
-        TutorialManager.Instance?.OnCardDragCancelled(Card);
+        StartSceneTutorialDirector.Instance?.OnCardDragCancelled(Card);
     }
 }
