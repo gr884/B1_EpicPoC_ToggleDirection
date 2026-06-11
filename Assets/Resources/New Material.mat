@@ -41,7 +41,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _BlurStrength: 0.034928523
+    - _BlurStrength: 0.00809997
     - _ColorMask: 15
     - _EnableExternalAlpha: 0
     - _SampleCount: 10
