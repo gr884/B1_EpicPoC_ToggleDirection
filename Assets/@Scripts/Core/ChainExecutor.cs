@@ -42,6 +42,10 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
     // ON 상태에서 꺼지지 않아야 하는 카드 집합 (축전기 방전 중 등)
     private readonly HashSet<CardView> _onLockedCards = new();
 
+    // 효과 SO들이 체인 환경에 접근하는 컨텍스트 (재사용)
+    private EffectContext _effectContext;
+    private EffectContext EffectCtx => _effectContext ??= new EffectContext(this);
+
     public int GetTotemDamageBonus(CardView card) => _totemSystem != null ? _totemSystem.GetDamageBonus(card) : 0;
     public int GetTotemDefenseBonus(CardView card) => _totemSystem != null ? _totemSystem.GetDefenseBonus(card) : 0;
 
@@ -199,6 +203,9 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
 
     // ── 폭발형 ────────────────────────────────────────────
 
+    // EffectContext용 public 위임 래퍼
+    public IEnumerator RunExplodeChainPublic(CardView card) => ApplyExplodeEffect(card);
+
     private IEnumerator ApplyExplodeEffect(CardView card)
     {
         if (card?.Data == null || card.CurrentSlot == null) yield break;
@@ -346,7 +353,7 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
                             foreach (CardEffect effect in current.Data.effects)
                             {
                                 if (effect.trigger != EffectTrigger.OnActivated) continue;
-                                if (effect.effectType != EffectType.Replay) continue;
+                                if (effect.EffectTypeId != EffectType.Replay) continue;
                                 yield return ApplyReplayEffect(current);
                             }
                         }
@@ -678,14 +685,14 @@ public partial class ChainExecutor : SingletonBehaviour<ChainExecutor>
         {
             foreach (var effect in card.Data.effects)
             {
-                if (effect.effectType == EffectType.CastingDamage)
+                if (effect.EffectTypeId == EffectType.CastingDamage)
                 {
                     float adjusted = GetTotemAdjustedValue(card, EffectType.CastingDamage, effect.value);
                     int baseDmg = Mathf.Max(1, Mathf.RoundToInt(adjusted));
                     int finalDmg = runtime != null ? runtime.GetModifiedDamage(baseDmg) : baseDmg;
                     DealDamageToEnemy(finalDmg);
                 }
-                else if (effect.effectType == EffectType.CastingDefense)
+                else if (effect.EffectTypeId == EffectType.CastingDefense)
                 {
                     float adjusted = GetTotemAdjustedValue(card, EffectType.Defense, effect.value);
                     int baseDef = Mathf.Max(1, Mathf.RoundToInt(adjusted));

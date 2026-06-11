@@ -152,7 +152,7 @@ public class TotemAuraSystem : MonoBehaviour
         int total = 0;
         foreach (CardEffect effect in data.effects)
         {
-            if (effect.effectType != auraType) continue;
+            if (effect.EffectTypeId != auraType) continue;
             total += Mathf.RoundToInt(effect.value);
         }
 
@@ -169,7 +169,7 @@ public class TotemAuraSystem : MonoBehaviour
         if (data?.effects == null) return false;
 
         foreach (CardEffect effect in data.effects)
-            if (effect.effectType == effectType)
+            if (effect.EffectTypeId == effectType)
                 return true;
 
         return false;

@@ -107,9 +107,12 @@ public class CardEffect
     public int threshold;
 
     [Header("효과")]
-    public EffectType effectType;
+    public CardEffectBase effect; // 효과 SO 에셋을 드래그해 지정
     public float value;
     public float secondaryValue; // DefenseOnOff의 OFF 방어값 등
+
+    // 비주얼/토템/캐스팅 시스템이 쓰는 효과 식별자 (effect가 비어있으면 None 취급)
+    public EffectType EffectTypeId => effect != null ? effect.EffectTypeId : default;
 }
 
 [CreateAssetMenu(menuName = "Game/Card Data", fileName = "CardData")]
@@ -141,7 +144,7 @@ public class CardData : ScriptableObject
     [Header("Capacitor")]
     public bool isCapacitorCard = false;
     public int capacitorChargeRequired = 3;  // ON이 되기 위한 트리거 횟수
-    public int capacitorDischargeCount = 3;  // ON 후 화살표 방향 트리거 실행 횟수 N
+    public int capacitorDischargeCount = 1;  // ON 후 화살표 방향 트리거 실행 횟수 N
 
     [Header("Range")]
     [Min(1)] public int range = 1;
